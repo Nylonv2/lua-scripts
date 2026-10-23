@@ -36,6 +36,7 @@
         </div>
         <form class="composer" id="composer" autocomplete="off">
           <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
+          <button type="button" id="mic" class="mic" aria-label="Talk with your voice" hidden>🎙</button>
           <button type="submit" aria-label="Send">➤</button>
         </form>
       </section>
@@ -75,6 +76,10 @@
               <option value="neutral">Neither (good job)</option>
             </select>
           </label>
+
+          <h2>Voice</h2>
+          <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
+          <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
 
           <h2>Check-ins</h2>
           <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>

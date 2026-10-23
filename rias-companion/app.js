@@ -55,7 +55,7 @@
     greeted: {},    // { date: true }
     snoozes: [],    // [{ id, at }]
     messages: [],   // [{ id, from, text, ts, itemId? }]
-    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral' },
+    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true },
     lastRias: 0,
   });
 
@@ -137,8 +137,55 @@
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
+    if (from === 'rias') speak(text);
     return m;
   }
+
+  // ---------- voice ----------
+  // Out loud: Android's text-to-speech inside the app, the Web Speech API in browsers.
+  // Listening: Android's voice typing inside the app, SpeechRecognition where the browser has it.
+  const WebRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let spokeLast = false; // you talked by voice, so she answers out loud even if voice is off
+
+  function speak(text) {
+    if (document.hidden || !(state.settings.voice !== false || spokeLast)) return;
+    const clean = text.replace(/[~•]/g, '').replace(/…/g, '...').replace(/:?\n+/g, '. ');
+    const N = window.RiasNative;
+    if (N && N.speak) { try { N.speak(clean); } catch { /* no TTS engine */ } return; }
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(clean);
+    const voices = speechSynthesis.getVoices().filter((v) => v.lang.startsWith('en'));
+    u.voice = voices.find((v) => /female|samantha|victoria|karen|serena|zira|aria|jenny|libby|sonia|google uk english female/i.test(v.name)) || voices[0] || null;
+    u.pitch = 1.05;
+    u.rate = 0.95;
+    speechSynthesis.speak(u);
+  }
+  function stopSpeaking() {
+    const N = window.RiasNative;
+    if (N && N.stopSpeaking) { try { N.stopSpeaking(); } catch { /* ignore */ } }
+    else if ('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+  const canListen = () => {
+    const N = window.RiasNative;
+    if (N && N.canListen) { try { return N.canListen(); } catch { return false; } }
+    return !!WebRecognition;
+  };
+  function listen() {
+    stopSpeaking();
+    const N = window.RiasNative;
+    if (N && N.listen) { N.listen(); return; }
+    if (!WebRecognition) return;
+    const rec = new WebRecognition();
+    rec.lang = navigator.language || 'en-US';
+    rec.interimResults = false;
+    $('#mic').classList.add('on');
+    rec.onresult = (e) => window.riasHeard(e.results[0][0].transcript);
+    rec.onend = () => $('#mic').classList.remove('on');
+    rec.onerror = () => $('#mic').classList.remove('on');
+    rec.start();
+  }
+  // Called by the Android app (and the web recognizer) with what you said.
+  window.riasHeard = (text) => { spokeLast = true; userSays(text); };
 
   async function notify(body, tag) {
     if (!state.settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
@@ -405,8 +452,10 @@
       renderStatus();
     }, 600 + Math.random() * 700);
   }
-  $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); userSays(i.value); i.value = ''; });
-  $('#quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) userSays(b.dataset.say); });
+  $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); spokeLast = false; userSays(i.value); i.value = ''; });
+  $('#mic').hidden = !canListen();
+  $('#mic').addEventListener('click', listen);
+  $('#quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { spokeLast = false; userSays(b.dataset.say); } });
   feed.addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]');
     if (!b) return;
@@ -562,12 +611,13 @@
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.praise.value = state.settings.praise || 'neutral';
+    sf.elements.voice.checked = state.settings.voice !== false;
     notifyHint();
   }
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
-    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value });
+    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked });
     save();
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
     show('chat');

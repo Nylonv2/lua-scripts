@@ -7,6 +7,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.speech.RecognizerIntent;
+import android.speech.tts.TextToSpeech;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -14,10 +16,17 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+
 /** Hosts the web app (assets/www) full screen and exposes a small bridge as window.RiasNative. */
 public class MainActivity extends Activity {
     static volatile boolean visible;
+    private static final int REQ_LISTEN = 42;
     private WebView web;
+    private TextToSpeech tts;
+    private volatile boolean ttsReady;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +54,17 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        web.addJavascriptInterface(new Bridge(getApplicationContext()), "RiasNative");
+        // Anonymous classes rather than lambdas: dx can't convert lambdas.
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status != TextToSpeech.SUCCESS) return;
+                tts.setPitch(1.05f);
+                tts.setSpeechRate(0.95f);
+                ttsReady = true;
+            }
+        });
+        web.addJavascriptInterface(new Bridge(this), "RiasNative");
         setContentView(web);
         web.loadUrl("file:///android_asset/www/index.html");
     }
@@ -60,6 +79,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         visible = false;
+        if (tts != null) tts.stop();
         web.onPause();
         super.onPause();
     }
@@ -67,15 +87,64 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         visible = false;
+        if (tts != null) tts.shutdown();
         web.destroy();
         super.onDestroy();
     }
 
-    static final class Bridge {
-        private final Context ctx;
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_LISTEN || resultCode != RESULT_OK || data == null) return;
+        ArrayList<String> heard = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+        if (heard == null || heard.isEmpty()) return;
+        web.evaluateJavascript("window.riasHeard && window.riasHeard(" + JSONObject.quote(heard.get(0)) + ")", null);
+    }
 
-        Bridge(Context ctx) {
-            this.ctx = ctx;
+    private Intent listenIntent() {
+        return new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                .putExtra(RecognizerIntent.EXTRA_PROMPT, "Talk to Rias");
+    }
+
+    static final class Bridge {
+        private final MainActivity activity;
+        private final Context ctx;
+        private int utterance;
+
+        Bridge(MainActivity activity) {
+            this.activity = activity;
+            this.ctx = activity.getApplicationContext();
+        }
+
+        @JavascriptInterface
+        public void speak(String text) {
+            if (activity.ttsReady) {
+                activity.tts.speak(text, TextToSpeech.QUEUE_ADD, null, "rias" + (utterance++));
+            }
+        }
+
+        @JavascriptInterface
+        public void stopSpeaking() {
+            if (activity.ttsReady) activity.tts.stop();
+        }
+
+        @JavascriptInterface
+        public boolean canListen() {
+            return !ctx.getPackageManager().queryIntentActivities(activity.listenIntent(), 0).isEmpty();
+        }
+
+        @JavascriptInterface
+        public void listen() {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        activity.startActivityForResult(activity.listenIntent(), REQ_LISTEN);
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
         }
 
         @JavascriptInterface
