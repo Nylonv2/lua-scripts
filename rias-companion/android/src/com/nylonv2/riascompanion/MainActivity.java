@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -16,6 +17,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -27,6 +29,9 @@ public class MainActivity extends Activity {
     private WebView web;
     private TextToSpeech tts;
     private volatile boolean ttsReady;
+    // Voice settings from the web app; applied once the speech engine is ready.
+    private String voiceName = "";
+    private float pitch = 0.95f, rate = 0.9f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,9 +64,8 @@ public class MainActivity extends Activity {
             @Override
             public void onInit(int status) {
                 if (status != TextToSpeech.SUCCESS) return;
-                tts.setPitch(1.05f);
-                tts.setSpeechRate(0.95f);
                 ttsReady = true;
+                applyVoice();
             }
         });
         web.addJavascriptInterface(new Bridge(this), "RiasNative");
@@ -101,6 +105,22 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("window.riasHeard && window.riasHeard(" + JSONObject.quote(heard.get(0)) + ")", null);
     }
 
+    private synchronized void applyVoice() {
+        if (!ttsReady) return;
+        tts.setPitch(pitch);
+        tts.setSpeechRate(rate);
+        if (voiceName.isEmpty()) return;
+        try {
+            for (Voice v : tts.getVoices()) {
+                if (v.getName().equals(voiceName)) {
+                    tts.setVoice(v);
+                    return;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     private Intent listenIntent() {
         return new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                 .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -122,6 +142,39 @@ public class MainActivity extends Activity {
             if (activity.ttsReady) {
                 activity.tts.speak(text, TextToSpeech.QUEUE_ADD, null, "rias" + (utterance++));
             }
+        }
+
+        @JavascriptInterface
+        public void configure(String name, double pitch, double rate) {
+            synchronized (activity) {
+                activity.voiceName = name == null ? "" : name;
+                activity.pitch = (float) pitch;
+                activity.rate = (float) rate;
+            }
+            activity.applyVoice();
+        }
+
+        /** Installed voices as JSON: [{name, lang, label}]. */
+        @JavascriptInterface
+        public String voices() {
+            JSONArray out = new JSONArray();
+            if (!activity.ttsReady) return out.toString();
+            try {
+                int n = 0;
+                for (Voice v : activity.tts.getVoices()) {
+                    if (v.getFeatures() != null && v.getFeatures().contains("notInstalled")) continue;
+                    String lang = v.getLocale().toLanguageTag();
+                    String where = v.isNetworkConnectionRequired() ? "online" : "offline";
+                    JSONObject o = new JSONObject();
+                    o.put("name", v.getName());
+                    o.put("lang", lang);
+                    o.put("label", v.getLocale().getDisplayName() + " · " + v.getName() + " (" + where + ")");
+                    out.put(o);
+                    if (++n >= 150) break;
+                }
+            } catch (Exception ignored) {
+            }
+            return out.toString();
         }
 
         @JavascriptInterface

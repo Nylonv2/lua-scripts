@@ -55,7 +55,7 @@
     greeted: {},    // { date: true }
     snoozes: [],    // [{ id, at }]
     messages: [],   // [{ id, from, text, ts, itemId? }]
-    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true },
+    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9 },
     lastRias: 0,
   });
 
@@ -147,17 +147,46 @@
   const WebRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let spokeLast = false; // you talked by voice, so she answers out loud even if voice is off
 
-  function speak(text) {
-    if (document.hidden || !(state.settings.voice !== false || spokeLast)) return;
+  // Her default sound: a touch lower and slower than normal, calm and confident.
+  const RIAS_PITCH = 0.95, RIAS_RATE = 0.9;
+  const voiceOpts = () => ({
+    name: state.settings.voiceName || '',
+    pitch: state.settings.voicePitch ?? RIAS_PITCH,
+    rate: state.settings.voiceRate ?? RIAS_RATE,
+  });
+  // Voices on this device: [{ name, label }], English first.
+  function listVoices() {
+    const N = window.RiasNative;
+    let list = [];
+    if (N && N.voices) { try { list = JSON.parse(N.voices()); } catch { list = []; } }
+    else if ('speechSynthesis' in window) list = speechSynthesis.getVoices().map((v) => ({ name: v.name, lang: v.lang, label: `${v.name} (${v.lang})` }));
+    const en = (v) => (/^en/i.test(v.lang) ? 0 : 1);
+    return list.sort((a, b) => en(a) - en(b) || a.label.localeCompare(b.label));
+  }
+  // Best guess at a mature female English voice when none is chosen (browsers only;
+  // Android's names don't say, so the phone's default is used there).
+  const autoWebVoice = (voices) => {
+    const en = voices.filter((v) => v.lang.startsWith('en'));
+    return en.find((v) => /uk english female|serena|victoria|karen|samantha|sonia|libby|aria|jenny|zira|female/i.test(v.name)) || en[0] || null;
+  };
+  function applyNativeVoice() {
+    const N = window.RiasNative;
+    if (!N || !N.configure) return;
+    const o = voiceOpts();
+    try { N.configure(o.name, o.pitch, o.rate); } catch { /* older app */ }
+  }
+  function speak(text, force) {
+    if (!force && (document.hidden || !(state.settings.voice !== false || spokeLast))) return;
     const clean = text.replace(/[~•]/g, '').replace(/…/g, '...').replace(/:?\n+/g, '. ');
     const N = window.RiasNative;
     if (N && N.speak) { try { N.speak(clean); } catch { /* no TTS engine */ } return; }
     if (!('speechSynthesis' in window)) return;
+    const o = voiceOpts();
     const u = new SpeechSynthesisUtterance(clean);
-    const voices = speechSynthesis.getVoices().filter((v) => v.lang.startsWith('en'));
-    u.voice = voices.find((v) => /female|samantha|victoria|karen|serena|zira|aria|jenny|libby|sonia|google uk english female/i.test(v.name)) || voices[0] || null;
-    u.pitch = 1.05;
-    u.rate = 0.95;
+    const voices = speechSynthesis.getVoices();
+    u.voice = voices.find((v) => v.name === o.name) || autoWebVoice(voices);
+    u.pitch = o.pitch;
+    u.rate = o.rate;
     speechSynthesis.speak(u);
   }
   function stopSpeaking() {
@@ -612,16 +641,45 @@
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
+    fillVoices();
+    const o = voiceOpts();
+    sf.elements.voicePitch.value = o.pitch;
+    sf.elements.voiceRate.value = o.rate;
     notifyHint();
   }
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
-    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked });
+    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
+      voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
+    applyNativeVoice();
     save();
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
     show('chat');
   });
+  function fillVoices() {
+    const sel = sf.elements.voiceName;
+    const voices = listVoices();
+    sel.textContent = '';
+    sel.append(new Option('Automatic', ''));
+    for (const v of voices) sel.append(new Option(v.label, v.name));
+    sel.value = voices.some((v) => v.name === state.settings.voiceName) ? state.settings.voiceName : '';
+  }
+  if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { if (!$('#view-settings').hidden) fillVoices(); });
+  // Try the voice settings on the form before saving them.
+  $('#hear').addEventListener('click', () => {
+    const saved = { ...state.settings };
+    Object.assign(state.settings, { voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
+    stopSpeaking();
+    applyNativeVoice();
+    speak(say(pick(praiseLines())), true);
+    state.settings = saved;
+  });
+  $('#voice-reset').addEventListener('click', () => {
+    sf.elements.voicePitch.value = RIAS_PITCH;
+    sf.elements.voiceRate.value = RIAS_RATE;
+  });
+
   $('#perm').addEventListener('click', async () => {
     if (Native) Native.openSettings();
     else if ('Notification' in window) await Notification.requestPermission();
@@ -674,6 +732,7 @@
   });
 
   // ---------- boot ----------
+  applyNativeVoice();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   renderFeed();

@@ -80,6 +80,18 @@
           <h2>Voice</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
+          <label>Her voice
+            <select name="voiceName"></select>
+          </label>
+          <div class="row">
+            <label>Pitch <input name="voicePitch" type="range" min="0.6" max="1.4" step="0.05"></label>
+            <label>Speed <input name="voiceRate" type="range" min="0.6" max="1.3" step="0.05"></label>
+          </div>
+          <div class="row">
+            <button type="button" id="hear">▶ Hear her</button>
+            <button type="button" id="voice-reset">Rias defaults</button>
+          </div>
+          <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
 
           <h2>Check-ins</h2>
           <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
