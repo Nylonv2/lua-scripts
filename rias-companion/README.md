@@ -22,6 +22,15 @@ step. You install it from your phone's browser.
 - **Private.** Everything is stored on your phone (localStorage). There's no server
   and no account.
 
+## Quickest way to open it
+
+Download **`Rias.html`** and open it in Chrome, Safari or Edge. It's the whole app in
+one file, so nothing else is needed. Notifications and "install as an app" don't work
+this way. Use the phone setup below for those.
+
+`Rias.html` is generated from the other files. After changing them, rebuild it with
+`python3 build_standalone.py`.
+
 ## Put it on your phone
 
 The app has to be served over HTTPS so notifications and installing work. The

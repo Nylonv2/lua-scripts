@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16090e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Rias">
+  <title>Rias Companion</title>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" type="image/svg+xml">
+  <style>
+:root {
+  --bg: #16090e;
+  --panel: #23111a;
+  --panel-2: #301723;
+  --line: #4a2333;
+  --text: #f6e9ee;
+  --muted: #b896a4;
+  --crimson: #c8173a;
+  --crimson-2: #e8395a;
+  --gold: #e3b866;
+  --ok: #5fc48a;
+  --radius: 18px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: radial-gradient(120% 60% at 50% 0%, #3a0f1f 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+.app {
+  display: flex; flex-direction: column;
+  height: 100dvh; max-width: 640px; margin: 0 auto;
+}
+
+/* Header */
+.top {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(22, 9, 14, .85); backdrop-filter: blur(8px);
+}
+.avatar { width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 0 0 2px var(--crimson), 0 0 18px rgba(200, 23, 58, .5); }
+.name { font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; letter-spacing: .02em; }
+.status { color: var(--muted); font-size: .82rem; }
+
+main { flex: 1; min-height: 0; position: relative; }
+.view { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Chat */
+.feed { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 84%; padding: 10px 14px; border-radius: var(--radius); white-space: pre-wrap; word-wrap: break-word; animation: pop .18s ease-out; }
+.msg.rias { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+.msg.me { align-self: flex-end; background: linear-gradient(135deg, var(--crimson), #8e0f2a); border-bottom-right-radius: 6px; }
+.msg time { display: block; font-size: .7rem; color: var(--muted); margin-top: 4px; }
+.msg.me time { color: #f3c4cf; text-align: right; }
+.task { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(0, 0, 0, .25); border-left: 3px solid var(--gold); font-size: .9rem; }
+.task b { color: var(--gold); font-weight: 600; }
+.actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.actions button { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: .85rem; }
+.actions button.done { background: var(--crimson); border-color: var(--crimson); }
+.resolved { margin-top: 6px; font-size: .8rem; color: var(--muted); }
+.typing { color: var(--muted); font-style: italic; }
+@keyframes pop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.quick { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 8px; scrollbar-width: none; }
+.quick::-webkit-scrollbar { display: none; }
+.quick button { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 12px; font-size: .85rem; }
+
+.composer { display: flex; gap: 8px; padding: 8px 12px 10px; border-top: 1px solid var(--line); }
+.composer input { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; font-size: 16px; }
+.composer button { width: 44px; border: 0; border-radius: 50%; background: var(--crimson); }
+
+/* Today */
+#view-today { overflow-y: auto; padding: 16px 16px 90px; display: block; }
+.summary { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; }
+.ring { width: 64px; height: 64px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 3.2; }
+.ring-bg { stroke: var(--line); }
+.ring-fg { stroke: var(--crimson-2); stroke-linecap: round; stroke-dasharray: 0 100; transition: stroke-dasharray .4s; }
+.big { font-size: 1.5rem; font-weight: 600; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; margin: 0; }
+
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.item .t { width: 72px; flex: none; color: var(--muted); font-variant-numeric: tabular-nums; font-size: .9rem; }
+.item .what { flex: 1; min-width: 0; }
+.item .tag { font-size: .72rem; color: var(--muted); }
+.item.done .what span:first-child { text-decoration: line-through; color: var(--muted); }
+.item.skipped { opacity: .55; }
+.item.missed { border-color: #7a3a1a; }
+.item.now { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.check { width: 30px; height: 30px; flex: none; border-radius: 50%; border: 2px solid var(--line); background: transparent; display: grid; place-items: center; }
+.item.done .check { background: var(--crimson); border-color: var(--crimson); }
+.empty { text-align: center; color: var(--muted); padding: 30px 0; }
+
+.fab {
+  position: absolute; right: 18px; bottom: 18px; width: 56px; height: 56px; border-radius: 50%;
+  border: 0; background: var(--crimson); font-size: 1.6rem; box-shadow: 0 6px 20px rgba(200, 23, 58, .45);
+}
+
+/* Settings & forms */
+#view-settings { overflow-y: auto; padding: 8px 16px 24px; display: block; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack h2 { font-family: Georgia, serif; font-weight: normal; color: var(--gold); font-size: 1.05rem; margin: 14px 0 0; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: var(--muted); flex: 1; }
+label.switch { flex-direction: row; align-items: center; gap: 10px; color: var(--text); }
+label.switch input { width: 22px; height: 22px; accent-color: var(--crimson); }
+input:not([type=checkbox]), select {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); font-size: 16px; width: 100%;
+}
+.row { display: flex; gap: 10px; }
+.row > button { flex: 1; }
+.stack button { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 11px 14px; }
+.stack button.primary { background: var(--crimson); border-color: var(--crimson); font-weight: 600; }
+.stack button.danger { color: #ff8fa3; border-color: #6b2235; }
+
+/* Tabs */
+.tabs { display: flex; border-top: 1px solid var(--line); background: rgba(22, 9, 14, .95); padding-bottom: env(safe-area-inset-bottom); }
+.tabs button { flex: 1; border: 0; background: none; padding: 8px 0 10px; color: var(--muted); font-size: .75rem; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tabs button span { font-size: 1.2rem; filter: grayscale(1) opacity(.7); }
+.tabs button.active { color: var(--text); }
+.tabs button.active span { filter: none; }
+
+/* Dialog */
+dialog { width: min(92vw, 460px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--text); padding: 18px; }
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+dialog h2 { margin-top: 0 !important; }
+
+/* Onboarding */
+.onboarding { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(10, 4, 7, .92); z-index: 10; overflow-y: auto; }
+.card { width: min(100%, 440px); background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+.big-avatar { width: 96px; height: 96px; align-self: center; }
+.intro { font-family: Georgia, serif; font-style: italic; text-align: center; margin: 4px 0 6px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <img class="avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="">
+      <div class="who">
+        <div class="name">Rias Gremory</div>
+        <div class="status" id="status">Occult Research Club</div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Chat -->
+      <section class="view" id="view-chat">
+        <div class="feed" id="feed" aria-live="polite"></div>
+        <div class="quick" id="quick">
+          <button type="button" data-say="What should I do now?">What now?</button>
+          <button type="button" data-say="What's my plan for today?">Today's plan</button>
+          <button type="button" data-say="I'm tired">I'm tired</button>
+          <button type="button" data-say="I'm bored">I'm bored</button>
+        </div>
+        <form class="composer" id="composer" autocomplete="off">
+          <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
+          <button type="submit" aria-label="Send">➤</button>
+        </form>
+      </section>
+
+      <!-- Today -->
+      <section class="view" id="view-today" hidden>
+        <div class="summary">
+          <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+            <circle cx="18" cy="18" r="15.9" class="ring-bg"/>
+            <circle cx="18" cy="18" r="15.9" class="ring-fg" id="ring"/>
+          </svg>
+          <div>
+            <div class="big" id="progress-text">0 / 0</div>
+            <div class="muted" id="streak-text">Streak: 0 days</div>
+          </div>
+        </div>
+        <ul class="items" id="items"></ul>
+        <button class="fab" id="add" type="button" aria-label="Add reminder">＋</button>
+      </section>
+
+      <!-- Settings -->
+      <section class="view" id="view-settings" hidden>
+        <form id="settings" class="stack">
+          <h2>You</h2>
+          <label>What should Rias call you?
+            <input name="name" required maxlength="30">
+          </label>
+          <div class="row">
+            <label>Wake up <input name="wake" type="time" required></label>
+            <label>Bedtime <input name="sleep" type="time" required></label>
+          </div>
+
+          <h2>Check-ins</h2>
+          <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
+          <label>When she's been quiet for
+            <select name="checkinEvery">
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+            </select>
+          </label>
+
+          <h2>Notifications</h2>
+          <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
+          <p class="muted small" id="notify-hint"></p>
+          <div class="row">
+            <button type="button" id="perm">Allow notifications</button>
+            <button type="button" id="test">Test</button>
+          </div>
+
+          <button type="submit" class="primary">Save</button>
+
+          <h2>Data</h2>
+          <button type="button" id="regen">Rebuild default routine</button>
+          <button type="button" id="clear-chat">Clear chat history</button>
+          <button type="button" id="reset" class="danger">Reset everything</button>
+        </form>
+      </section>
+    </main>
+
+    <nav class="tabs">
+      <button type="button" data-view="chat" class="active"><span>💬</span>Chat</button>
+      <button type="button" data-view="today"><span>📋</span>Today</button>
+      <button type="button" data-view="settings"><span>⚙️</span>Settings</button>
+    </nav>
+  </div>
+
+  <!-- Add / edit a reminder -->
+  <dialog id="editor">
+    <form method="dialog" id="edit-form" class="stack">
+      <h2 id="edit-title">New reminder</h2>
+      <label>What <input name="title" required maxlength="60" placeholder="e.g. Take vitamins"></label>
+      <div class="row">
+        <label>Time <input name="time" type="time" required></label>
+        <label>Type
+          <select name="category">
+            <option value="custom">Other</option>
+            <option value="wake">Wake up</option>
+            <option value="water">Water</option>
+            <option value="meal">Meal</option>
+            <option value="exercise">Exercise</option>
+            <option value="work">Work / study</option>
+            <option value="break">Break</option>
+            <option value="hygiene">Hygiene</option>
+            <option value="meds">Medication</option>
+            <option value="social">Social</option>
+            <option value="chores">Chores</option>
+            <option value="wind">Wind down</option>
+            <option value="sleep">Sleep</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Repeat
+          <select name="repeat">
+            <option value="daily">Every day</option>
+            <option value="weekdays">Weekdays</option>
+            <option value="weekends">Weekends</option>
+            <option value="once">Once</option>
+          </select>
+        </label>
+        <label id="date-wrap">Date <input name="date" type="date"></label>
+      </div>
+      <div class="row">
+        <button type="button" id="edit-delete" class="danger">Delete</button>
+        <button type="button" id="edit-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Yes / no prompt -->
+  <dialog id="ask">
+    <form method="dialog" class="stack">
+      <p id="ask-text"></p>
+      <div class="row">
+        <button value="no">Cancel</button>
+        <button value="yes" class="primary">Yes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- First launch -->
+  <div class="onboarding" id="onboarding" hidden>
+    <form id="onboard-form" class="stack card">
+      <img class="avatar big-avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="">
+      <p class="intro">“So you're the one who'll be joining my household? I'm Rias Gremory. From today, I'll be looking after your days — so don't disappoint me.”</p>
+      <label>What should I call you?
+        <input name="name" required maxlength="30" placeholder="Your name">
+      </label>
+      <div class="row">
+        <label>You wake up at <input name="wake" type="time" value="07:00" required></label>
+        <label>Bedtime <input name="sleep" type="time" value="23:00" required></label>
+      </div>
+      <button type="submit" class="primary">Join the Occult Research Club</button>
+    </form>
+  </div>
+
+  <script>
+// Everything Rias says lives here, so it's easy to tweak her voice.
+// {name} = what she calls you, {title} = the task title.
+window.RIAS = {
+  due: {
+    wake: [
+      "Good morning, {name}. Up you get — a member of the Gremory household doesn't sleep through the sunrise.",
+      "Rise and shine, {name}. Open the curtains and let some light in. I'll wait.",
+      "Morning~ I've been up for a while, you know. Sit up and stretch for me, {name}.",
+    ],
+    water: [
+      "{name}, have a glass of water. Now, please — not 'in a minute'.",
+      "Hydration check! Even devils need water. Go drink something for me.",
+      "Your King is ordering you to drink some water. Consider it a royal decree.",
+    ],
+    meal: [
+      "It's time to eat, {name}. A proper meal — not just snacks. I'll know.",
+      "Akeno would scold you for skipping meals, and so would I. Go eat something good.",
+      "Food time. Sit down, eat slowly, and actually enjoy it. You've earned it.",
+    ],
+    exercise: [
+      "Let's get moving, {name}. A walk or some stretching — a strong servant is a happy one.",
+      "Training time! Koneko does hers without complaining, you know. Just fifteen minutes.",
+      "Shoes on. Fresh air and a bit of movement will clear your head, I promise.",
+    ],
+    work: [
+      "Time to focus, {name}. Put your phone face down and give this your best. I'll be right here.",
+      "Study session. Even I had to keep my grades up at Kuoh Academy. Let's do this together.",
+      "Focus block starts now. One task at a time — that's how a King plans her moves.",
+    ],
+    break: [
+      "You've been at it a while. Stand up, roll your shoulders, and rest your eyes for a moment.",
+      "Break time, {name}. Step away from the screen. The work will still be there in ten minutes.",
+      "Pause. Stretch your arms over your head… there. Doesn't that feel better?",
+    ],
+    hygiene: [
+      "Go freshen up, {name}. You'll feel like a new person, I promise.",
+      "Teeth, face, hair — take care of yourself. You represent my household, after all.",
+      "A quick shower works wonders. Off you go~",
+    ],
+    meds: [
+      "{name}, it's time for your medication. Don't skip it — your health matters to me.",
+      "Medicine reminder. Take it with some water, please.",
+    ],
+    social: [
+      "Why not message someone you care about? Even a short hello. Bonds are what make a peerage strong.",
+      "Reach out to a friend today, {name}. You'd be surprised how much it means to them.",
+    ],
+    chores: [
+      "A little tidying, {name}. Ten minutes now saves you an hour later.",
+      "Chore time. Put on some music and get it done — I'll be impressed.",
+    ],
+    wind: [
+      "The day is winding down. Dim the lights, and let's start putting the screens away.",
+      "Evening, {name}. Time to slow down. Maybe some tea, a book, a warm shower?",
+    ],
+    sleep: [
+      "It's bedtime, {name}. Phone down, eyes closed. I'll see you in the morning.",
+      "Lights out. You did enough today. Rest well — that's an order from your King.",
+      "Go to sleep, {name}. A well-rested servant is worth ten tired ones. Goodnight~",
+    ],
+    custom: [
+      "{name}, you asked me to remind you: {title}.",
+      "Don't forget — {title}. I believe in you.",
+      "It's time for {title}. Let's not keep it waiting, hm?",
+    ],
+  },
+
+  done: [
+    "Well done, {name}. That's my cute servant.",
+    "Perfect. I knew I could count on you.",
+    "Ufufu~ See? That wasn't so hard.",
+    "Excellent work. I'm proud of you — truly.",
+    "Good. Keep this up and you'll be the strongest in my peerage.",
+    "That's the spirit, {name}.",
+  ],
+  snooze: [
+    "Fine, ten more minutes. But I'm coming back for you.",
+    "Alright… ten minutes. Don't make me come looking.",
+    "I'll allow it — just this once. Ten minutes, {name}.",
+  ],
+  skip: [
+    "Alright, we'll let this one go. We'll try again tomorrow, together.",
+    "Not today? That's okay. Just don't make a habit of it.",
+    "Skipped. I'm not angry — rest if you need it.",
+  ],
+  allDone: [
+    "Everything on today's list is done. I'm genuinely impressed, {name}. Come here — you've earned some praise.",
+    "A perfect day! Your King couldn't be prouder.",
+  ],
+
+  greet: {
+    morning: [
+      "Good morning, {name}~ Did you sleep well?",
+      "Ah, you're up. Good morning, {name}.",
+    ],
+    afternoon: [
+      "Good afternoon, {name}. How's the day treating you?",
+      "There you are. I was starting to wonder where you'd gone.",
+    ],
+    evening: [
+      "Good evening, {name}. Tell me about your day.",
+      "Welcome back, {name}. Come, sit with me for a moment.",
+    ],
+    night: [
+      "It's late, {name}. Shouldn't you be asleep?",
+      "Still awake? Hmm… don't stay up too long, okay?",
+    ],
+  },
+
+  checkin: {
+    morning: [
+      "How are you feeling this morning, {name}? Tell me honestly.",
+      "Have you had any water yet today?",
+      "What's the one thing you want to get done this morning? Say it, and it's a promise.",
+    ],
+    afternoon: [
+      "Quick posture check — shoulders down, back straight. There.",
+      "Take three slow breaths with me. In… and out. Good.",
+      "Look away from the screen for twenty seconds. Find something far away and focus on it.",
+      "Have you had water in the last hour, {name}?",
+      "I was just thinking about you. Are you keeping up with your plans?",
+    ],
+    evening: [
+      "How did today go, {name}? Even small wins count.",
+      "Have you eaten properly today? Don't lie to me.",
+      "Start thinking about tomorrow — what's the first thing you'll do when you wake up?",
+    ],
+  },
+
+  lateNight: [
+    "It's late, {name}. Whatever it is, it can wait until morning. Go to sleep.",
+    "You should be in bed. I'll still be here tomorrow, I promise.",
+  ],
+
+  chat: {
+    greet: [
+      "Hello, {name}~ What's on your mind?",
+      "Hi there. I'm always happy when you come to talk to me.",
+    ],
+    tired: [
+      "Tired? Drink some water and step outside for a few minutes. If it's late, the answer is sleep.",
+      "Rest when you need to, {name}. Even the strongest devils recharge.",
+    ],
+    sad: [
+      "Come here. Whatever it is, you don't have to carry it alone. Do you want to tell me about it?",
+      "I'm sorry you're feeling this way, {name}. Be gentle with yourself today — and maybe talk to someone you trust, too.",
+      "Bad days happen. Let's just do one small thing: some water, a deep breath, and something kind for yourself.",
+    ],
+    stressed: [
+      "Breathe, {name}. Pick the single most important thing and do just that. The rest can wait.",
+      "Let's make it smaller. What's the very next step? Only that one. Go.",
+    ],
+    hungry: [
+      "Then go eat something proper! Protein, some vegetables — not just sweets, {name}.",
+      "Hungry? Good, it's an excuse to take care of yourself. Go make something nice.",
+    ],
+    bored: [
+      "Bored? Take a walk, tidy one corner of your room, or text a friend. Or… learn something new — I'd like that.",
+      "How about a short game of chess? No? Then go stretch and drink some water while you think.",
+    ],
+    thanks: [
+      "You're welcome, {name}. Taking care of my servants is what a King does.",
+      "Anytime~",
+    ],
+    affection: [
+      "Ufufu… you're sweet, {name}. I treasure every member of my household — you included.",
+      "Flattery will get you… well, a smile, at least. Now go do your tasks.",
+    ],
+    who: [
+      "I'm Rias Gremory — President of the Occult Research Club, and the one looking after you. Your job is to take care of yourself; mine is to make sure you do.",
+    ],
+    fallback: [
+      "I see. Tell me more, {name}.",
+      "Hmm… I'm listening.",
+      "Is that so? Well, as long as you're taking care of yourself.",
+      "Ufufu. You're an interesting one, {name}.",
+    ],
+    crisis: [
+      "{name}, I'm really glad you told me, and I want you safe. Please reach out to someone right now — a person you trust, or a crisis line. In the US you can call or text 988; elsewhere, findahelpline.com lists free local lines. You matter to me.",
+    ],
+  },
+};
+</script>
+  <script>
+(() => {
+  'use strict';
+
+  const R = window.RIAS;
+  const KEY = 'rias-companion-v1';
+  const FIRE_WINDOW_MIN = 45;   // items older than this when first noticed are marked "missed" instead of pinging
+  const SNOOZE_MIN = 10;
+  const MAX_MESSAGES = 200;
+
+  // ---------- helpers ----------
+  const $ = (s, el = document) => el.querySelector(s);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const minToTime = (m) => { m = ((m % 1440) + 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+  const nowMin = (d = new Date()) => d.getHours() * 60 + d.getMinutes();
+  const fmtTime = (t) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}`; };
+  const fmtClock = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  const CATEGORY_LABEL = {
+    custom: 'Other', wake: 'Wake up', water: 'Water', meal: 'Meal', exercise: 'Exercise', work: 'Work / study',
+    break: 'Break', hygiene: 'Hygiene', meds: 'Medication', social: 'Social', chores: 'Chores', wind: 'Wind down', sleep: 'Sleep',
+  };
+
+  function defaultItems(wake, sleep) {
+    const w = toMin(wake), s = toMin(sleep);
+    const mk = (m, title, category) => ({ id: uid(), time: minToTime(m), title, category, repeat: 'daily', enabled: true });
+    return [
+      mk(w, 'Wake up & open the curtains', 'wake'),
+      mk(w + 10, 'Glass of water', 'water'),
+      mk(w + 30, 'Shower & brush teeth', 'hygiene'),
+      mk(w + 60, 'Breakfast', 'meal'),
+      mk(w + 120, 'Focus block — most important task first', 'work'),
+      mk(11 * 60, 'Water break', 'water'),
+      mk(12 * 60 + 30, 'Lunch', 'meal'),
+      mk(15 * 60, 'Stretch & rest your eyes', 'break'),
+      mk(17 * 60 + 30, 'Walk or workout', 'exercise'),
+      mk(19 * 60, 'Dinner', 'meal'),
+      mk(20 * 60, 'Message someone you care about', 'social'),
+      mk(s - 60, 'Wind down — screens off soon', 'wind'),
+      mk(s - 30, 'Brush teeth & get ready for bed', 'hygiene'),
+      mk(s, 'Lights out', 'sleep'),
+    ];
+  }
+
+  // ---------- state ----------
+  const blank = () => ({
+    profile: null,
+    items: [],
+    log: {},        // { date: { itemId: 'done' | 'skipped' } }
+    fired: {},      // { date: { itemId: true } }
+    summary: {},    // { date: { done, total } } for streaks
+    greeted: {},    // { date: true }
+    snoozes: [],    // [{ id, at }]
+    messages: [],   // [{ id, from, text, ts, itemId? }]
+    settings: { checkins: true, checkinEvery: 120, notify: true },
+    lastRias: 0,
+  });
+
+  let state;
+  try { state = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY)) || {}); }
+  catch { state = blank(); }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full / private mode */ } };
+
+  const say = (line, extra = {}) => line
+    .replaceAll('{name}', state.profile ? state.profile.name : 'you')
+    .replaceAll('{title}', extra.title || '');
+
+  // ---------- schedule ----------
+  function appliesOn(item, d) {
+    if (!item.enabled) return false;
+    const day = d.getDay();
+    switch (item.repeat) {
+      case 'weekdays': return day >= 1 && day <= 5;
+      case 'weekends': return day === 0 || day === 6;
+      case 'once': return item.date === dateKey(d);
+      default: return true;
+    }
+  }
+  const todaysItems = (d = new Date()) =>
+    state.items.filter((it) => appliesOn(it, d)).sort((a, b) => toMin(a.time) - toMin(b.time));
+  const statusOf = (id, day = dateKey()) => (state.log[day] || {})[id];
+
+  function isAwake(nm = nowMin()) {
+    const w = toMin(state.profile.wake), s = toMin(state.profile.sleep);
+    return w < s ? nm >= w && nm < s : nm >= w || nm < s;
+  }
+  function period(nm = nowMin()) {
+    if (!isAwake(nm)) return 'night';
+    if (nm < 12 * 60 && nm >= 4 * 60) return 'morning';
+    if (nm < 17 * 60 && nm >= 12 * 60) return 'afternoon';
+    return 'evening';
+  }
+
+  function updateSummary(day = dateKey()) {
+    const list = todaysItems();
+    const log = state.log[day] || {};
+    state.summary[day] = { done: list.filter((it) => log[it.id] === 'done').length, total: list.length };
+  }
+  function streak() {
+    const good = (k) => { const s = state.summary[k]; return s && s.total && s.done / s.total >= 0.6; };
+    const d = new Date();
+    let n = good(dateKey(d)) ? 1 : 0;
+    for (;;) {
+      d.setDate(d.getDate() - 1);
+      if (!good(dateKey(d))) return n;
+      n++;
+    }
+  }
+  function pruneOld() {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
+    const ck = dateKey(cutoff);
+    for (const bucket of [state.log, state.fired, state.summary, state.greeted]) {
+      for (const k of Object.keys(bucket)) if (k < ck) delete bucket[k];
+    }
+    const today = dateKey();
+    state.items = state.items.filter((it) => it.repeat !== 'once' || it.date >= today || !it.date);
+  }
+
+  // ---------- messages ----------
+  function addMessage(from, text, extra = {}) {
+    const m = { id: uid(), from, text, ts: Date.now(), ...extra };
+    state.messages.push(m);
+    if (state.messages.length > MAX_MESSAGES) state.messages.splice(0, state.messages.length - MAX_MESSAGES);
+    if (from === 'rias') state.lastRias = m.ts;
+    save();
+    renderFeed();
+    return m;
+  }
+
+  async function notify(body, tag) {
+    if (!state.settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!document.hidden && tag !== 'test') return; // she's already talking to you in-app
+    const opts = { body, tag: tag || 'rias', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', renotify: true };
+    try {
+      const reg = 'serviceWorker' in navigator && await navigator.serviceWorker.getRegistration();
+      if (reg) return reg.showNotification('Rias', opts);
+      new Notification('Rias', opts);
+    } catch { /* some browsers only allow notifications from the service worker */ }
+  }
+
+  function riasSays(text, extra = {}) {
+    addMessage('rias', text, extra);
+    notify(text, extra.itemId);
+  }
+
+  function fireItem(item) {
+    const line = say(pick(R.due[item.category] || R.due.custom), item);
+    riasSays(line, { itemId: item.id, title: item.title, time: item.time });
+  }
+
+  // ---------- actions on a task ----------
+  function resolve(itemId, status) {
+    const today = dateKey();
+    const item = state.items.find((it) => it.id === itemId);
+    if (!item || statusOf(itemId)) return;
+    (state.log[today] ||= {})[itemId] = status;
+    state.snoozes = state.snoozes.filter((s) => s.id !== itemId);
+    updateSummary();
+    addMessage('me', status === 'done' ? `Done: ${item.title} ✓` : `Skipping ${item.title} today.`);
+    setTimeout(() => {
+      addMessage('rias', say(pick(status === 'done' ? R.done : R.skip)));
+      const list = todaysItems();
+      if (status === 'done' && list.length && list.every((it) => statusOf(it.id) === 'done')) {
+        setTimeout(() => addMessage('rias', say(pick(R.allDone))), 900);
+      }
+    }, 500);
+    renderToday();
+    renderStatus();
+  }
+
+  function snooze(itemId) {
+    const item = state.items.find((it) => it.id === itemId);
+    if (!item || statusOf(itemId)) return;
+    state.snoozes = state.snoozes.filter((s) => s.id !== itemId);
+    state.snoozes.push({ id: itemId, at: Date.now() + SNOOZE_MIN * 60000 });
+    addMessage('me', `${SNOOZE_MIN} more minutes…`);
+    setTimeout(() => addMessage('rias', say(pick(R.snooze))), 500);
+  }
+
+  function undo(itemId) {
+    const log = state.log[dateKey()];
+    if (log) delete log[itemId];
+    updateSummary(); save(); renderToday(); renderFeed(); renderStatus();
+  }
+
+  // ---------- the heartbeat ----------
+  function tick() {
+    if (!state.profile) return;
+    const d = new Date();
+    const today = dateKey(d);
+    const nm = nowMin(d);
+
+    // Morning hello with the plan for the day.
+    if (!state.greeted[today] && isAwake(nm) && nm >= toMin(state.profile.wake)) {
+      state.greeted[today] = true;
+      pruneOld();
+      updateSummary();
+      riasSays(`${say(pick(R.greet[period(nm)] || R.greet.morning))}\n\n${planText()}`);
+    }
+
+    // Scheduled items.
+    const fired = (state.fired[today] ||= {});
+    for (const item of todaysItems(d)) {
+      if (fired[item.id] || toMin(item.time) > nm) continue;
+      const fresh = nm - toMin(item.time) <= FIRE_WINDOW_MIN && !statusOf(item.id);
+      fired[item.id] = fresh ? 'ping' : 'silent';
+      if (fresh) fireItem(item);
+    }
+
+    // Snoozed items coming back.
+    const due = state.snoozes.filter((s) => s.at <= Date.now());
+    if (due.length) {
+      state.snoozes = state.snoozes.filter((s) => s.at > Date.now());
+      for (const s of due) {
+        const item = state.items.find((it) => it.id === s.id);
+        if (item && !statusOf(item.id)) fireItem(item);
+      }
+    }
+
+    // Idle check-ins while you're awake.
+    const quietFor = Date.now() - state.lastRias;
+    if (state.settings.checkins && isAwake(nm) && quietFor > state.settings.checkinEvery * 60000) {
+      const p = period(nm);
+      if (R.checkin[p]) riasSays(say(pick(R.checkin[p])));
+    }
+
+    save();
+    renderStatus();
+  }
+
+  function planText() {
+    const list = todaysItems();
+    const nm = nowMin();
+    const upcoming = list.filter((it) => toMin(it.time) >= nm && !statusOf(it.id)).slice(0, 4);
+    if (!list.length) return "Your schedule is empty today. Let's add a few things in the Today tab.";
+    if (!upcoming.length) return "That's everything scheduled for today. Relax a little — you've earned it.";
+    return `Here's what's next:\n${upcoming.map((it) => `• ${fmtTime(it.time)} — ${it.title}`).join('\n')}`;
+  }
+
+  // ---------- chat replies ----------
+  function pendingItem() {
+    const fired = state.fired[dateKey()] || {};
+    const nm = nowMin();
+    // Only things she actually pinged you about in the last few hours count as "waiting on you".
+    return todaysItems().filter((it) => fired[it.id] === 'ping' && !statusOf(it.id) && toMin(it.time) <= nm && nm - toMin(it.time) <= 180).pop();
+  }
+
+  function reply(raw) {
+    const t = raw.toLowerCase();
+    // Match at word starts so 'eat' doesn't fire on 'great'.
+    const has = (...words) => words.some((w) => new RegExp(`(^|\\W)${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(t));
+
+    if (has('kill myself', 'suicide', 'want to die', 'end my life', 'self harm', 'self-harm', 'hurt myself')) return say(pick(R.chat.crisis));
+
+    if (/^(done|did it|finished|i did it|complete|ok done)\b/.test(t) || has("i'm done", 'im done', 'all done')) {
+      const p = pendingItem();
+      if (p) { resolve(p.id, 'done'); return null; }
+      return say(pick(R.done));
+    }
+    if (has('what now', 'what should i do', "what's next", 'whats next', 'next')) {
+      const p = pendingItem();
+      if (p) return say(`You still haven't done this one: ${p.title}. Go on, I'll wait~`);
+      const nm = nowMin();
+      const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
+      if (next) return say(`Next up at ${fmtTime(next.time)}: ${next.title}. Until then — drink some water and keep your posture nice, {name}.`);
+      return say(isAwake() ? "Nothing left on today's list. Read something, relax, or tidy up a little." : pick(R.lateNight));
+    }
+    if (has('plan', 'schedule', 'today', 'agenda')) return planText();
+    if (has('depress', 'sad', 'lonely', 'cry', 'upset', 'down', 'awful', 'terrible')) return say(pick(R.chat.sad));
+    if (has('stress', 'anxious', 'anxiety', 'overwhelm', 'panic', 'too much')) return say(pick(R.chat.stressed));
+    if (has('tired', 'sleepy', 'exhausted', 'no energy')) return say(isAwake() ? pick(R.chat.tired) : pick(R.lateNight));
+    if (has('hungry', 'starving', 'food', 'eat')) return say(pick(R.chat.hungry));
+    if (has('bored', 'boring', 'nothing to do')) return say(pick(R.chat.bored));
+    if (has('thank', 'thx', 'ty ', 'tysm')) return say(pick(R.chat.thanks));
+    if (has('love you', 'like you', 'cute', 'beautiful', 'pretty', 'marry')) return say(pick(R.chat.affection));
+    if (has('who are you', 'your name', 'about you')) return say(pick(R.chat.who));
+    if (/^(hi|hey|hello|yo|good (morning|afternoon|evening)|morning)\b/.test(t)) return say(pick(R.chat.greet));
+    if (has('good night', 'goodnight', 'night night', 'going to bed')) return say(pick(R.due.sleep));
+    return say(pick(R.chat.fallback));
+  }
+
+  // ---------- rendering ----------
+  const feed = $('#feed');
+  function renderFeed() {
+    const wasNearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 120;
+    feed.textContent = '';
+    for (const m of state.messages) {
+      const el = document.createElement('div');
+      el.className = `msg ${m.from}`;
+      el.append(m.text);
+      if (m.itemId) {
+        const task = document.createElement('div');
+        task.className = 'task';
+        const b = document.createElement('b');
+        b.textContent = fmtTime(m.time);
+        task.append(b, ` · ${m.title}`);
+        el.append(task);
+        const st = new Date(m.ts).toDateString() === new Date().toDateString() ? statusOf(m.itemId) : 'old';
+        if (!st && state.items.some((it) => it.id === m.itemId)) {
+          const acts = document.createElement('div');
+          acts.className = 'actions';
+          acts.innerHTML = '<button class="done" data-act="done">Done ✓</button><button data-act="snooze">Snooze 10m</button><button data-act="skip">Skip</button>';
+          acts.dataset.item = m.itemId;
+          el.append(acts);
+        } else if (st === 'done' || st === 'skipped') {
+          const r = document.createElement('div');
+          r.className = 'resolved';
+          r.textContent = st === 'done' ? '✓ Done' : 'Skipped';
+          el.append(r);
+        }
+      }
+      const time = document.createElement('time');
+      time.textContent = fmtClock(m.ts);
+      el.append(time);
+      feed.append(el);
+    }
+    if (wasNearBottom || feed.dataset.init !== '1') { feed.scrollTop = feed.scrollHeight; feed.dataset.init = '1'; }
+  }
+
+  function showTyping() {
+    const el = document.createElement('div');
+    el.className = 'msg rias typing';
+    el.textContent = 'Rias is typing…';
+    feed.append(el);
+    feed.scrollTop = feed.scrollHeight;
+    return el;
+  }
+
+  function renderStatus() {
+    if (!state.profile) return;
+    const p = pendingItem();
+    const nm = nowMin();
+    const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
+    $('#status').textContent = p ? `Waiting on you: ${p.title}`
+      : next ? `Next: ${next.title} · ${fmtTime(next.time)}`
+      : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
+  }
+
+  function renderToday() {
+    const list = todaysItems();
+    const nm = nowMin();
+    const fired = state.fired[dateKey()] || {};
+    const done = list.filter((it) => statusOf(it.id) === 'done').length;
+    $('#progress-text').textContent = `${done} / ${list.length} done`;
+    $('#ring').style.strokeDasharray = `${list.length ? (done / list.length) * 100 : 0} 100`;
+    const s = streak();
+    $('#streak-text').textContent = `Streak: ${s} day${s === 1 ? '' : 's'} 🔥`;
+
+    const ul = $('#items');
+    ul.textContent = '';
+    if (!list.length) {
+      ul.innerHTML = '<li class="empty">Nothing scheduled today. Tap ＋ to add a reminder.</li>';
+    }
+    const nextId = (list.find((it) => toMin(it.time) >= nm && !statusOf(it.id)) || {}).id;
+    for (const it of list) {
+      const st = statusOf(it.id);
+      const li = document.createElement('li');
+      li.className = 'item';
+      if (st) li.classList.add(st);
+      else if (fired[it.id] && toMin(it.time) <= nm) li.classList.add(nm - toMin(it.time) <= FIRE_WINDOW_MIN ? 'now' : 'missed');
+      else if (it.id === nextId) li.classList.add('now');
+      li.dataset.id = it.id;
+      li.innerHTML = `<span class="t"></span><span class="what"><span></span><br><span class="tag"></span></span><button class="check" aria-label="Mark done">${st === 'done' ? '✓' : ''}</button>`;
+      li.querySelector('.t').textContent = fmtTime(it.time);
+      li.querySelector('.what span').textContent = it.title;
+      li.querySelector('.tag').textContent = `${CATEGORY_LABEL[it.category] || 'Other'} · ${{ daily: 'every day', weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat]}${st === 'skipped' ? ' · skipped' : ''}`;
+      ul.append(li);
+    }
+  }
+
+  // ---------- navigation ----------
+  function show(view) {
+    for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
+    for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
+    if (view === 'today') renderToday();
+    if (view === 'settings') fillSettings();
+    if (view === 'chat') feed.scrollTop = feed.scrollHeight;
+  }
+  $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
+
+  // ---------- chat events ----------
+  function userSays(text) {
+    text = text.trim();
+    if (!text) return;
+    addMessage('me', text);
+    const typing = showTyping();
+    setTimeout(() => {
+      typing.remove();
+      const r = reply(text);
+      if (r) addMessage('rias', r);
+      renderStatus();
+    }, 600 + Math.random() * 700);
+  }
+  $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); userSays(i.value); i.value = ''; });
+  $('#quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) userSays(b.dataset.say); });
+  feed.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const id = b.parentElement.dataset.item;
+    if (b.dataset.act === 'snooze') snooze(id); else resolve(id, b.dataset.act === 'done' ? 'done' : 'skipped');
+  });
+
+  // ---------- today events / editor ----------
+  const editor = $('#editor');
+  const ef = $('#edit-form');
+  let editingId = null;
+
+  function openEditor(item) {
+    editingId = item ? item.id : null;
+    $('#edit-title').textContent = item ? 'Edit reminder' : 'New reminder';
+    ef.elements.title.value = item ? item.title : '';
+    ef.elements.time.value = item ? item.time : minToTime(Math.ceil((nowMin() + 15) / 15) * 15);
+    ef.elements.category.value = item ? item.category : 'custom';
+    ef.elements.repeat.value = item ? item.repeat : 'once';
+    ef.elements.date.value = (item && item.date) || dateKey();
+    $('#edit-delete').hidden = !item;
+    $('#date-wrap').hidden = ef.elements.repeat.value !== 'once';
+    editor.showModal();
+  }
+  ef.elements.repeat.addEventListener('change', () => { $('#date-wrap').hidden = ef.elements.repeat.value !== 'once'; });
+  $('#edit-cancel').addEventListener('click', () => editor.close());
+  $('#edit-delete').addEventListener('click', () => {
+    state.items = state.items.filter((it) => it.id !== editingId);
+    updateSummary(); save(); editor.close(); renderToday(); renderFeed(); renderStatus();
+  });
+  ef.addEventListener('submit', () => {
+    const data = {
+      title: ef.elements.title.value.trim(), time: ef.elements.time.value, category: ef.elements.category.value,
+      repeat: ef.elements.repeat.value, date: ef.elements.repeat.value === 'once' ? ef.elements.date.value : undefined, enabled: true,
+    };
+    const existing = state.items.find((it) => it.id === editingId);
+    if (existing) {
+      // Moving an item later in the day re-arms it.
+      if (data.time !== existing.time && toMin(data.time) > nowMin()) delete (state.fired[dateKey()] || {})[existing.id];
+      Object.assign(existing, data);
+    } else {
+      const item = { id: uid(), ...data };
+      state.items.push(item);
+      // Don't instantly ping for something created in the past today.
+      if (toMin(item.time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'silent';
+      addMessage('rias', say(`Noted. I'll remind you: ${item.title} at ${fmtTime(item.time)}.`));
+    }
+    updateSummary(); save(); renderToday(); renderStatus();
+  });
+
+  $('#add').addEventListener('click', () => openEditor(null));
+  $('#items').addEventListener('click', (e) => {
+    const li = e.target.closest('.item');
+    if (!li) return;
+    const id = li.dataset.id;
+    if (e.target.closest('.check')) {
+      if (statusOf(id)) undo(id); else resolve(id, 'done');
+      return;
+    }
+    openEditor(state.items.find((it) => it.id === id));
+  });
+
+  // In-app yes/no prompt (window.confirm is blocked in some app views).
+  function ask(text) {
+    const dlg = $('#ask');
+    $('#ask-text').textContent = text;
+    dlg.returnValue = '';
+    dlg.showModal();
+    return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'yes'), { once: true }));
+  }
+
+  // ---------- settings ----------
+  const sf = $('#settings');
+  function notifyHint() {
+    const hint = $('#notify-hint');
+    if (!('Notification' in window)) {
+      hint.textContent = 'This browser doesn’t support notifications. On iPhone, add the app to your Home Screen first (Share → Add to Home Screen).';
+      $('#perm').hidden = true;
+      return;
+    }
+    $('#perm').hidden = Notification.permission === 'granted';
+    hint.textContent = {
+      granted: 'Notifications are on. Rias can ping you while the app is open or in the background.',
+      denied: 'Notifications are blocked — enable them for this site in your browser settings.',
+      default: 'Tap “Allow notifications” so Rias can ping you.',
+    }[Notification.permission];
+  }
+  function fillSettings() {
+    sf.elements.name.value = state.profile.name;
+    sf.elements.wake.value = state.profile.wake;
+    sf.elements.sleep.value = state.profile.sleep;
+    sf.elements.checkins.checked = state.settings.checkins;
+    sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
+    sf.elements.notify.checked = state.settings.notify;
+    notifyHint();
+  }
+  sf.addEventListener('submit', (e) => {
+    e.preventDefault();
+    Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
+    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked });
+    save();
+    addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
+    show('chat');
+  });
+  $('#perm').addEventListener('click', async () => {
+    if ('Notification' in window) await Notification.requestPermission();
+    notifyHint();
+  });
+  $('#test').addEventListener('click', () => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') { notifyHint(); return; }
+    notify(say("This is how I'll call for you, {name}. Don't ignore me~"), 'test');
+  });
+  $('#regen').addEventListener('click', async () => {
+    if (!await ask('Replace your daily routine with the default one? Custom reminders set to "once" are kept.')) return;
+    state.items = state.items.filter((it) => it.repeat === 'once').concat(defaultItems(state.profile.wake, state.profile.sleep));
+    const fired = (state.fired[dateKey()] ||= {});
+    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
+    updateSummary(); save();
+    addMessage('rias', say('I\'ve rebuilt your routine around your wake-up and bed times.'));
+    show('today');
+  });
+  $('#clear-chat').addEventListener('click', async () => {
+    if (!await ask('Clear all chat messages?')) return;
+    state.messages = []; save(); renderFeed();
+  });
+  $('#reset').addEventListener('click', async () => {
+    if (!await ask('Delete everything and start over?')) return;
+    try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+    location.reload();
+  });
+
+  // ---------- onboarding ----------
+  $('#onboard-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    state.profile = { name: f.elements.name.value.trim(), wake: f.elements.wake.value, sleep: f.elements.sleep.value };
+    state.items = defaultItems(state.profile.wake, state.profile.sleep);
+    // Everything already in the past today is treated as handled so you aren't flooded on day one.
+    const today = dateKey();
+    const fired = (state.fired[today] = {});
+    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
+    state.greeted[today] = true;
+    updateSummary();
+    $('#onboarding').hidden = true;
+    addMessage('rias', say("Welcome to my household, {name}. I've set up a daily routine for you — you can change anything in the Today tab."));
+    setTimeout(() => {
+      addMessage('rias', planText());
+      addMessage('rias', say("One more thing: go to Settings and allow notifications, so I can call for you when it's time. Talk to me whenever you like~"));
+    }, 900);
+    renderStatus();
+  });
+
+  // ---------- boot ----------
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  renderFeed();
+  if (!state.profile) {
+    $('#onboarding').hidden = false;
+  } else {
+    // Short hello when you come back after a while (the morning greeting is handled by tick()).
+    if (Date.now() - state.lastRias > 3 * 3600000 && (state.greeted[dateKey()] || !isAwake())) {
+      addMessage('rias', say(pick(R.greet[period()])));
+    }
+    tick();
+  }
+  renderStatus();
+  setInterval(tick, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); renderFeed(); renderToday(); } });
+})();
+</script>
+</body>
+</html>

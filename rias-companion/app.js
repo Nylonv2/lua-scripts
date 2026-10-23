@@ -458,6 +458,15 @@
     openEditor(state.items.find((it) => it.id === id));
   });
 
+  // In-app yes/no prompt (window.confirm is blocked in some app views).
+  function ask(text) {
+    const dlg = $('#ask');
+    $('#ask-text').textContent = text;
+    dlg.returnValue = '';
+    dlg.showModal();
+    return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'yes'), { once: true }));
+  }
+
   // ---------- settings ----------
   const sf = $('#settings');
   function notifyHint() {
@@ -499,8 +508,8 @@
     if (!('Notification' in window) || Notification.permission !== 'granted') { notifyHint(); return; }
     notify(say("This is how I'll call for you, {name}. Don't ignore me~"), 'test');
   });
-  $('#regen').addEventListener('click', () => {
-    if (!confirm('Replace your daily routine with the default one? Custom reminders set to "once" are kept.')) return;
+  $('#regen').addEventListener('click', async () => {
+    if (!await ask('Replace your daily routine with the default one? Custom reminders set to "once" are kept.')) return;
     state.items = state.items.filter((it) => it.repeat === 'once').concat(defaultItems(state.profile.wake, state.profile.sleep));
     const fired = (state.fired[dateKey()] ||= {});
     for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
@@ -508,13 +517,13 @@
     addMessage('rias', say('I\'ve rebuilt your routine around your wake-up and bed times.'));
     show('today');
   });
-  $('#clear-chat').addEventListener('click', () => {
-    if (!confirm('Clear all chat messages?')) return;
+  $('#clear-chat').addEventListener('click', async () => {
+    if (!await ask('Clear all chat messages?')) return;
     state.messages = []; save(); renderFeed();
   });
-  $('#reset').addEventListener('click', () => {
-    if (!confirm('Delete everything and start over?')) return;
-    localStorage.removeItem(KEY);
+  $('#reset').addEventListener('click', async () => {
+    if (!await ask('Delete everything and start over?')) return;
+    try { localStorage.removeItem(KEY); } catch { /* ignore */ }
     location.reload();
   });
 
