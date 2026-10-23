@@ -16,6 +16,8 @@ icon = 'data:image/svg+xml;base64,' + base64.b64encode((here / 'icons/icon.svg')
 
 html = html.replace('<link rel="stylesheet" href="style.css">', f"<style>\n{read('style.css')}</style>")
 html = html.replace('<script src="dialogue.js"></script>', f"<script>\n{read('dialogue.js')}</script>")
+html = html.replace('<script src="talk.js"></script>', f"<script>\n{read('talk.js')}</script>")
+html = html.replace('<script src="chat.js"></script>', f"<script>\n{read('chat.js')}</script>")
 html = html.replace('<script src="app.js"></script>', f"<script>\n{read('app.js')}</script>")
 html = re.sub(r'\s*<link rel="(manifest|apple-touch-icon)"[^>]*>', '', html)
 html = html.replace('icons/icon.svg', icon)

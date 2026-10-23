@@ -57,6 +57,7 @@
     messages: [],   // [{ id, from, text, ts, itemId? }]
     settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9 },
     lastRias: 0,
+    chat: {},       // what Rias remembers from conversations (chat.js)
   });
 
   let state;
@@ -77,6 +78,9 @@
   const doneToday = () => Object.values(state.log[dateKey()] || {}).includes('done');
   // Once you've done something today, some check-ins turn into praise.
   const checkinLine = (p, praiseOk) => say(pick(praiseOk && Math.random() < 0.4 ? praiseLines(R.praiseCheckin) : R.checkin[p]));
+
+  const praiseWord = () => ({ boy: 'good boy', girl: 'good girl' }[state.settings.praise] || 'cute servant');
+  const Chat = window.createRiasChat({ memory: () => (state.chat ||= {}), say, period: () => period(), praiseWord });
 
   // ---------- schedule ----------
   function appliesOn(item, d) {
@@ -137,7 +141,7 @@
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
-    if (from === 'rias') speak(text);
+    if (from === 'rias') { speak(text); Chat.noteRias(text); }
     return m;
   }
 
@@ -346,7 +350,7 @@
       if (p) { resolve(p.id, 'done'); return null; }
       return doneLine();
     }
-    if (has('what now', 'what should i do', "what's next", 'whats next', 'next')) {
+    if (has('what now', 'what should i do', "what's next", 'whats next', 'what do i do')) {
       const p = pendingItem();
       if (p) return say(`You still haven't done this one: ${p.title}. Go on, I'll wait~`);
       const nm = nowMin();
@@ -354,19 +358,9 @@
       if (next) return say(`Next up at ${fmtTime(next.time)}: ${next.title}. Until then — drink some water and keep your posture nice, {name}.`);
       return say(isAwake() ? "Nothing left on today's list. Read something, relax, or tidy up a little." : pick(R.lateNight));
     }
-    if (has('good boy', 'good girl', 'praise me', 'am i good', 'proud of me', 'did good', 'did well', 'i did it')) return say(pick(praiseLines()));
-    if (has('plan', 'schedule', 'today', 'agenda')) return planText();
-    if (has('depress', 'sad', 'lonely', 'cry', 'upset', 'down', 'awful', 'terrible')) return say(pick(R.chat.sad));
-    if (has('stress', 'anxious', 'anxiety', 'overwhelm', 'panic', 'too much')) return say(pick(R.chat.stressed));
-    if (has('tired', 'sleepy', 'exhausted', 'no energy')) return say(isAwake() ? pick(R.chat.tired) : pick(R.lateNight));
-    if (has('hungry', 'starving', 'food', 'eat')) return say(pick(R.chat.hungry));
-    if (has('bored', 'boring', 'nothing to do')) return say(pick(R.chat.bored));
-    if (has('thank', 'thx', 'ty ', 'tysm')) return say(pick(R.chat.thanks));
-    if (has('love you', 'like you', 'cute', 'beautiful', 'pretty', 'marry')) return say(pick(R.chat.affection));
-    if (has('who are you', 'your name', 'about you')) return say(pick(R.chat.who));
-    if (/^(hi|hey|hello|yo|good (morning|afternoon|evening)|morning)\b/.test(t)) return say(pick(R.chat.greet));
-    if (has('good night', 'goodnight', 'night night', 'going to bed')) return say(pick(R.due.sleep));
-    return say(pick(R.chat.fallback));
+    if (has('good boy', 'good girl', 'praise me', 'am i good', 'proud of me', 'did good', 'did well')) return say(pick(praiseLines()));
+    if (has('my plan', "today's plan", 'todays plan', 'plan for today', 'schedule', 'agenda')) return planText();
+    return Chat.reply(raw);
   }
 
   // ---------- rendering ----------
@@ -473,13 +467,16 @@
     text = text.trim();
     if (!text) return;
     addMessage('me', text);
-    const typing = showTyping();
-    setTimeout(() => {
-      typing.remove();
-      const r = reply(text);
-      if (r) addMessage('rias', r);
-      renderStatus();
-    }, 600 + Math.random() * 700);
+    // She "types" each message for a time that fits its length.
+    const r = reply(text);
+    const lines = r == null ? [] : [].concat(r);
+    const typeTime = (line) => Math.min(2600, 500 + line.length * 18 + Math.random() * 400);
+    const next = (i) => {
+      if (i >= lines.length) { renderStatus(); save(); return; }
+      const typing = showTyping();
+      setTimeout(() => { typing.remove(); addMessage('rias', lines[i]); next(i + 1); }, typeTime(lines[i]));
+    };
+    next(0);
   }
   $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); spokeLast = false; userSays(i.value); i.value = ''; });
   $('#mic').hidden = !canListen();
@@ -692,12 +689,6 @@
       else if (st.volume === 0) msg = 'Your media volume is at zero. Press volume up while the app is open.';
     } else if (!('speechSynthesis' in window) || !speechSynthesis.getVoices().length) {
       msg = 'This browser can’t speak. Use the Android app, or open the page in Chrome.';
-    }
-    if (msg && N && N.voiceStatus) {
-      try {
-        const st = JSON.parse(N.voiceStatus());
-        if (st.detail) msg += `\n\nDetails for support: Android ${st.android}, ${st.device}, ${st.detail}`;
-      } catch { /* ignore */ }
     }
     hint.textContent = msg;
     hint.hidden = !msg;

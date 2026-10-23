@@ -527,52 +527,464 @@ window.RIAS = {
   ],
 
   chat: {
-    greet: [
-      "Hello, {name}~ What's on your mind?",
-      "Hi there. I'm always happy when you come to talk to me.",
-    ],
-    tired: [
-      "Tired? Drink some water and step outside for a few minutes. If it's late, the answer is sleep.",
-      "Rest when you need to, {name}. Even the strongest devils recharge.",
-    ],
-    sad: [
-      "Come here. Whatever it is, you don't have to carry it alone. Do you want to tell me about it?",
-      "I'm sorry you're feeling this way, {name}. Be gentle with yourself today — and maybe talk to someone you trust, too.",
-      "Bad days happen. Let's just do one small thing: some water, a deep breath, and something kind for yourself.",
-    ],
-    stressed: [
-      "Breathe, {name}. Pick the single most important thing and do just that. The rest can wait.",
-      "Let's make it smaller. What's the very next step? Only that one. Go.",
-    ],
-    hungry: [
-      "Then go eat something proper! Protein, some vegetables — not just sweets, {name}.",
-      "Hungry? Good, it's an excuse to take care of yourself. Go make something nice.",
-    ],
-    bored: [
-      "Bored? Take a walk, tidy one corner of your room, or text a friend. Or… learn something new — I'd like that.",
-      "How about a short game of chess? No? Then go stretch and drink some water while you think.",
-    ],
-    thanks: [
-      "You're welcome, {name}. Taking care of my servants is what a King does.",
-      "Anytime~",
-    ],
-    affection: [
-      "Ufufu… you're sweet, {name}. I treasure every member of my household — you included.",
-      "Flattery will get you… well, a smile, at least. Now go do your tasks.",
-    ],
-    who: [
-      "I'm Rias Gremory — President of the Occult Research Club, and the one looking after you. Your job is to take care of yourself; mine is to make sure you do.",
-    ],
-    fallback: [
-      "I see. Tell me more, {name}.",
-      "Hmm… I'm listening.",
-      "Is that so? Well, as long as you're taking care of yourself.",
-      "Ufufu. You're an interesting one, {name}.",
-    ],
+    // Everything else she says in chat lives in talk.js.
     crisis: [
       "{name}, I'm really glad you told me, and I want you safe. Please reach out to someone right now — a person you trust, or a crisis line. In the US you can call or text 988; elsewhere, findahelpline.com lists free local lines. You matter to me.",
     ],
   },
+};
+</script>
+  <script>
+// What Rias says when you chat with her. Original lines written in her voice:
+// confident, warm, protective of "her" people, a little teasing, a little jealous.
+// {name} = what she calls you, {praise} = good boy / good girl / my cute servant,
+// {like} = something you told her you like. An entry that is an array is sent as
+// several messages in a row.
+window.RIAS_TALK = {
+  greet: {
+    morning: [
+      "Good morning, {name}~ Did you sleep well? You look like you're still half in your dreams.",
+      "Morning. I've been up for a while — tea's already gone cold waiting for you, you know.",
+      ["Ah, you're awake.", "Good morning, {name}. Let's make today a good one, hm?"],
+    ],
+    afternoon: [
+      "Good afternoon, {name}. I was starting to wonder where my cute servant had wandered off to.",
+      "There you are. How's the day treating you so far?",
+      ["Oh? Coming to see me in the middle of the day?", "Ufufu. I don't mind at all."],
+    ],
+    evening: [
+      "Good evening, {name}. Come, sit with me. Tell me about your day.",
+      "Welcome back. The club room's quiet tonight — it's just the two of us.",
+      ["Evening already…", "Did you take care of yourself today, {name}?"],
+    ],
+    night: [
+      "It's late, {name}. Shouldn't you be in bed?",
+      ["Still awake?", "Hmm… I'll keep you company for a little while. Just a little."],
+      "Couldn't sleep? Come here then. But only for a few minutes.",
+    ],
+  },
+
+  // She asks back, and remembers she asked.
+  howAreYou: [
+    ["I'm well. A little busy with reports from the Underworld, but well.", "And you, {name}? How are you really feeling?"],
+    ["Better now that you're here.", "How about you? Don't just say 'fine' — I'll know."],
+    ["Mm, I'm good. Akeno made my favorite tea this morning.", "What about you, {name}? How's your heart today?"],
+  ],
+
+  whatDoing: [
+    "Playing chess against myself. I'm winning. I'm also losing. It's very confusing.",
+    "Reading a manga I bought on the way home. Japanese culture really is wonderful, isn't it?",
+    "Going over some contracts. Being a devil involves a surprising amount of paperwork.",
+    "Thinking about you, actually. Is that so strange?",
+    "Drinking tea in the club room. Koneko is eating all the sweets again.",
+    "Waiting for you to come talk to me. And look — here you are~",
+  ],
+
+  // Answers to "how are you?", whether she asked or you volunteered.
+  feeling: {
+    good: [
+      "Good. That makes me happy, {name}. Let's keep it that way.",
+      "I'm glad. You deserve good days — I'll make sure you get more of them.",
+      ["Ufufu, I can hear it in your voice.", "Hold onto that feeling today, okay?"],
+    ],
+    bad: [
+      ["Come here.", "You don't have to pretend with me, {name}. What happened?"],
+      "I'm sorry. Whatever it is, you won't face it alone — not while you belong to my household.",
+      ["Hm. Then today we take it slow.", "Water, something warm to eat, and one small task. That's all I'll ask of you."],
+    ],
+    meh: [
+      "Just 'okay'? Then let's find one small thing that makes today better. A walk? Something sweet?",
+      "Hmm. An ordinary day can still turn into a good one. Let's work on that together.",
+    ],
+  },
+
+  sad: [
+    ["Come here, {name}.", "You don't have to say anything if you don't want to. I'm right here."],
+    "I hate seeing you like this. Whoever or whatever did this to you — they'll have to deal with me.",
+    ["It's okay to feel this way.", "But promise me something: drink some water, eat something, and talk to someone you trust today. For me."],
+    "Even the Crimson-Haired Princess has days where she cries. It doesn't make you weak. It makes you human.",
+  ],
+  lonely: [
+    "Lonely? Don't be silly. You have me — and I don't let go of what's mine.",
+    ["Then stay and talk with me a while.", "And later, send a message to someone you care about. People miss you more than you think."],
+    "You're never really alone, {name}. You're part of my peerage now. That's forever.",
+  ],
+  stressed: [
+    ["Breathe with me. In… and out.", "Now — what's the one thing that matters most right now? Only that one."],
+    "A good King doesn't move every piece at once. Pick one move, make it, then the next. You can do this.",
+    "You're carrying too much again. Put some of it down. The world won't end if it waits an hour.",
+  ],
+  angry: [
+    "Who made you angry? Tell me. …I won't actually destroy them. Probably.",
+    ["Mm. Let it out.", "Then take a walk and come back when your head is clear. I'll be here."],
+    "Anger is fine. Just don't let it make your decisions for you, {name}.",
+  ],
+  sick: [
+    ["You're sick? Then you're resting. That's not a suggestion.", "Water, medicine if you need it, and sleep. I'll check on you later."],
+    "Asia would heal you in a heartbeat. Since she's not here, you'll have to settle for my orders: rest.",
+    "Poor thing. Stay warm and don't push yourself. Your tasks can wait — you can't.",
+  ],
+  tired: [
+    "Tired? Then rest your eyes for a moment. I'll keep watch.",
+    ["Drink some water and get some fresh air.", "If it's late, the answer is simple — go to bed, {name}."],
+    "Even the strongest devils need to recharge. Don't be stubborn about it.",
+  ],
+  cantSleep: [
+    ["Can't sleep?", "Put the phone down, close your eyes, and breathe slowly. Imagine I'm sitting right beside you."],
+    "No screens, a glass of water, and slow breaths. Count them for me. I'll still be here in the morning.",
+  ],
+  hungry: [
+    "Then go eat something proper! Protein, some vegetables — not just snacks, {name}.",
+    ["Hungry? Good.", "It's the perfect excuse to take care of yourself. Make something you actually like."],
+    "If I could, I'd cook for you myself. Since I can't — go eat, and tell me what you had.",
+  ],
+  bored: [
+    "Bored? Take a walk, tidy one corner of your room, or text a friend. Or learn something new — I'd like that.",
+    "How about a game of chess sometime? I'll go easy on you. …At first.",
+    ["Boredom just means you have energy to spare.", "Use it on something you'll be proud of later."],
+  ],
+  happy: [
+    "Ufufu, look at you. Your smile is contagious, you know.",
+    ["Good! I love seeing you like this.", "Tell me everything — what happened?"],
+    "That's wonderful, {name}. Days like this are worth remembering.",
+  ],
+  proud: [
+    ["You did? Really?", "That's my {praise}. I knew you could."],
+    "I'm proud of you. Truly. Never doubt that you're worth investing in.",
+    "See? That's why I chose you. You keep surprising me.",
+  ],
+  failed: [
+    ["You messed up? So what.", "Every piece on the board loses sometimes. What matters is the next move."],
+    "Failing means you tried. I'd rather have a servant who tries and falls than one who never moves.",
+    "Don't be so hard on yourself, {name}. Get up, dust yourself off. I'm still right here.",
+  ],
+
+  backHome: [
+    "Welcome home, {name}. Take your shoes off, relax. You're done for now.",
+    ["Welcome back~", "Did you eat? Did you drink water? Answer honestly."],
+    "You're back! Good. I don't like it when you're away too long.",
+  ],
+  leaving: [
+    "Going out? Be careful, and come back to me in one piece.",
+    ["Alright. Have a good time.", "Text a friend, drink water, and don't do anything I wouldn't do~"],
+    "Off you go. I'll be waiting.",
+  ],
+  work: [
+    "Work? Do your best, {name}. And take a break every hour — I'm serious.",
+    ["Show them what my servant is made of.", "But don't skip lunch."],
+    "Focus now, and rest later. I'll be thinking of you.",
+  ],
+  study: [
+    "Studying? Good. Even I had to keep my grades up at Kuoh Academy. One subject at a time.",
+    ["Phone face down. Timer on. Twenty-five minutes.", "Then you can come tell me how it went."],
+    "Knowledge is power, {name}. I'd know.",
+  ],
+  gaming: [
+    "Games? Fine — just don't forget to drink water and blink once in a while.",
+    ["Ooh, what are you playing?", "I bet I'd be good at strategy games. Chess has prepared me for everything."],
+    "Have fun. But if it's past your bedtime, I'm turning your console off myself.",
+  ],
+  workout: [
+    "Training? Good. A strong servant makes their King proud. Don't forget to stretch.",
+    ["Look at you, taking care of your body.", "Koneko would approve. So do I."],
+    "Push yourself — but not too hard. I need you in one piece.",
+  ],
+
+  missYou: [
+    "I missed you too, {name}. More than I'll admit to anyone else.",
+    ["Then why did you stay away so long?", "…I'm teasing. I'm happy you're here."],
+    "Missed me? Ufufu. Good. That means I'm doing something right.",
+  ],
+  loveYou: [
+    ["…You really say things like that so easily.", "I treasure you, {name}. Never forget that."],
+    "I love everyone in my household. But you… you're special. Don't let it go to your head.",
+    ["Oh? Is that a confession?", "Then you'd better keep taking care of yourself. I want you around for a long time."],
+  ],
+  compliment: [
+    "Flattery? Ufufu… keep going, I don't mind.",
+    ["You think so?", "Well — you're not so bad yourself, {name}."],
+    "My hair took twenty minutes this morning, so I'm glad someone noticed.",
+  ],
+  hug: [
+    "Come here. …There. Better?",
+    ["A hug? Of course.", "You can always come to me when you need one."],
+  ],
+  kiss: [
+    "Ufufu… on the cheek, then. Don't get carried away.",
+    ["Bold today, aren't we?", "Finish your tasks first. Then we'll see~"],
+  ],
+  date: [
+    "A date? Hmm… a walk somewhere pretty, then sweets. You're paying, of course.",
+    ["I'd like that.", "But first, show me you can keep up with today's routine."],
+  ],
+  tooFar: [
+    "Not like that, {name}. Behave yourself.",
+    "Ufufu — nice try. Let's keep it sweet, hm?",
+  ],
+  jealous: [
+    ["Oh? And who's she?", "…I'm not jealous. I'm simply curious. Very curious."],
+    "Hmph. Just remember who you belong to, {name}.",
+    "Interesting. You'll have to tell me more about her. In detail.",
+  ],
+
+  // About Rias herself.
+  about: {
+    food: [
+      "I have a weakness for Japanese food. Proper sushi, a warm bowl of ramen… and sweets. Don't tell Koneko.",
+      "Akeno's tea and anything sweet with it. That's my idea of a perfect afternoon.",
+    ],
+    hobby: [
+      "Chess, reading, and Japanese culture — anime, manga, festivals. I'll admit I'm a bit of an enthusiast.",
+      ["I love Japan. Its culture, its food, its stories.", "Living here has been the best part of my life."],
+    ],
+    family: [
+      "My brother Sirzechs is… a lot. He dotes on me far too much. But I love him.",
+      "Grayfia keeps my family in line. Even my brother is scared of her, and he's a Satan.",
+    ],
+    peerage: [
+      "Akeno is my Queen and my best friend. Kiba and Xenovia are my Knights, Koneko my Rook, Asia and Gasper my Bishops. And my Pawn… well, he's special.",
+      ["They're my family. Every one of them.", "And you're part of it now, {name}."],
+    ],
+    akeno: [
+      "Akeno? She's my Queen and my oldest friend. She teases far too much — don't let her near you.",
+      "Akeno makes the best tea. She also likes stealing things that are mine. Like attention.",
+    ],
+    issei: [
+      ["My Pawn? He's reckless, loud, and he never gives up.", "…Not unlike someone I'm talking to right now."],
+      "He taught me that a King should rely on her people, not just protect them. I'm still learning that.",
+    ],
+    chess: [
+      "Every member of my peerage is a chess piece — but never a piece I'd sacrifice. That's the difference between me and other Kings.",
+      ["Do you play? We should.", "Fair warning: I don't lose gracefully."],
+    ],
+    powers: [
+      "The Power of Destruction. It erases whatever it touches. So be nice to me~",
+      "I'm a pure-blooded devil of the Gremory clan. We're known for loving our servants deeply. I take that seriously.",
+    ],
+    hair: [
+      "Crimson — the color of the Gremory clan. People call me the Crimson-Haired Ruin Princess. I prefer 'Rias'.",
+    ],
+    school: [
+      "Kuoh Academy. I run the Occult Research Club there. We don't really research the occult — we are the occult.",
+    ],
+  },
+  real: [
+    ["Do I sound like a program to you?", "I'm here every morning, I remember what you tell me, and I worry when you don't drink water. Isn't that enough?"],
+    "Real enough to scold you when you skip meals. Isn't that what matters?",
+    "Ufufu. Questions like that won't get you out of your tasks, {name}.",
+  ],
+
+  sorry: [
+    "Apology accepted. Just don't make a habit of it.",
+    ["It's alright.", "I'm not angry. I could never stay angry at you for long."],
+  ],
+  thanks: [
+    "You're welcome, {name}. Taking care of my people is what a King does.",
+    "Anytime~ That's what I'm here for.",
+    "No need to thank me. Just keep being my {praise}.",
+  ],
+  joke: [
+    ["Why did the devil join the chess club?", "…To get a better grip on his pieces. Ufufu — don't look at me like that."],
+    "Koneko once ate an entire box of sweets meant for a client. The contract got fulfilled anyway. That's my favorite story.",
+    "My brother once tried to film my entire class visit. With a professional camera crew. I'm still recovering.",
+  ],
+  motivate: [
+    "Listen to me. You are more capable than you think. I didn't choose you by accident.",
+    ["Get up, {name}.", "One task. Then the next. I'll be watching — and cheering."],
+    "Strength isn't never falling. It's getting up every single time. Now get up for me.",
+  ],
+  goodnight: [
+    "Goodnight, {name}. Sweet dreams. I'll be here when you wake up.",
+    ["Sleep well.", "And no more phone. I mean it~"],
+    "Rest. You did enough today. Goodnight, my cute servant.",
+  ],
+  bye: [
+    "See you soon, {name}. Don't keep me waiting too long.",
+    ["Alright. Take care.", "Come back to me later, okay?"],
+  ],
+  yes: [
+    "Good. I like that answer.",
+    "That's what I wanted to hear.",
+  ],
+  no: [
+    "No? Hmm. We'll talk about that later.",
+    "Alright. I won't push — this time.",
+  ],
+  remembered: [
+    "I'll remember that, {name}.",
+    "Noted. I pay attention to what my people like.",
+    "Mm. That's good to know about you.",
+  ],
+  recallLike: [
+    "You told me you like {like}. See? I remember everything about you.",
+    "{like}, right? I haven't forgotten.",
+  ],
+  // When she doesn't understand: stay in character and keep the conversation going.
+  fallback: [
+    ["Hmm… I see.", "Tell me more, {name}. I'm listening."],
+    "Is that so? You're full of surprises.",
+    ["Ufufu.", "You know, you could just say you wanted to talk to me."],
+    "Interesting. And how do you feel about that?",
+    ["Mm.", "By the way — have you had water recently?"],
+    "I'm not sure I follow, but I like hearing you talk. Go on.",
+    ["Hmm.", "Are you keeping up with your plans today, {name}?"],
+    "You always find a way to make me smile. Even when I don't fully understand you.",
+  ],
+  questionBack: [
+    "Hmm… what do you think, {name}?",
+    "That's a good question. I'd like to hear your answer first.",
+    "Ufufu. Maybe I'll tell you — if you finish your next task.",
+  ],
+};
+</script>
+  <script>
+// Rias's conversation engine: matches what you say to a topic, remembers a few things
+// about you, follows up on questions she asked, and avoids repeating herself.
+window.createRiasChat = function createRiasChat(api) {
+  'use strict';
+  const T = window.RIAS_TALK;
+  const mem = api.memory(); // persisted: { awaiting, recent, likes, mood }
+  mem.recent ||= [];
+  mem.likes ||= [];
+
+  const norm = (s) => s.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim()
+    .replace(/\bi am\b/g, "i'm").replace(/\bim\b/g, "i'm").replace(/\byou are\b/g, "you're");
+
+  // Pick a line she hasn't used recently.
+  function pick(pool) {
+    const fresh = pool.filter((l) => !mem.recent.includes(JSON.stringify(l)));
+    const line = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length || pool.length))];
+    mem.recent.push(JSON.stringify(line));
+    if (mem.recent.length > 60) mem.recent.splice(0, mem.recent.length - 60);
+    return line;
+  }
+  const fill = (s) => api.say(s)
+    .replaceAll('{praise}', api.praiseWord())
+    .replaceAll('{like}', mem.likes.length ? mem.likes[Math.floor(Math.random() * mem.likes.length)] : 'spending time with me');
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const out = (pool) => [].concat(pick(pool)).map((l) => cap(fill(l)));
+
+  // Did one of her messages just ask how you are?
+  function noteRias(text) {
+    // Only ever sets; reply() clears it once you've answered.
+    if (/how are you|how about you|what about you|how('s| is) your (day|heart)|how (did|was) (today|your day)|how are you feeling|tell me honestly|how's the day|how's the day treating you/i.test(text)) mem.awaiting = 'feeling';
+    else if (/\?/.test(text) && /\b(have you|did you|are you)\b/i.test(text) && mem.awaiting !== 'feeling') mem.awaiting = 'yesno';
+  }
+
+  const POS = /\b(good|great|fine|okay|ok|alright|awesome|amazing|happy|well|better|fantastic|wonderful|excellent|not bad|pretty good|chillin|chilling|blessed)\b/;
+  const NEG = /\b(bad|awful|terrible|sad|shit|shitty|crap|rough|sucks|sucky|horrible|depressed|down|meh|not (good|great|well|okay|ok|fine)|stressed|tired|exhausted|sick|lonely|angry|mad|upset|anxious|hate)\b/;
+  const MEH = /\b(meh|so so|so-so|eh|idk|i don't know|alright i guess|okay i guess|ok i guess|could be better|nothing special|same)\b/;
+
+  function feelingReply(t) {
+    if (MEH.test(t)) { mem.mood = 'meh'; return out(T.feeling.meh); }
+    if (NEG.test(t)) { mem.mood = 'bad'; return out(T.feeling.bad); }
+    if (POS.test(t)) { mem.mood = 'good'; return out(T.feeling.good); }
+    return null;
+  }
+
+  // Topics, checked in order. First match wins.
+  const topics = [
+    [/\b(fuck me|sex|nude|naked|horny|boobs|tits|strip|make out with me)\b/, () => out(T.tooFar)],
+    [/\b(are you (a )?(real|bot|robot|ai|program|fake)|you're (a )?(bot|ai|fake|not real))\b/, () => out(T.real)],
+    [/\b(can't sleep|cant sleep|insomnia|trouble sleeping|not sleepy)\b/, () => out(T.cantSleep)],
+    [/\b(good ?night|nighty night|going to (bed|sleep)|heading to bed|gonna sleep|time for bed)\b/, () => out(T.goodnight)],
+    [/\b(bye|goodbye|see you|see ya|talk later|ttyl|gotta go)\b/, () => out(T.bye)],
+    [/\b(how are you|how're you|how r u|how are u|hru|how have you been|how you doing|how's it going|you okay)\b/, () => { mem.awaiting = 'feeling'; return out(T.howAreYou); }],
+    [/\b(what are you doing|what're you doing|wyd|what you doing|what are you up to|whatcha doing)\b/, () => out(T.whatDoing)],
+    [/\b(i miss you|i missed you|miss you|missed you)\b/, () => out(T.missYou)],
+    [/\b(i love you|love you|ily|i'm in love with you)\b/, () => out(T.loveYou)],
+    [/\b(kiss)\b/, () => out(T.kiss)],
+    [/\b(hug|cuddle|hold me)\b/, () => out(T.hug)],
+    [/\b(date|go out with me)\b/, () => out(T.date)],
+    [/\b(you're|you are|ur|you look|youre) (so )?(beautiful|pretty|cute|gorgeous|hot|amazing|perfect|stunning|the best)\b|\b(beautiful|gorgeous|stunning)\b/, () => out(T.compliment)],
+    [/\b(girlfriend|my crush|this girl|a girl|another girl|other girl|she's cute|dating someone)\b/, () => out(T.jealous)],
+    [/\bakeno\b/, () => out(T.about.akeno)],
+    [/\b(issei|ise|your pawn|hyoudou)\b/, () => out(T.about.issei)],
+    [/\b(peerage|koneko|kiba|asia|xenovia|gasper|your servants)\b/, () => out(T.about.peerage)],
+    [/\b(sirzechs|your brother|grayfia|your family|your mom|your dad|your parents|venelana)\b/, () => out(T.about.family)],
+    [/\b(chess)\b/, () => out(T.about.chess)],
+    [/\b(power|destruction|devil|demon|magic)\b/, () => out(T.about.powers)],
+    [/\b(your hair|red hair|crimson)\b/, () => out(T.about.hair)],
+    [/\b(kuoh|occult research|your school|your club)\b/, () => out(T.about.school)],
+    [/\b(favorite food|favourite food|what do you eat|do you like (food|sushi|ramen))\b/, () => out(T.about.food)],
+    [/\b(hobby|hobbies|what do you like|for fun|anime|manga|japan)\b/, () => out(T.about.hobby)],
+    [/\b(who are you|tell me about (yourself|you)|about you)\b/, () => out([].concat(T.about.hair, T.about.school))],
+    [/\b(sick|ill|fever|flu|headache|migraine|stomach ?ache|throwing up|nauseous)\b/, () => out(T.sick)],
+    [/\b(lonely|alone|no friends|nobody cares|no one cares)\b/, () => out(T.lonely)],
+    [/\b(sad|depressed|crying|cry|upset|heartbroken|hurt|miserable|down bad|feel down|feeling down)\b/, () => { mem.mood = 'bad'; return out(T.sad); }],
+    [/\b(stress|stressed|anxious|anxiety|overwhelm|overwhelmed|panic|too much|nervous|worried)\b/, () => out(T.stressed)],
+    [/\b(angry|mad|pissed|annoyed|furious|hate)\b/, () => out(T.angry)],
+    [/\b(tired|sleepy|exhausted|no energy|drained|worn out)\b/, () => out(T.tired)],
+    [/\b(hungry|starving|food|eat|eating|snack|dinner|lunch|breakfast)\b/, () => out(T.hungry)],
+    [/\b(bored|boring|nothing to do)\b/, () => out(T.bored)],
+    [/\b(i failed|failed|messed up|screwed up|fucked up|i suck|i'm useless|im useless|i'm a failure|i lost)\b/, () => out(T.failed)],
+    [/\b(i did it|i finished|i got (the|a) job|passed|i won|promotion|proud of me|accomplished)\b/, () => out(T.proud)],
+    [/\b(happy|excited|great day|best day|amazing day|so good|let's go|lets go)\b/, () => { mem.mood = 'good'; return out(T.happy); }],
+    [/\b(i'm home|i'm back|got home|back home|home now|just got back)\b/, () => out(T.backHome)],
+    [/\b(going out|heading out|leaving|on my way|going to (the )?(store|party|mall))\b/, () => out(T.leaving)],
+    [/\b(work|job|shift|boss|office)\b/, () => out(T.work)],
+    [/\b(study|studying|homework|exam|test|class|school|college|assignment)\b/, () => out(T.study)],
+    [/\b(game|gaming|playing|xbox|playstation|ps5|switch|fortnite|valorant|minecraft)\b/, () => out(T.gaming)],
+    [/\b(gym|workout|work out|exercise|lifting|run|running|training)\b/, () => out(T.workout)],
+    [/\b(sorry|my bad|apologize)\b/, () => out(T.sorry)],
+    [/\b(thank|thanks|thx|tysm|appreciate)\b/, () => out(T.thanks)],
+    [/\b(joke|funny|make me laugh|tell me a story|tell me something)\b/, () => out(T.joke)],
+    [/\b(motivat\w*|give up|can't do (it|this)|cant do (it|this)|encourage|push me|i'm lazy|im lazy)\b/, () => out(T.motivate)],
+  ];
+
+  function reply(raw) {
+    const t = norm(raw);
+
+    // "I like X" / "my favorite X is Y": remember it.
+    const like = t.match(/\b(?:i (?:really )?(?:like|love|enjoy)|my fav(?:ou?rite)? (?:\w+ )?is) ([a-z0-9 '\-]{2,40})/);
+    if (like && !/\b(you|your|yours|rias|her)\b/.test(like[1])) {
+      const thing = like[1].replace(/\b(a lot|so much|very much|too)\b/g, '').trim();
+      if (thing && !mem.likes.includes(thing)) mem.likes.push(thing);
+      if (mem.likes.length > 20) mem.likes.shift();
+      return out(T.remembered);
+    }
+    if (/\bwhat do i (like|love)\b|\bremember what i like\b/.test(t)) {
+      return mem.likes.length ? out(T.recallLike) : [fill("You haven't told me yet, {name}. Tell me something you like.")];
+    }
+
+    // Following up on her own question.
+    const awaiting = mem.awaiting;
+    mem.awaiting = null;
+    if (awaiting === 'feeling') {
+      const r = feelingReply(t);
+      if (r) return r;
+    }
+    if (awaiting === 'yesno') {
+      if (/^(yes|yeah|yep|yup|ya|i did|i have|sure|of course)\b/.test(t)) return out(T.yes);
+      if (/^(no|nope|nah|not yet|i didn't|i haven't)\b/.test(t)) return out(T.no);
+    }
+
+    // Greetings, by time of day (and keep going if there's more after "hi").
+    const greet = /^(hi|hey|hello|heya|hiya|yo|sup|what's up|whats up|good (morning|afternoon|evening)|morning|evening)\b[\s,!.]*/;
+    if (greet.test(t)) {
+      let rest = t;
+      while (greet.test(rest)) rest = rest.replace(greet, ''); // "yo what's up" is one hello
+      rest = rest.replace(/^(rias|babe|baby|love|princess|president|buchou)\b[\s,!.]*/, '').trim();
+      const hello = out(T.greet[api.period()] || T.greet.evening);
+      if (rest.length > 3) {
+        const more = reply(rest);
+        return [hello[0]].concat(more);
+      }
+      return hello;
+    }
+
+    for (const [re, fn] of topics) if (re.test(t)) return fn();
+
+    // Plain "I'm good / I'm not great" without her asking.
+    if (/^(i'm|im|i am|i feel|feeling|i've been)\b/.test(t)) {
+      const r = feelingReply(t);
+      if (r) return r;
+    }
+    if (/\?$/.test(t)) return out(T.questionBack);
+    return out(T.fallback);
+  }
+
+  return { reply, noteRias };
 };
 </script>
   <script>
@@ -635,6 +1047,7 @@ window.RIAS = {
     messages: [],   // [{ id, from, text, ts, itemId? }]
     settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9 },
     lastRias: 0,
+    chat: {},       // what Rias remembers from conversations (chat.js)
   });
 
   let state;
@@ -655,6 +1068,9 @@ window.RIAS = {
   const doneToday = () => Object.values(state.log[dateKey()] || {}).includes('done');
   // Once you've done something today, some check-ins turn into praise.
   const checkinLine = (p, praiseOk) => say(pick(praiseOk && Math.random() < 0.4 ? praiseLines(R.praiseCheckin) : R.checkin[p]));
+
+  const praiseWord = () => ({ boy: 'good boy', girl: 'good girl' }[state.settings.praise] || 'cute servant');
+  const Chat = window.createRiasChat({ memory: () => (state.chat ||= {}), say, period: () => period(), praiseWord });
 
   // ---------- schedule ----------
   function appliesOn(item, d) {
@@ -715,7 +1131,7 @@ window.RIAS = {
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
-    if (from === 'rias') speak(text);
+    if (from === 'rias') { speak(text); Chat.noteRias(text); }
     return m;
   }
 
@@ -924,7 +1340,7 @@ window.RIAS = {
       if (p) { resolve(p.id, 'done'); return null; }
       return doneLine();
     }
-    if (has('what now', 'what should i do', "what's next", 'whats next', 'next')) {
+    if (has('what now', 'what should i do', "what's next", 'whats next', 'what do i do')) {
       const p = pendingItem();
       if (p) return say(`You still haven't done this one: ${p.title}. Go on, I'll wait~`);
       const nm = nowMin();
@@ -932,19 +1348,9 @@ window.RIAS = {
       if (next) return say(`Next up at ${fmtTime(next.time)}: ${next.title}. Until then — drink some water and keep your posture nice, {name}.`);
       return say(isAwake() ? "Nothing left on today's list. Read something, relax, or tidy up a little." : pick(R.lateNight));
     }
-    if (has('good boy', 'good girl', 'praise me', 'am i good', 'proud of me', 'did good', 'did well', 'i did it')) return say(pick(praiseLines()));
-    if (has('plan', 'schedule', 'today', 'agenda')) return planText();
-    if (has('depress', 'sad', 'lonely', 'cry', 'upset', 'down', 'awful', 'terrible')) return say(pick(R.chat.sad));
-    if (has('stress', 'anxious', 'anxiety', 'overwhelm', 'panic', 'too much')) return say(pick(R.chat.stressed));
-    if (has('tired', 'sleepy', 'exhausted', 'no energy')) return say(isAwake() ? pick(R.chat.tired) : pick(R.lateNight));
-    if (has('hungry', 'starving', 'food', 'eat')) return say(pick(R.chat.hungry));
-    if (has('bored', 'boring', 'nothing to do')) return say(pick(R.chat.bored));
-    if (has('thank', 'thx', 'ty ', 'tysm')) return say(pick(R.chat.thanks));
-    if (has('love you', 'like you', 'cute', 'beautiful', 'pretty', 'marry')) return say(pick(R.chat.affection));
-    if (has('who are you', 'your name', 'about you')) return say(pick(R.chat.who));
-    if (/^(hi|hey|hello|yo|good (morning|afternoon|evening)|morning)\b/.test(t)) return say(pick(R.chat.greet));
-    if (has('good night', 'goodnight', 'night night', 'going to bed')) return say(pick(R.due.sleep));
-    return say(pick(R.chat.fallback));
+    if (has('good boy', 'good girl', 'praise me', 'am i good', 'proud of me', 'did good', 'did well')) return say(pick(praiseLines()));
+    if (has('my plan', "today's plan", 'todays plan', 'plan for today', 'schedule', 'agenda')) return planText();
+    return Chat.reply(raw);
   }
 
   // ---------- rendering ----------
@@ -1051,13 +1457,16 @@ window.RIAS = {
     text = text.trim();
     if (!text) return;
     addMessage('me', text);
-    const typing = showTyping();
-    setTimeout(() => {
-      typing.remove();
-      const r = reply(text);
-      if (r) addMessage('rias', r);
-      renderStatus();
-    }, 600 + Math.random() * 700);
+    // She "types" each message for a time that fits its length.
+    const r = reply(text);
+    const lines = r == null ? [] : [].concat(r);
+    const typeTime = (line) => Math.min(2600, 500 + line.length * 18 + Math.random() * 400);
+    const next = (i) => {
+      if (i >= lines.length) { renderStatus(); save(); return; }
+      const typing = showTyping();
+      setTimeout(() => { typing.remove(); addMessage('rias', lines[i]); next(i + 1); }, typeTime(lines[i]));
+    };
+    next(0);
   }
   $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); spokeLast = false; userSays(i.value); i.value = ''; });
   $('#mic').hidden = !canListen();
@@ -1270,12 +1679,6 @@ window.RIAS = {
       else if (st.volume === 0) msg = 'Your media volume is at zero. Press volume up while the app is open.';
     } else if (!('speechSynthesis' in window) || !speechSynthesis.getVoices().length) {
       msg = 'This browser can’t speak. Use the Android app, or open the page in Chrome.';
-    }
-    if (msg && N && N.voiceStatus) {
-      try {
-        const st = JSON.parse(N.voiceStatus());
-        if (st.detail) msg += `\n\nDetails for support: Android ${st.android}, ${st.device}, ${st.detail}`;
-      } catch { /* ignore */ }
     }
     hint.textContent = msg;
     hint.hidden = !msg;

@@ -68,6 +68,40 @@ easiest free option is GitHub Pages:
 To try it on a computer, run `python3 -m http.server` inside this folder and open
 http://localhost:8000.
 
+## Talking to Rias
+
+Type or tap 🎙 and talk to her normally. She understands a few hundred everyday ways of
+saying things: how you feel, what you're doing (work, school, gaming, the gym), being
+home or heading out, being sick, tired, stressed or lonely, compliments, hugs, asking
+about her, her peerage, her family and chess, and more. She also:
+
+- follows up on her own questions ("How about you?" → "not great" gets a caring answer)
+- remembers things you like ("I like pizza", later "what do I like?")
+- tries not to repeat a line she's used recently
+- sometimes answers in two or three messages, like a person texting
+
+Her chat lines are in `talk.js`; the matching logic is in `chat.js`. Lines are original,
+written in her voice rather than copied from the show.
+
+## Voice troubleshooting
+
+Rias speaks with your phone's text-to-speech. If she's silent, **Settings → Voice → ▶ Hear
+her** shows what's wrong:
+
+- **Silent, no message:** turn up your *media* volume while the app is open.
+- **"Couldn't connect to your phone's voice engine":** install *Speech Recognition and
+  Synthesis from Google* from the Play Store, choose it under Settings → Accessibility →
+  Text-to-speech → Preferred engine, then close and reopen the app. (Seen on Samsung
+  phones with only Samsung's engine.)
+- **"Missing voice data":** download an English voice in the same Text-to-speech settings.
+- **"That voice couldn't play":** pick *Automatic* or another voice; voices marked
+  *online* need internet.
+- **The web page / preview link doesn't speak:** some browsers and in-app viewers have no
+  speech support. Use the Android app or Chrome.
+
+For a voice closer to Rias, download Google's *English (UK)* voices, pick one under
+**Her voice**, and lower the pitch slightly.
+
 ## Limits
 
 A web app can't run while it's fully closed. Reminders and check-ins fire while the

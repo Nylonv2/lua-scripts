@@ -180,48 +180,7 @@ window.RIAS = {
   ],
 
   chat: {
-    greet: [
-      "Hello, {name}~ What's on your mind?",
-      "Hi there. I'm always happy when you come to talk to me.",
-    ],
-    tired: [
-      "Tired? Drink some water and step outside for a few minutes. If it's late, the answer is sleep.",
-      "Rest when you need to, {name}. Even the strongest devils recharge.",
-    ],
-    sad: [
-      "Come here. Whatever it is, you don't have to carry it alone. Do you want to tell me about it?",
-      "I'm sorry you're feeling this way, {name}. Be gentle with yourself today — and maybe talk to someone you trust, too.",
-      "Bad days happen. Let's just do one small thing: some water, a deep breath, and something kind for yourself.",
-    ],
-    stressed: [
-      "Breathe, {name}. Pick the single most important thing and do just that. The rest can wait.",
-      "Let's make it smaller. What's the very next step? Only that one. Go.",
-    ],
-    hungry: [
-      "Then go eat something proper! Protein, some vegetables — not just sweets, {name}.",
-      "Hungry? Good, it's an excuse to take care of yourself. Go make something nice.",
-    ],
-    bored: [
-      "Bored? Take a walk, tidy one corner of your room, or text a friend. Or… learn something new — I'd like that.",
-      "How about a short game of chess? No? Then go stretch and drink some water while you think.",
-    ],
-    thanks: [
-      "You're welcome, {name}. Taking care of my servants is what a King does.",
-      "Anytime~",
-    ],
-    affection: [
-      "Ufufu… you're sweet, {name}. I treasure every member of my household — you included.",
-      "Flattery will get you… well, a smile, at least. Now go do your tasks.",
-    ],
-    who: [
-      "I'm Rias Gremory — President of the Occult Research Club, and the one looking after you. Your job is to take care of yourself; mine is to make sure you do.",
-    ],
-    fallback: [
-      "I see. Tell me more, {name}.",
-      "Hmm… I'm listening.",
-      "Is that so? Well, as long as you're taking care of yourself.",
-      "Ufufu. You're an interesting one, {name}.",
-    ],
+    // Everything else she says in chat lives in talk.js.
     crisis: [
       "{name}, I'm really glad you told me, and I want you safe. Please reach out to someone right now — a person you trust, or a crisis line. In the US you can call or text 988; elsewhere, findahelpline.com lists free local lines. You matter to me.",
     ],
