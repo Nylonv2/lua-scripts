@@ -145,10 +145,24 @@
 
           <h2>Rias's mind (AI)</h2>
           <label class="switch"><input name="aiOn" type="checkbox"> Let Rias think up her own replies</label>
-          <p class="muted small">Uses the Claude API with your own API key, so she can talk about anything, remember your day, and add reminders, shifts and food for you when you ask. Get a key at console.anthropic.com (each message costs about 1–2 cents with Opus, much less with Haiku). Without a key or internet she uses her written lines.</p>
-          <label>API key
-            <input name="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+          <p class="muted small">She talks about anything, remembers your day, and adds reminders, shifts and food for you when you ask. Needs internet and a key from one of the services below. Without them she uses her written lines.</p>
+          <label>AI service
+            <select name="aiProvider">
+              <option value="gemini">Google Gemini — free key</option>
+              <option value="claude">Claude — paid key, best conversation</option>
+            </select>
           </label>
+          <div class="stack" id="ai-gemini">
+            <p class="muted small">Get a free key: go to aistudio.google.com, sign in with Google, tap “Get API key” → “Create API key”, and paste it here. The free tier has daily limits, and Google may use free-tier chats to improve its products.</p>
+            <label>Gemini API key
+              <input name="geminiKey" type="password" autocomplete="off" placeholder="AIza…">
+            </label>
+          </div>
+          <div class="stack" id="ai-claude">
+            <p class="muted small">Get a key at console.anthropic.com (add credit under Billing, then API Keys → Create Key). Each message costs about 1–2 cents with Opus, much less with Haiku.</p>
+            <label>Claude API key
+              <input name="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+            </label>
           <label>Model
             <select name="aiModel">
               <option value="claude-opus-5-5">Claude Opus 5.5 — best conversation (default)</option>
@@ -156,6 +170,7 @@
               <option value="claude-haiku-5-5">Claude Haiku 5.5 — fastest, cheapest</option>
             </select>
           </label>
+          </div>
           <button type="button" id="ai-test">Test connection</button>
           <p class="small voice-hint" id="ai-hint"></p>
 

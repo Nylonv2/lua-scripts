@@ -320,10 +320,24 @@ textarea { font: inherit; }
 
           <h2>Rias's mind (AI)</h2>
           <label class="switch"><input name="aiOn" type="checkbox"> Let Rias think up her own replies</label>
-          <p class="muted small">Uses the Claude API with your own API key, so she can talk about anything, remember your day, and add reminders, shifts and food for you when you ask. Get a key at console.anthropic.com (each message costs about 1–2 cents with Opus, much less with Haiku). Without a key or internet she uses her written lines.</p>
-          <label>API key
-            <input name="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+          <p class="muted small">She talks about anything, remembers your day, and adds reminders, shifts and food for you when you ask. Needs internet and a key from one of the services below. Without them she uses her written lines.</p>
+          <label>AI service
+            <select name="aiProvider">
+              <option value="gemini">Google Gemini — free key</option>
+              <option value="claude">Claude — paid key, best conversation</option>
+            </select>
           </label>
+          <div class="stack" id="ai-gemini">
+            <p class="muted small">Get a free key: go to aistudio.google.com, sign in with Google, tap “Get API key” → “Create API key”, and paste it here. The free tier has daily limits, and Google may use free-tier chats to improve its products.</p>
+            <label>Gemini API key
+              <input name="geminiKey" type="password" autocomplete="off" placeholder="AIza…">
+            </label>
+          </div>
+          <div class="stack" id="ai-claude">
+            <p class="muted small">Get a key at console.anthropic.com (add credit under Billing, then API Keys → Create Key). Each message costs about 1–2 cents with Opus, much less with Haiku.</p>
+            <label>Claude API key
+              <input name="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+            </label>
           <label>Model
             <select name="aiModel">
               <option value="claude-opus-5-5">Claude Opus 5.5 — best conversation (default)</option>
@@ -331,6 +345,7 @@ textarea { font: inherit; }
               <option value="claude-haiku-5-5">Claude Haiku 5.5 — fastest, cheapest</option>
             </select>
           </label>
+          </div>
           <button type="button" id="ai-test">Test connection</button>
           <p class="small voice-hint" id="ai-hint"></p>
 
@@ -1571,9 +1586,10 @@ new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 `)){let T=R.indexOf(":");T>=0&&(S[R.substring(0,T).trim()]=R.substring(T+1).trim())}g.defaultHeaders={...S,...g.defaultHeaders}}let A=a.__auth;if(delete g.__auth,delete g.__baseURLIsExplicit,this._options=g,this.apiKey=typeof g.apiKey=="string"?g.apiKey:null,y(this,Wi,typeof g.apiKey=="function"?g.apiKey:null,"f"),this.authToken=g.authToken??null,this.webhookKey=s,A)this._authState=A,!this._baseURLIsExplicit&&A.baseURL&&(this.baseURL=A.baseURL);else switch(this._authState={provider:null,tokenCache:null,resolution:null,error:null,extraHeaders:{}},_.type){case"apiKey":case"authToken":break;case"credentials":this._authState.provider=_.value,this._authState.tokenCache=this._makeTokenCache(_.value);break;case"config":{let S=mc(_.value,this._credentialResolverOptions());this._authState.provider=S.provider,this._authState.tokenCache=this._makeTokenCache(S.provider),this._authState.extraHeaders=S.extraHeaders,this._applyCredentialBaseURL(S.baseURL);break}case"profile":this._authState.resolution=this._resolveDefaultCredentials(_.value);break;case"defaultChain":this._shouldResolveDefaultCredentials()&&(this._authState.resolution=this._resolveDefaultCredentials());break;default:}}_shouldResolveDefaultCredentials(){return!0}_applyCredentialBaseURL(e){if(!e)return;let t=e.replace(/\/+$/,"");this._authState.baseURL=t,this._baseURLIsExplicit||(this.baseURL=t)}_credentialResolverOptions(){return{baseURL:this.baseURL,fetch:this._credentialsFetch(),userAgent:this.getUserAgent(),onCacheWriteError:e=>{P(this).debug("credential cache write failed (best-effort)",e)},onSafetyWarning:e=>{P(this).warn(e)}}}_credentialsFetch(){return yc(this.fetch,this.middleware,void 0,this)}_makeTokenCache(e){return new Fs(e,t=>{P(this).debug("advisory token refresh failed; serving cached token",t)})}withOptions(e){e={...e};for(let a of It)e[a]===void 0&&delete e[a];let t=It.some(a=>a in e),r=It.some(a=>e[a]!=null),s={...this._options,...this._baseURLIsExplicit?{baseURL:this.baseURL}:{},maxRetries:this.maxRetries,timeout:this.timeout,logger:this.logger,logLevel:this.logLevel,fetch:this.fetch,fetchOptions:this.fetchOptions,middleware:this.middleware,apiKey:this.apiKey??o(this,Wi,"f"),authToken:this.authToken,webhookKey:this.webhookKey,...r?Object.fromEntries(It.map(a=>[a,null])):{},...e,openTelemetry:e.openTelemetry??o(this,Qt,"f"),__auth:t?void 0:this._authState,__baseURLIsExplicit:"baseURL"in e?!0:this._baseURLIsExplicit};return new this.constructor(s)}async _resolveDefaultCredentials(e){try{let t=await Cd(this._credentialResolverOptions(),e);if(t)this._authState.provider=t.provider,this._authState.tokenCache=this._makeTokenCache(t.provider),this._authState.extraHeaders=t.extraHeaders,this._applyCredentialBaseURL(t.baseURL);else if(e!=null)throw new k(`Profile "${e}" could not be resolved (no <config_dir>/configs/${e}.json found).`)}catch(t){this._authState.error=t}finally{this._authState.resolution=null}}defaultQuery(){return this._options.defaultQuery}validateHeaders({values:e,nulls:t}){if(!(e.get("x-api-key")||e.get("authorization"))){if(this._authState.error)throw this._authState.error;if(!(this._authState.tokenCache||this._authState.resolution)&&!(this.apiKey&&e.get("authorization"))&&!t.has("authorization")&&!(this.authToken&&e.get("authorization"))&&!t.has("authorization"))throw new Error('Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for the "Authorization" header to be explicitly omitted')}}_authFlags(e){let t=this._requestAuthFlags.get(e);return t||(t={usedTokenCache:!1,didRefreshFor401:!1},this._requestAuthFlags.set(e,t)),t}async authHeaders(e){if(this._authState.resolution&&await this._authState.resolution,!this._authState.error){if(o(this,Wi,"f")&&this.apiKey==null){let t;try{t=await o(this,Wi,"f").call(this)}catch(r){throw new k(`The \`apiKey\` function failed: ${st(r).message}`,{cause:r})}if(!t)throw new k(`The \`apiKey\` function must return a non-empty string. It returned ${JSON.stringify(t)}.`);return d([{Authorization:`Bearer ${t}`}])}if(this._authState.tokenCache&&this.apiKey==null){let t=await this._authState.tokenCache.getToken();return this._authFlags(e).usedTokenCache=!0,d([{Authorization:`Bearer ${t}`}])}return d([await this.bearerAuth(e),await this.apiKeyAuth(e)])}}async apiKeyAuth(e){if(this.apiKey!=null)return d([{Authorization:`Bearer ${this.apiKey}`}])}async bearerAuth(e){if(this.authToken!=null)return d([{Authorization:`Bearer ${this.authToken}`}])}stringifyQuery(e){return Nu(e)}getUserAgent(){return`Anthropic/JS ${ye}`}makeStatusError(e,t,r,s){return q.generate(e,t,r,s)}buildURL(e,t,r){let s=!o(this,wl,"m",r_).call(this)&&r||this.baseURL,a=Tl(e)?new URL(e):new URL(s+(s.endsWith("/")&&e.startsWith("/")?e.slice(1):e)),c=this.defaultQuery(),u=Object.fromEntries(a.searchParams);return(!Mo(c)||!Mo(u))&&(t={...u,...c,...t}),typeof t=="object"&&t&&!Array.isArray(t)&&(a.search=this.stringifyQuery(t)),a.toString()}_calculateNonstreamingTimeout(e){if(3600*e/128e3>600)throw new k("Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#streaming-responses for more details");return 600*1e3}async prepareOptions(e){}async prepareRequest(e,{url:t,options:r}){var s;if(this._authState.tokenCache&&this.apiKey==null){let a=e.headers instanceof Headers?e.headers:new Headers(e.headers);for(let[u,p]of Object.entries(this._authState.extraHeaders))a.has(u)||a.set(u,p);let c=(s=a.get("anthropic-beta"))==null?void 0:s.split(",").map(u=>u.trim());c!=null&&c.includes(Ot)||a.set("anthropic-beta",[...c??[],Ot].join(",")),e.headers=a}}backendMiddleware(){return[]}get(e,t){return this.methodRequest("get",e,t)}post(e,t){return this.methodRequest("post",e,t)}patch(e,t){return this.methodRequest("patch",e,t)}put(e,t){return this.methodRequest("put",e,t)}delete(e,t){return this.methodRequest("delete",e,t)}methodRequest(e,t,r){return this.request(Promise.resolve(r).then(s=>({method:e,path:t,...s})))}request(e,t=null){return this._tracer?new ft(this,this.makeTracedRequest(e,t)):new ft(this,this.makeRequest(e,t,void 0))}async makeTracedRequest(e,t){var a;let r=await e,s=(a=r.__span)==null?void 0:a.span;if(!s)return this.makeRequest(r,t,void 0);try{return await J.with(we.setSpan(J.active(),s),()=>this.makeRequest(r,t,void 0,s))}catch(c){let u={status:"error",options:r,error:c};throw Mt(this,s,u),L(this,()=>_t(s,u)),c}}async makeRequest(e,t,r,s){var I,E,x;let a=await e,c=ps("maxRetries",a.maxRetries??this.maxRetries);this.isStreamBody(a.body)&&(c=0),t==null&&(t=c,this._requestAuthFlags.delete(a)),await this.prepareOptions(a);let{req:u,url:p,timeout:f}=await this.buildRequest(a,{retryCount:c-t}),_="log_"+(Math.random()*(1<<24)|0).toString(16).padStart(6,"0"),g=r===void 0?"":`, retryOf: ${r}`;s&&this.openTelemetry.propagation&&(u.headers=L(this,()=>Au(s,u.headers))??u.headers);let b=Date.now();if((I=a.signal)!=null&&I.aborted)throw new Q;let v=new AbortController,A=await this.fetchWithTimeout(p,u,f,v,a,{requestLogID:_,retryOfRequestLogID:r}).catch(st),S=Date.now();if(A instanceof globalThis.Error){Be(v);let N=`retrying, ${t} attempts remaining`;if((E=a.signal)!=null&&E.aborted)throw new Q;let C=ge(A)||/timed? ?out/i.test(String(A)+("cause"in A?String(A.cause):"")),M=this.middleware.length>0||!!((x=a.middleware)!=null&&x.length)||this.backendMiddleware().length>0;if(M&&!C&&!Nd(A))throw P(this).info(`[${_}] middleware error (not retryable)`),He(P(this),`[${_}] middleware error (not retryable)`,{retryOfRequestLogID:r,url:p,durationMs:S-b,message:A.message}),A;if(t)return P(this).info(`[${_}] connection ${C?"timed out":"failed"} - ${N}`),He(P(this),`[${_}] connection ${C?"timed out":"failed"} (${N})`,{retryOfRequestLogID:r,url:p,durationMs:S-b,message:A.message}),this.retryRequest(a,t,r??_,s);throw P(this).info(`[${_}] connection ${C?"timed out":"failed"} - error; no more retries left`),He(P(this),`[${_}] connection ${C?"timed out":"failed"} (error; no more retries left)`,{retryOfRequestLogID:r,url:p,durationMs:S-b,message:A.message}),C?new Rt:M&&!gc(A)?A:new Ce({cause:A})}let R=[...A.headers.entries()].filter(([N])=>N==="request-id"||N==="anthropic-workspace-id").map(([N,C])=>", "+N+": "+JSON.stringify(C)).join(""),T=`[${_}${g}${R}] ${u.method} ${p} ${A.ok?"succeeded":"failed"} with status ${A.status} in ${S-b}ms`;if(!A.ok){let N=await this.shouldRetry(A,a);if(t&&N){let Ee=`retrying, ${t} attempts remaining`;return await Nl(A.body),Be(v),P(this).info(`${T} - ${Ee}`),He(P(this),`[${_}] response error (${Ee})`,{retryOfRequestLogID:r,url:A.url,status:A.status,headers:A.headers,durationMs:S-b}),this.retryRequest(a,t,r??_,s,A.headers)}let C=N?"error; no more retries left":"error; not retryable";P(this).info(`${T} - ${C}`);let M=await A.text().catch(Ee=>st(Ee).message),F=ms(M),W=F?void 0:M;throw He(P(this),`[${_}] response error (${C})`,{retryOfRequestLogID:r,url:A.url,status:A.status,headers:A.headers,message:W,durationMs:Date.now()-b}),Be(v),this.makeStatusError(A.status,F,W,A.headers)}return P(this).info(T),He(P(this),`[${_}] response start`,{retryOfRequestLogID:r,url:A.url,status:A.status,headers:A.headers,durationMs:S-b}),zl(A.body??A,v),{response:A,options:a,controller:v,requestLogID:_,retryOfRequestLogID:r,startTime:b}}getAPIList(e,t,r){return this.requestAPIList(t,r&&"then"in r?r.then(s=>({method:"get",path:e,...s})):{method:"get",path:e,...r})}requestAPIList(e,t){if(!this._tracer){let s=this.makeRequest(t,null,void 0);return new vc(this,s,e)}let r=this.makeTracedRequest(t,null);return new vc(this,r,e)}async fetchWithTimeout(e,t,r,s,a,c){let{signal:u,method:p,...f}=t||{},_=this._makeAbort(s);u&&(u.addEventListener("abort",_,{once:!0}),Cl(s,u,_));let g=globalThis.ReadableStream&&f.body instanceof globalThis.ReadableStream||typeof f.body=="object"&&f.body!==null&&Symbol.asyncIterator in f.body,b={signal:s.signal,...g?{duplex:"half"}:{},method:"GET",...f};p&&(b.method=p.toUpperCase());let v=this.fetch,A=async(E,x)=>{let N=setTimeout(_,r);try{return await v.call(void 0,E,x)}finally{clearTimeout(N)}},S=a===void 0?A:(async(E,x={})=>{let N=typeof E=="string"?E:E instanceof URL?E.href:E.url;x.headers=x.headers instanceof Headers?x.headers:new Headers(x.headers);let C=[];a.__span&&(x.headers=new Headers(x.headers),C=Ks(x.headers)),await this.prepareRequest(x,{url:N,options:a}),C.length&&(x.headers=d([x.headers,C]).values);let M=a.__span;return M&&L(this,()=>ku(M,x.method??"GET",N,this.openTelemetry.traces.contentMode==="content")),c&&He(P(this),`[${c.requestLogID}] sending request`,{retryOfRequestLogID:c.retryOfRequestLogID,method:x.method,url:N,options:a,headers:x.headers}),A(E,x)}),R=a==null?void 0:a.middleware,T=a!=null&&a.__span?this.backendMiddleware().map(cc):this.backendMiddleware(),I=R!=null&&R.length||T.length?[...this.middleware,...R??[],...T]:this.middleware;return await yc(S,I,a,this)(e,b)}async shouldRetry(e,t){let r=this._authFlags(t);if(e.status===401&&this._authState.tokenCache&&r.usedTokenCache&&!r.didRefreshFor401)return r.didRefreshFor401=!0,this._authState.tokenCache.invalidate(),!0;let s=e.headers.get("x-should-retry");return s==="true"?!0:s==="false"?!1:e.status===408||e.status===409||e.status===429||e.status>=500}async retryRequest(e,t,r,s,a){let c,u=a==null?void 0:a.get("retry-after-ms");if(u){let f=parseFloat(u);Number.isNaN(f)||(c=f)}let p=a==null?void 0:a.get("retry-after");if(p&&!c){let f=parseFloat(p);Number.isNaN(f)?c=Date.parse(p)-Date.now():c=f*1e3}if(c===void 0||!(c>0&&c<=2**31-1)){let f=e.maxRetries??this.maxRetries;c=this.calculateDefaultRetryTimeoutMillis(t,f)}return await ze(c,e.signal??void 0),this.makeRequest(e,t-1,r,s)}calculateDefaultRetryTimeoutMillis(e,t){let a=t-e,c=Math.min(.5*Math.pow(2,a),8),u=1-Math.random()*.25;return c*u*1e3}calculateNonstreamingTimeout(e,t){if(36e5*e/128e3>6e5||t!=null&&e>t)throw new k("Streaming is required for operations that may take longer than 10 minutes. See https://github.com/anthropics/anthropic-sdk-typescript#long-requests for more details");return 6e5}async buildRequest(e,{retryCount:t=0}={}){let r={...e},{method:s,path:a,query:c,defaultBaseURL:u}=r;this._authState.resolution&&await this._authState.resolution,!this._baseURLIsExplicit&&this._authState.baseURL&&this.baseURL!==this._authState.baseURL&&(this.baseURL=this._authState.baseURL);let p=this.buildURL(a,c,u);"timeout"in r&&ps("timeout",r.timeout),r.timeout=r.timeout??this.timeout;let{bodyHeaders:f,body:_}=this.buildBody({options:r}),g=await this.buildHeaders({options:e,method:s,bodyHeaders:f,retryCount:t,timeout:r.timeout});return{req:{method:s,headers:g,...r.signal&&{signal:r.signal},...globalThis.ReadableStream&&_ instanceof globalThis.ReadableStream&&{duplex:"half"},..._&&{body:_},...this.fetchOptions??{},...r.fetchOptions??{}},url:p,timeout:r.timeout}}async buildHeaders({options:e,method:t,bodyHeaders:r,retryCount:s,timeout:a}){let c=d([{Accept:"application/json","User-Agent":this.getUserAgent(),"X-Stainless-Retry-Count":String(s),"X-Stainless-Timeout":String(Math.trunc(a/1e3)),...en(),...this._options.dangerouslyAllowBrowser?{"anthropic-dangerous-direct-browser-access":"true"}:void 0,"anthropic-version":"2026-10-21"},await this.authHeaders(e),this._options.defaultHeaders,r,e.headers]);return this.validateHeaders(c),c.values}_makeAbort(e){return()=>e.abort()}buildBody({options:{body:e,headers:t}}){if(!e)return{bodyHeaders:void 0,body:void 0};let r=d([t]);return ArrayBuffer.isView(e)||e instanceof ArrayBuffer||e instanceof DataView||typeof e=="string"&&r.values.has("content-type")||globalThis.Blob&&e instanceof globalThis.Blob||e instanceof FormData||e instanceof URLSearchParams||globalThis.ReadableStream&&e instanceof globalThis.ReadableStream?{bodyHeaders:void 0,body:e}:this.isStreamBody(e)?{bodyHeaders:void 0,body:ys(e)}:typeof e=="object"&&r.values.get("content-type")==="application/x-www-form-urlencoded"?{bodyHeaders:{"content-type":"application/x-www-form-urlencoded"},body:this.stringifyQuery(e)}:o(this,zo,"f").call(this,{body:e,headers:r})}isStreamBody(e){return globalThis.ReadableStream&&e instanceof globalThis.ReadableStream?!0:typeof e=="object"&&e!==null&&(Symbol.asyncIterator in e||Symbol.iterator in e&&"next"in e&&typeof e.next=="function")}}return vl=n,zo=new WeakMap,Wi=new WeakMap,Qt=new WeakMap,wl=new WeakSet,r_=function(){return this.baseURL!=="https://api.anthropic.com"},n.Anthropic=vl,n.DEFAULT_TIMEOUT=6e5,n.AnthropicError=k,n.APIError=q,n.APIConnectionError=Ce,n.APIConnectionTimeoutError=Rt,n.APIUserAbortError=Q,n.NotFoundError=Vi,n.ConflictError=Ji,n.RateLimitError=Qi,n.BadRequestError=Gi,n.AuthenticationError=Di,n.InternalServerError=Xi,n.PermissionDeniedError=Ki,n.UnprocessableEntityError=Yi,n.toFile=Ac,n})(),kl=(()=>{class n extends ay{constructor(){super(...arguments),this._supportsMessageThreads=!0,this.messages=new Rn(this),this.models=new Yt(this),this.files=new Jt(this),this.skills=new ds(this),this.userProfiles=new hs(this),this.organization=new us(this),this.beta=new ls(this)}}return n.Messages=Rn,n.Models=Yt,n.Files=Jt,n.Skills=ds,n.UserProfiles=hs,n.Organization=us,n.Beta=ls,n})();window.Anthropic=kl;})();
 </script>
   <script>
-// Rias's AI replies, using the Claude API through the official SDK (vendor/anthropic-sdk.js).
-// Only used when you turn it on in Settings and paste your own API key. Without it,
-// or when offline, the app falls back to the written lines in talk.js/chat.js.
+// Rias's AI replies. Two providers, picked in Settings:
+//  - Claude, through the official SDK (vendor/anthropic-sdk.js), with your own API key
+//  - Google Gemini, through its REST API, with a free key from aistudio.google.com
+// Without a key, or offline, the app falls back to the written lines in talk.js/chat.js.
 window.createRiasAI = function createRiasAI(ctx) {
   'use strict';
 
@@ -1696,7 +1712,10 @@ Boundaries:
     }
     return client;
   }
-  const enabled = () => !!(ctx.state.ai.on && ctx.state.ai.key.trim() && window.Anthropic);
+  const provider = () => (ctx.state.ai.provider === 'gemini' ? 'gemini' : 'claude');
+  const enabled = () => !!(ctx.state.ai.on && (provider() === 'gemini'
+    ? ctx.state.ai.geminiKey.trim()
+    : ctx.state.ai.key.trim() && window.Anthropic));
 
   // Recent chat as alternating user/assistant text turns (no thinking blocks are kept).
   function history(limit = 20) {
@@ -1737,6 +1756,7 @@ Boundaries:
   // Returns { lines } on success, { error } when the user should hear about a problem,
   // or null to quietly fall back to the written replies.
   async function reply(userText) {
+    if (provider() === 'gemini') return geminiReply(userText);
     const api = getClient();
     if (!api) return null;
     const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
@@ -1785,6 +1805,7 @@ Boundaries:
 
   // Settings → "Test": one tiny request to check the key.
   async function test() {
+    if (provider() === 'gemini') return geminiTest();
     const api = getClient();
     if (!api) return 'Paste your API key first.';
     try {
@@ -1803,7 +1824,140 @@ Boundaries:
     }
   }
 
-  return { enabled, reply, test };
+  // ---------- Google Gemini ----------
+  const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
+  const splitLines = (text) => text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, 3);
+
+  // Gemini takes an OpenAPI-style schema: upper-case types, `nullable`, enums on strings only.
+  function geminiSchema(sch) {
+    const types = [].concat(sch.type);
+    const out = { type: types.find((t) => t !== 'null').toUpperCase() };
+    if (types.includes('null')) out.nullable = true;
+    if (sch.description) out.description = sch.description;
+    if (sch.enum && out.type === 'STRING') out.enum = sch.enum;
+    if (sch.items) out.items = geminiSchema(sch.items);
+    if (sch.properties) {
+      out.properties = {};
+      for (const [k, v] of Object.entries(sch.properties)) out.properties[k] = geminiSchema(v);
+      out.required = (sch.required || []).filter((k) => !types.includes('null') && !(sch.properties[k].type || []).includes?.('null'));
+    }
+    return out;
+  }
+  const GEMINI_TOOLS = [{
+    functionDeclarations: TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: geminiSchema(t.input_schema) })),
+  }];
+
+  class GeminiError extends Error {
+    constructor(status, message) { super(message); this.status = status; }
+  }
+  async function gemini(path, body) {
+    let res;
+    try {
+      res = await fetch(`${GEMINI}/${path}`, {
+        method: body ? 'POST' : 'GET',
+        headers: { 'x-goog-api-key': ctx.state.ai.geminiKey.trim(), 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new GeminiError(0, 'offline');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new GeminiError(res.status, (data.error && data.error.message) || res.statusText);
+    return data;
+  }
+
+  // Google renames models often, so ask which ones this key can use and take the
+  // newest stable "Flash" model (fast and on the free tier). Remembered per key.
+  async function geminiModel() {
+    const key = ctx.state.ai.geminiKey.trim();
+    if (ctx.state.ai.geminiModel && ctx.state.ai.geminiModelKey === key.slice(-6)) return ctx.state.ai.geminiModel;
+    let names = [];
+    let page = '';
+    for (let i = 0; i < 5; i++) {
+      const data = await gemini(`models?pageSize=200${page ? `&pageToken=${page}` : ''}`);
+      names = names.concat((data.models || [])
+        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+        .map((m) => m.name.replace(/^models\//, '')));
+      if (!data.nextPageToken) break;
+      page = data.nextPageToken;
+    }
+    const version = (n) => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+    const newest = (list) => list.sort((a, b) => version(b) - version(a))[0];
+    const pickedModel = newest(names.filter((n) => /^gemini-\d+(\.\d+)?-flash$/.test(n)))
+      || newest(names.filter((n) => /^gemini-[\d.]+-flash(-\d+)?$/.test(n)))
+      || newest(names.filter((n) => /^gemini-.*flash/.test(n) && !/(image|tts|audio|live|thinking|embedding)/.test(n)))
+      || 'gemini-2.5-flash';
+    ctx.state.ai.geminiModel = pickedModel;
+    ctx.state.ai.geminiModelKey = key.slice(-6);
+    return pickedModel;
+  }
+
+  async function geminiReply(userText) {
+    if (!ctx.state.ai.geminiKey.trim()) return null;
+    const contents = history().map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.content }] }));
+    contents.push({ role: 'user', parts: [{ text: userText }] });
+    try {
+      const model = await geminiModel();
+      for (let step = 0; step < 5; step++) {
+        const data = await gemini(`models/${model}:generateContent`, {
+          systemInstruction: { parts: [{ text: `${PERSONA}\n\n${ctx.contextText()}` }] },
+          contents,
+          tools: GEMINI_TOOLS,
+          generationConfig: { maxOutputTokens: 2048 },
+        });
+        const cand = (data.candidates || [])[0];
+        if (!cand || !cand.content || !cand.content.parts) return null; // blocked or empty
+        const calls = cand.content.parts.filter((p) => p.functionCall);
+        if (calls.length) {
+          // Echo the model's turn back unchanged (it can carry thought signatures), then the results.
+          contents.push(cand.content);
+          contents.push({
+            role: 'user',
+            parts: calls.map((p) => ({
+              functionResponse: {
+                ...(p.functionCall.id ? { id: p.functionCall.id } : {}),
+                name: p.functionCall.name,
+                response: { result: runTool(p.functionCall.name, p.functionCall.args || {}) },
+              },
+            })),
+          });
+          continue;
+        }
+        const text = cand.content.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join('\n\n').trim();
+        return text ? { lines: splitLines(text) } : null;
+      }
+      return null;
+    } catch (e) {
+      if (e.status === 400 && /api key/i.test(e.message)) return { error: 'Your Gemini API key was rejected. Check it in Settings → Rias\'s mind.' };
+      if (e.status === 403) return { error: 'Your Gemini API key isn\'t allowed to use this model. Create a new key at aistudio.google.com.' };
+      if (e.status === 404) { ctx.state.ai.geminiModel = ''; return null; } // model retired: pick again next time
+      if (e.status === 429) return { error: 'I\'ve hit Gemini\'s free limit for now. I\'ll use my usual replies and try again later.' };
+      return null; // offline or a temporary problem: quietly use the written replies
+    }
+  }
+
+  async function geminiTest() {
+    if (!ctx.state.ai.geminiKey.trim()) return 'Paste your Gemini API key first.';
+    try {
+      ctx.state.ai.geminiModel = '';
+      const model = await geminiModel();
+      const data = await gemini(`models/${model}:generateContent`, {
+        systemInstruction: { parts: [{ text: PERSONA }] },
+        contents: [{ role: 'user', parts: [{ text: 'Say hi to me in one short sentence.' }] }],
+        generationConfig: { maxOutputTokens: 512 },
+      });
+      const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+      const t = parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(' ').trim();
+      return t ? `Working (${model})! Rias says: “${t}”` : `Connected to ${model}, but the reply was empty.`;
+    } catch (e) {
+      if (e.status === 0) return 'Couldn’t reach Google. Check your internet connection.';
+      if (e.status === 400 || e.status === 403) return 'That Gemini key was rejected. Copy it again from aistudio.google.com.';
+      if (e.status === 429) return 'Gemini says you’ve hit the free limit for now. Try again later.';
+      return `Something went wrong: ${e.message}`;
+    }
+  }
+
+  return { enabled, reply, test, provider };
 };
 </script>
   <script>
@@ -1877,7 +2031,7 @@ Boundaries:
     water: {},       // { date: glasses }
     nudged: {},      // { date: { food, water } }
     phoneEvents: [], // from the phone's calendar (Android app)
-    ai: { on: false, key: '', model: 'claude-opus-5-5' },
+    ai: { on: false, provider: 'gemini', key: '', model: 'claude-opus-5-5', geminiKey: '', geminiModel: '', geminiModelKey: '' },
   });
 
   let state;
@@ -2675,8 +2829,11 @@ Boundaries:
     sf.elements.voiceRate.value = o.rate;
     notifyHint();
     sf.elements.aiOn.checked = state.ai.on;
+    sf.elements.aiProvider.value = state.ai.provider;
     sf.elements.aiKey.value = state.ai.key;
+    sf.elements.geminiKey.value = state.ai.geminiKey;
     sf.elements.aiModel.value = state.ai.model;
+    showProvider();
     sf.elements.phoneCalendar.checked = state.settings.phoneCalendar;
     sf.elements.foodReminders.checked = state.settings.foodReminders;
     sf.elements.waterGoal.value = String(state.settings.waterGoal);
@@ -2698,7 +2855,10 @@ Boundaries:
       foodReminders: sf.elements.foodReminders.checked,
       waterGoal: Number(sf.elements.waterGoal.value),
     });
-    Object.assign(state.ai, { on: sf.elements.aiOn.checked, key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value });
+    Object.assign(state.ai, {
+      on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
+      key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),
+    });
     if (state.settings.phoneCalendar && !calWas) enableCalendar();
     if (!state.settings.phoneCalendar) state.phoneEvents = [];
     applyNativeVoice();
@@ -2745,12 +2905,24 @@ Boundaries:
     hint.hidden = !msg;
     btn.hidden = !needsSettings && !(N && N.openTtsSettings && msg);
   }
+  function showProvider() {
+    const g = sf.elements.aiProvider.value === 'gemini';
+    $('#ai-gemini').hidden = !g;
+    $('#ai-claude').hidden = g;
+    $('#ai-hint').textContent = '';
+  }
+  sf.elements.aiProvider.addEventListener('change', showProvider);
   $('#ai-test').addEventListener('click', async () => {
     const saved = { ...state.ai };
-    Object.assign(state.ai, { key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value });
+    Object.assign(state.ai, {
+      provider: sf.elements.aiProvider.value, key: sf.elements.aiKey.value.trim(),
+      model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),
+    });
     $('#ai-hint').textContent = 'Testing…';
     $('#ai-hint').textContent = await AI.test();
-    state.ai = saved;
+    // Keep the Gemini model the test picked; restore everything else until you tap Save.
+    state.ai = { ...saved, geminiModel: state.ai.geminiModel, geminiModelKey: state.ai.geminiModelKey };
+    save();
   });
   $('#tts-settings').addEventListener('click', () => {
     const N = window.RiasNative;

@@ -81,15 +81,22 @@ http://localhost:8000.
 
 ## Rias's AI (optional)
 
-Turn on **Settings → Rias's mind (AI)** and paste a Claude API key from console.anthropic.com. She then writes her
-own replies in character instead of using written lines, knows your schedule, shifts, food and water for the day,
-and can act on what you say: "remind me at 5 to call mom", "I work Saturday 10 to 6", "I just had a burger",
-"I drank two glasses of water", "I took my meds". Default model is Claude Opus 5.5 (about 1–2 cents per message);
-Sonnet 5.5 and Haiku 5.5 are cheaper. Your key is stored only on your phone and sent only to Anthropic's API.
-Without a key, or offline, she uses the written lines below. Requests opt into Anthropic's server-side refusal
-fallback on Opus and Sonnet.
+Turn on **Settings → Rias's mind (AI)** and pick a service:
 
-The SDK is bundled as `vendor/anthropic-sdk.js` (rebuild with `vendor/build-sdk.sh`).
+- **Google Gemini (free):** at aistudio.google.com sign in with Google, tap *Get API key → Create API key*, and
+  paste it in. No card needed. The free tier has daily limits, and Google may use free-tier chats to improve its
+  products. The app asks Google which models your key can use and picks the newest stable Flash model.
+- **Claude (paid, best conversation):** create a key at console.anthropic.com (add credit under Billing). Default
+  model Claude Opus 5.5 (about 1–2 cents per message); Sonnet 5.5 and Haiku 5.5 are cheaper. Requests opt into
+  Anthropic's server-side refusal fallback on Opus and Sonnet.
+
+Tap **Test connection** to check the key. With AI on she writes her own replies in character, knows your schedule,
+shifts, food and water for the day, and acts on what you say: "remind me at 5 to call mom", "I work Saturday 10 to 6",
+"I just had a burger", "I drank two glasses of water", "I took my meds". Keys are stored only on your phone and sent
+only to the service you picked. Without a key, or offline, she uses the written lines below.
+
+The Claude SDK is bundled as `vendor/anthropic-sdk.js` (rebuild with `vendor/build-sdk.sh`); Gemini uses Google's
+REST API directly (`ai.js`).
 
 ## Phone calendar
 

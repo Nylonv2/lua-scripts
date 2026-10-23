@@ -1,5 +1,5 @@
 // Caches the app so it opens offline, and focuses the app when a notification is tapped.
-const CACHE = 'rias-v3';
+const CACHE = 'rias-v4';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'dialogue.js', 'talk.js', 'chat.js', 'food.js', 'work.js', 'ai.js', 'vendor/anthropic-sdk.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 
@@ -15,7 +15,8 @@ self.addEventListener('activate', (e) => {
 
 // Network first so updates show up, cache as the offline fallback.
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  // Only the app's own files; API calls (Claude, Gemini) go straight to the network.
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(fetch(e.request)
     .then((res) => {
       const copy = res.clone();

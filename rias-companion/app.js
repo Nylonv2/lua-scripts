@@ -68,7 +68,7 @@
     water: {},       // { date: glasses }
     nudged: {},      // { date: { food, water } }
     phoneEvents: [], // from the phone's calendar (Android app)
-    ai: { on: false, key: '', model: 'claude-opus-5-5' },
+    ai: { on: false, provider: 'gemini', key: '', model: 'claude-opus-5-5', geminiKey: '', geminiModel: '', geminiModelKey: '' },
   });
 
   let state;
@@ -866,8 +866,11 @@
     sf.elements.voiceRate.value = o.rate;
     notifyHint();
     sf.elements.aiOn.checked = state.ai.on;
+    sf.elements.aiProvider.value = state.ai.provider;
     sf.elements.aiKey.value = state.ai.key;
+    sf.elements.geminiKey.value = state.ai.geminiKey;
     sf.elements.aiModel.value = state.ai.model;
+    showProvider();
     sf.elements.phoneCalendar.checked = state.settings.phoneCalendar;
     sf.elements.foodReminders.checked = state.settings.foodReminders;
     sf.elements.waterGoal.value = String(state.settings.waterGoal);
@@ -889,7 +892,10 @@
       foodReminders: sf.elements.foodReminders.checked,
       waterGoal: Number(sf.elements.waterGoal.value),
     });
-    Object.assign(state.ai, { on: sf.elements.aiOn.checked, key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value });
+    Object.assign(state.ai, {
+      on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
+      key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),
+    });
     if (state.settings.phoneCalendar && !calWas) enableCalendar();
     if (!state.settings.phoneCalendar) state.phoneEvents = [];
     applyNativeVoice();
@@ -936,12 +942,24 @@
     hint.hidden = !msg;
     btn.hidden = !needsSettings && !(N && N.openTtsSettings && msg);
   }
+  function showProvider() {
+    const g = sf.elements.aiProvider.value === 'gemini';
+    $('#ai-gemini').hidden = !g;
+    $('#ai-claude').hidden = g;
+    $('#ai-hint').textContent = '';
+  }
+  sf.elements.aiProvider.addEventListener('change', showProvider);
   $('#ai-test').addEventListener('click', async () => {
     const saved = { ...state.ai };
-    Object.assign(state.ai, { key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value });
+    Object.assign(state.ai, {
+      provider: sf.elements.aiProvider.value, key: sf.elements.aiKey.value.trim(),
+      model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),
+    });
     $('#ai-hint').textContent = 'Testing…';
     $('#ai-hint').textContent = await AI.test();
-    state.ai = saved;
+    // Keep the Gemini model the test picked; restore everything else until you tap Save.
+    state.ai = { ...saved, geminiModel: state.ai.geminiModel, geminiModelKey: state.ai.geminiModelKey };
+    save();
   });
   $('#tts-settings').addEventListener('click', () => {
     const N = window.RiasNative;

@@ -1,6 +1,7 @@
-// Rias's AI replies, using the Claude API through the official SDK (vendor/anthropic-sdk.js).
-// Only used when you turn it on in Settings and paste your own API key. Without it,
-// or when offline, the app falls back to the written lines in talk.js/chat.js.
+// Rias's AI replies. Two providers, picked in Settings:
+//  - Claude, through the official SDK (vendor/anthropic-sdk.js), with your own API key
+//  - Google Gemini, through its REST API, with a free key from aistudio.google.com
+// Without a key, or offline, the app falls back to the written lines in talk.js/chat.js.
 window.createRiasAI = function createRiasAI(ctx) {
   'use strict';
 
@@ -123,7 +124,10 @@ Boundaries:
     }
     return client;
   }
-  const enabled = () => !!(ctx.state.ai.on && ctx.state.ai.key.trim() && window.Anthropic);
+  const provider = () => (ctx.state.ai.provider === 'gemini' ? 'gemini' : 'claude');
+  const enabled = () => !!(ctx.state.ai.on && (provider() === 'gemini'
+    ? ctx.state.ai.geminiKey.trim()
+    : ctx.state.ai.key.trim() && window.Anthropic));
 
   // Recent chat as alternating user/assistant text turns (no thinking blocks are kept).
   function history(limit = 20) {
@@ -164,6 +168,7 @@ Boundaries:
   // Returns { lines } on success, { error } when the user should hear about a problem,
   // or null to quietly fall back to the written replies.
   async function reply(userText) {
+    if (provider() === 'gemini') return geminiReply(userText);
     const api = getClient();
     if (!api) return null;
     const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
@@ -212,6 +217,7 @@ Boundaries:
 
   // Settings → "Test": one tiny request to check the key.
   async function test() {
+    if (provider() === 'gemini') return geminiTest();
     const api = getClient();
     if (!api) return 'Paste your API key first.';
     try {
@@ -230,5 +236,138 @@ Boundaries:
     }
   }
 
-  return { enabled, reply, test };
+  // ---------- Google Gemini ----------
+  const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
+  const splitLines = (text) => text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, 3);
+
+  // Gemini takes an OpenAPI-style schema: upper-case types, `nullable`, enums on strings only.
+  function geminiSchema(sch) {
+    const types = [].concat(sch.type);
+    const out = { type: types.find((t) => t !== 'null').toUpperCase() };
+    if (types.includes('null')) out.nullable = true;
+    if (sch.description) out.description = sch.description;
+    if (sch.enum && out.type === 'STRING') out.enum = sch.enum;
+    if (sch.items) out.items = geminiSchema(sch.items);
+    if (sch.properties) {
+      out.properties = {};
+      for (const [k, v] of Object.entries(sch.properties)) out.properties[k] = geminiSchema(v);
+      out.required = (sch.required || []).filter((k) => !types.includes('null') && !(sch.properties[k].type || []).includes?.('null'));
+    }
+    return out;
+  }
+  const GEMINI_TOOLS = [{
+    functionDeclarations: TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: geminiSchema(t.input_schema) })),
+  }];
+
+  class GeminiError extends Error {
+    constructor(status, message) { super(message); this.status = status; }
+  }
+  async function gemini(path, body) {
+    let res;
+    try {
+      res = await fetch(`${GEMINI}/${path}`, {
+        method: body ? 'POST' : 'GET',
+        headers: { 'x-goog-api-key': ctx.state.ai.geminiKey.trim(), 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new GeminiError(0, 'offline');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new GeminiError(res.status, (data.error && data.error.message) || res.statusText);
+    return data;
+  }
+
+  // Google renames models often, so ask which ones this key can use and take the
+  // newest stable "Flash" model (fast and on the free tier). Remembered per key.
+  async function geminiModel() {
+    const key = ctx.state.ai.geminiKey.trim();
+    if (ctx.state.ai.geminiModel && ctx.state.ai.geminiModelKey === key.slice(-6)) return ctx.state.ai.geminiModel;
+    let names = [];
+    let page = '';
+    for (let i = 0; i < 5; i++) {
+      const data = await gemini(`models?pageSize=200${page ? `&pageToken=${page}` : ''}`);
+      names = names.concat((data.models || [])
+        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+        .map((m) => m.name.replace(/^models\//, '')));
+      if (!data.nextPageToken) break;
+      page = data.nextPageToken;
+    }
+    const version = (n) => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+    const newest = (list) => list.sort((a, b) => version(b) - version(a))[0];
+    const pickedModel = newest(names.filter((n) => /^gemini-\d+(\.\d+)?-flash$/.test(n)))
+      || newest(names.filter((n) => /^gemini-[\d.]+-flash(-\d+)?$/.test(n)))
+      || newest(names.filter((n) => /^gemini-.*flash/.test(n) && !/(image|tts|audio|live|thinking|embedding)/.test(n)))
+      || 'gemini-2.5-flash';
+    ctx.state.ai.geminiModel = pickedModel;
+    ctx.state.ai.geminiModelKey = key.slice(-6);
+    return pickedModel;
+  }
+
+  async function geminiReply(userText) {
+    if (!ctx.state.ai.geminiKey.trim()) return null;
+    const contents = history().map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.content }] }));
+    contents.push({ role: 'user', parts: [{ text: userText }] });
+    try {
+      const model = await geminiModel();
+      for (let step = 0; step < 5; step++) {
+        const data = await gemini(`models/${model}:generateContent`, {
+          systemInstruction: { parts: [{ text: `${PERSONA}\n\n${ctx.contextText()}` }] },
+          contents,
+          tools: GEMINI_TOOLS,
+          generationConfig: { maxOutputTokens: 2048 },
+        });
+        const cand = (data.candidates || [])[0];
+        if (!cand || !cand.content || !cand.content.parts) return null; // blocked or empty
+        const calls = cand.content.parts.filter((p) => p.functionCall);
+        if (calls.length) {
+          // Echo the model's turn back unchanged (it can carry thought signatures), then the results.
+          contents.push(cand.content);
+          contents.push({
+            role: 'user',
+            parts: calls.map((p) => ({
+              functionResponse: {
+                ...(p.functionCall.id ? { id: p.functionCall.id } : {}),
+                name: p.functionCall.name,
+                response: { result: runTool(p.functionCall.name, p.functionCall.args || {}) },
+              },
+            })),
+          });
+          continue;
+        }
+        const text = cand.content.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join('\n\n').trim();
+        return text ? { lines: splitLines(text) } : null;
+      }
+      return null;
+    } catch (e) {
+      if (e.status === 400 && /api key/i.test(e.message)) return { error: 'Your Gemini API key was rejected. Check it in Settings → Rias\'s mind.' };
+      if (e.status === 403) return { error: 'Your Gemini API key isn\'t allowed to use this model. Create a new key at aistudio.google.com.' };
+      if (e.status === 404) { ctx.state.ai.geminiModel = ''; return null; } // model retired: pick again next time
+      if (e.status === 429) return { error: 'I\'ve hit Gemini\'s free limit for now. I\'ll use my usual replies and try again later.' };
+      return null; // offline or a temporary problem: quietly use the written replies
+    }
+  }
+
+  async function geminiTest() {
+    if (!ctx.state.ai.geminiKey.trim()) return 'Paste your Gemini API key first.';
+    try {
+      ctx.state.ai.geminiModel = '';
+      const model = await geminiModel();
+      const data = await gemini(`models/${model}:generateContent`, {
+        systemInstruction: { parts: [{ text: PERSONA }] },
+        contents: [{ role: 'user', parts: [{ text: 'Say hi to me in one short sentence.' }] }],
+        generationConfig: { maxOutputTokens: 512 },
+      });
+      const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+      const t = parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(' ').trim();
+      return t ? `Working (${model})! Rias says: “${t}”` : `Connected to ${model}, but the reply was empty.`;
+    } catch (e) {
+      if (e.status === 0) return 'Couldn’t reach Google. Check your internet connection.';
+      if (e.status === 400 || e.status === 403) return 'That Gemini key was rejected. Copy it again from aistudio.google.com.';
+      if (e.status === 429) return 'Gemini says you’ve hit the free limit for now. Try again later.';
+      return `Something went wrong: ${e.message}`;
+    }
+  }
+
+  return { enabled, reply, test, provider };
 };
