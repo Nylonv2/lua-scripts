@@ -157,9 +157,13 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
   const rows = () => [...$('#pl-days').children];
   const hhmm = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
+  // A row either has its own hours (typed, pasted, copied or an existing shift) or
+  // follows the "Hours for the days you tap" boxes at the top.
   function setRow(row, on, start, end) {
     row.classList.toggle('on', on);
     row.querySelector('.pl-on').checked = on;
+    if (start && end) row.dataset.own = '1';
+    if (on && !row.dataset.own) { start = pf.elements.fillStart.value; end = pf.elements.fillEnd.value; }
     if (start) row.querySelector('.pl-start').value = start;
     if (end) row.querySelector('.pl-end').value = end;
     row.querySelector('.pl-off').hidden = on;
@@ -201,7 +205,8 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       row.querySelector('.pl-same').hidden = i === 0;
       box.append(row);
       const sh = ctx.shiftsOn(d)[0];
-      setRow(row, !!sh, sh ? sh.start : pf.elements.fillStart.value, sh ? sh.end : pf.elements.fillEnd.value);
+      if (sh) setRow(row, true, sh.start, sh.end);
+      else setRow(row, false);
     }
   }
 
@@ -225,24 +230,40 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       setRow(row, !row.classList.contains('on'));
     } else if (e.target.closest('.pl-same')) {
       const prev = row.previousElementSibling;
-      if (prev) setRow(row, prev.classList.contains('on'), prev.querySelector('.pl-start').value, prev.querySelector('.pl-end').value);
+      if (prev && prev.classList.contains('on')) setRow(row, true, prev.querySelector('.pl-start').value, prev.querySelector('.pl-end').value);
+      else if (prev) setRow(row, false);
     }
   });
-  $('#pl-days').addEventListener('change', updateTotal);
+  const ownTimes = (e) => {
+    const row = e.target.closest('.pl-day');
+    if (row && e.target.matches('input[type=time]')) row.dataset.own = '1';
+    updateTotal();
+  };
+  $('#pl-days').addEventListener('input', ownTimes);
+  $('#pl-days').addEventListener('change', ownTimes);
+  // Changing the top hours updates the ticked days that follow them.
+  const followFill = () => {
+    for (const r of rows()) if (r.classList.contains('on') && !r.dataset.own) setRow(r, true);
+  };
+  pf.elements.fillStart.addEventListener('input', followFill);
+  pf.elements.fillEnd.addEventListener('input', followFill);
+  pf.elements.fillStart.addEventListener('change', followFill);
+  pf.elements.fillEnd.addEventListener('change', followFill);
   $('#pl-fill').addEventListener('click', () => {
     const on = rows().filter((r) => r.classList.contains('on'));
     // Nothing ticked yet? Fill Monday–Friday.
     const targets = on.length ? on : rows().slice(1, 6);
-    for (const r of targets) setRow(r, true, pf.elements.fillStart.value, pf.elements.fillEnd.value);
+    for (const r of targets) { delete r.dataset.own; setRow(r, true); }
   });
   $('#pl-copy').addEventListener('click', () => {
     for (const r of rows()) {
       const d = addDays(new Date(`${r.dataset.date}T12:00`), -7);
       const sh = ctx.shiftsOn(d)[0];
-      setRow(r, !!sh, sh && sh.start, sh && sh.end);
+      delete r.dataset.own;
+      if (sh) setRow(r, true, sh.start, sh.end); else setRow(r, false);
     }
   });
-  $('#pl-clear').addEventListener('click', () => { for (const r of rows()) setRow(r, false); });
+  $('#pl-clear').addEventListener('click', () => { for (const r of rows()) { delete r.dataset.own; setRow(r, false); } });
   $('#pl-prev').addEventListener('click', () => { weekStart = addDays(weekStart, -7); renderPlanner(); });
   $('#pl-next').addEventListener('click', () => { weekStart = addDays(weekStart, 7); renderPlanner(); });
   $('#pl-cancel').addEventListener('click', () => pl.close());
@@ -295,7 +316,7 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     if (!found.size) { $('#pl-parse-hint').textContent = 'I couldn’t find any days in that. Try lines like “Mon 9-5” or “Tue off”.'; return; }
     for (const r of rows()) {
       const dow = new Date(`${r.dataset.date}T12:00`).getDay();
-      if (found.has(dow)) { const f = found.get(dow); setRow(r, f.on, f.start, f.end); }
+      if (found.has(dow)) { const f = found.get(dow); if (f.on) setRow(r, true, f.start, f.end); else { delete r.dataset.own; setRow(r, false); } }
     }
     $('#pl-parse-hint').textContent = `Filled ${found.size} day${found.size === 1 ? '' : 's'}. Check the times, then tap Save week.`;
   });
