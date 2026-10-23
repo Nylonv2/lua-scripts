@@ -353,6 +353,10 @@ textarea { font: inherit; }
 .pl-paste summary { cursor: pointer; color: var(--gold); padding: 6px 0; }
 .pl-paste textarea { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); font-size: 16px; margin: 6px 0; }
 .pl-day input[type=time]::-webkit-calendar-picker-indicator { display: none; }
+
+.msg-photo { display: block; max-width: 220px; max-height: 260px; border-radius: 12px; margin-bottom: 6px; object-fit: cover; }
+.top .who, .top .avatar { cursor: pointer; }
+.work-photo { display: block; margin: -6px auto 12px; }
 </style>
 </head>
 <body>
@@ -424,9 +428,12 @@ textarea { font: inherit; }
           <button type="button" data-say="I'm tired">I'm tired</button>
           <button type="button" data-say="I'm bored">I'm bored</button>
           <button type="button" data-say="Praise me">Praise me</button>
+          <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
           <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
+          <button type="button" id="attach" class="mic" aria-label="Send Rias a photo (like your work schedule)">📷</button>
+          <input type="file" id="photo-file" accept="image/*" hidden>
           <button type="button" id="mic" class="mic" aria-label="Talk with your voice" hidden>🎙</button>
           <button type="submit" aria-label="Send">➤</button>
         </form>
@@ -472,6 +479,7 @@ textarea { font: inherit; }
       <!-- Work schedule -->
       <section class="view pad" id="view-work" hidden>
         <button type="button" class="plan-week" id="plan-week">🗓️ Plan my week<small>Set every day at once, paste a schedule, or copy last week</small></button>
+        <button type="button" class="link work-photo" id="work-photo">📷 Or send Rias a photo of your schedule</button>
         <div class="card">
           <b>Next 7 days</b>
           <div class="week" id="week"></div>
@@ -2123,6 +2131,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
+- If the user sends a photo or screenshot of a work schedule, read it carefully and add every shift with add_work_shift (one call per shift, all in the same turn), using the real dates shown, or the coming dates for weekday names. If several people are listed, use the row with the user's name from the app context; if you can't tell which row is theirs, ask instead of guessing. Skip days marked off. Then tell them in one or two short messages how many shifts you added, the days and times, and that you'll remind them before each one. If the photo is unreadable or isn't a schedule, say so kindly.
 
 Boundaries:
 - Keep it affectionate but non-sexual. If the user pushes for sexual content, deflect playfully in character and change the subject.
@@ -2264,22 +2273,26 @@ Boundaries:
 
   // Returns { lines } on success, { error } when the user should hear about a problem,
   // or null to quietly fall back to the written replies.
-  async function reply(userText) {
-    if (provider() === 'gemini') return geminiReply(userText);
+  // `image` is an optional base64 JPEG (e.g. a photo of a work schedule).
+  async function reply(userText, image) {
+    if (provider() === 'gemini') return geminiReply(userText, image);
     const api = getClient();
     if (!api) return null;
     const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+    const userContent = image
+      ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } }, { type: 'text', text: userText }]
+      : userText;
     const messages = history().concat(
-      { role: 'user', content: userText },
+      { role: 'user', content: userContent },
       { role: 'system', content: ctx.contextText() },
     );
     const params = {
       model,
-      max_tokens: 2000,
+      max_tokens: image ? 8000 : 2000,
       // Breakpoint on the persona caches tools + persona together (tools render first).
       system: [{ type: 'text', text: PERSONA, cache_control: { type: 'ephemeral' } }],
       tools: TOOLS,
-      output_config: { effort: 'low' }, // chat: quick, natural replies
+      output_config: { effort: image ? 'medium' : 'low' }, // chat: quick replies; reading a photo needs more care
       messages,
     };
     if (MODELS[model].fallbacks) {
@@ -2287,7 +2300,7 @@ Boundaries:
       params.fallbacks = 'default';
     }
     try {
-      for (let step = 0; step < 5; step++) {
+      for (let step = 0; step < 8; step++) {
         const res = MODELS[model].fallbacks ? await api.beta.messages.create(params) : await api.messages.create(params);
         if (res.stop_reason === 'refusal') return null;
         if (res.stop_reason === 'tool_use') {
@@ -2299,8 +2312,7 @@ Boundaries:
         }
         const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n').trim();
         if (!text) return null;
-        const lines = text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, 3);
-        return { lines };
+        return { lines: splitLines(text, image ? 4 : 3) };
       }
       return null;
     } catch (e) {
@@ -2335,7 +2347,7 @@ Boundaries:
 
   // ---------- Google Gemini ----------
   const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
-  const splitLines = (text) => text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, 3);
+  const splitLines = (text, max = 3) => text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, max);
 
   // Gemini takes an OpenAPI-style schema: upper-case types, `nullable`, enums on strings only.
   function geminiSchema(sch) {
@@ -2401,18 +2413,18 @@ Boundaries:
     return pickedModel;
   }
 
-  async function geminiReply(userText) {
+  async function geminiReply(userText, image) {
     if (!ctx.state.ai.geminiKey.trim()) return null;
     const contents = history().map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.content }] }));
-    contents.push({ role: 'user', parts: [{ text: userText }] });
+    contents.push({ role: 'user', parts: image ? [{ inlineData: { mimeType: 'image/jpeg', data: image } }, { text: userText }] : [{ text: userText }] });
     try {
       const model = await geminiModel();
-      for (let step = 0; step < 5; step++) {
+      for (let step = 0; step < 8; step++) {
         const data = await gemini(`models/${model}:generateContent`, {
           systemInstruction: { parts: [{ text: `${PERSONA}\n\n${ctx.contextText()}` }] },
           contents,
           tools: GEMINI_TOOLS,
-          generationConfig: { maxOutputTokens: 2048 },
+          generationConfig: { maxOutputTokens: image ? 8192 : 2048 },
         });
         const cand = (data.candidates || [])[0];
         if (!cand || !cand.content || !cand.content.parts) return null; // blocked or empty
@@ -2433,7 +2445,7 @@ Boundaries:
           continue;
         }
         const text = cand.content.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join('\n\n').trim();
-        return text ? { lines: splitLines(text) } : null;
+        return text ? { lines: splitLines(text, image ? 4 : 3) } : null;
       }
       return null;
     } catch (e) {
@@ -3196,6 +3208,13 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     for (const m of state.messages) {
       const el = document.createElement('div');
       el.className = `msg ${m.from}`;
+      if (m.photo) {
+        const img = document.createElement('img');
+        img.className = 'msg-photo';
+        img.src = m.photo;
+        img.alt = 'Photo you sent';
+        el.append(img);
+      }
       el.append(m.text);
       if (m.itemId) {
         const task = document.createElement('div');
@@ -3340,7 +3359,20 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     touchY = null;
   });
 
+  // Phone back button / browser back: close a pop-up first, then go Home.
+  window.riasBack = () => {
+    const open = document.querySelector('dialog[open]');
+    if (open) { if (open.id === 'alarm') closeAlarm(); else open.close(); return true; }
+    if (currentView !== 'home' && state.profile) { show('home'); return true; }
+    return false;
+  };
+  window.addEventListener('popstate', () => { window.riasBack(); });
+  $('.top .who').addEventListener('click', () => show('home'));
+  $('.top .avatar').addEventListener('click', () => show('home'));
+
   function show(view) {
+    // Leaving Home adds a history entry so browser back returns there.
+    if (view !== 'home' && currentView === 'home' && !window.RiasNative) { try { history.pushState({ rias: view }, ''); } catch { /* ignore */ } }
     currentView = view;
     if (view === 'chat') hideToast();
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
@@ -3355,24 +3387,31 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
 
   // ---------- chat events ----------
-  async function userSays(text) {
+  // `photo` = { full: base64 JPEG for the AI, thumb: small data URL kept in the chat }.
+  async function userSays(text, photo) {
     text = text.trim();
-    if (!text) return;
-    addMessage('me', text);
-    let r = reply(text, AI.enabled());
+    if (!text && !photo) return;
+    if (photo && !text) text = 'Here’s a photo of my work schedule. Can you add my shifts?';
+    addMessage('me', text, photo ? { photo: photo.thumb } : {});
+    if (photo && !AI.enabled()) {
+      addMessage('rias', say('I need my AI turned on to read photos, {name}. Set it up in Settings → Rias’s mind (a free Gemini key works). Or use Work → Plan my week and paste the schedule as text.'));
+      return;
+    }
+    let r = photo ? undefined : reply(text, AI.enabled());
     let aiTyped = false;
     if (r === undefined) {
       // Her AI is thinking: show typing until it answers, then fall back to written lines if needed.
       const typing = showTyping();
-      const res = await AI.reply(text);
+      const res = await AI.reply(text, photo && photo.full);
       typing.remove();
       aiTyped = true;
       if (res && res.lines) r = res.lines;
       else {
         if (res && res.error) addMessage('rias', res.error);
-        r = reply(text);
+        r = photo ? say('I couldn’t read that photo just now, {name}. Check your internet and try again, or paste the schedule as text in Work → Plan my week.') : reply(text);
       }
       renderToday();
+      if (photo && !$('#view-work').hidden) Work.render();
     }
     // She "types" each message for a time that fits its length.
     const lines = r == null ? [] : [].concat(r);
@@ -3386,9 +3425,57 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     next(0);
   }
   $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); spokeLast = false; userSays(i.value); i.value = ''; });
+  // 📷 Send Rias a photo (her AI reads it, e.g. a work schedule).
+  function shrinkPhoto(file, max) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const out = (limit, q) => {
+          const k = Math.min(1, limit / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.naturalWidth * k);
+          c.height = Math.round(img.naturalHeight * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          return c.toDataURL('image/jpeg', q);
+        };
+        // Big enough to read small print, small enough to send quickly.
+        const full = out(max, 0.85).split(',')[1];
+        const thumb = out(360, 0.7);
+        URL.revokeObjectURL(url);
+        resolve({ full, thumb });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+      img.src = url;
+    });
+  }
+  const pickPhoto = () => $('#photo-file').click();
+  $('#attach').addEventListener('click', pickPhoto);
+  $('#work-photo').addEventListener('click', () => { show('chat'); pickPhoto(); });
+  $('#photo-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const photo = await shrinkPhoto(file, 1800);
+      const i = $('#say');
+      const text = i.value;
+      i.value = '';
+      spokeLast = false;
+      userSays(text, photo);
+    } catch {
+      addMessage('rias', say('That file didn’t open as a picture, {name}. Try a screenshot or a JPG.'));
+    }
+  });
   $('#mic').hidden = !canListen();
   $('#mic').addEventListener('click', listen);
-  $('#quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { spokeLast = false; userSays(b.dataset.say); } });
+  $('#quick').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.photo) { pickPhoto(); return; }
+    spokeLast = false;
+    userSays(b.dataset.say);
+  });
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
@@ -3449,6 +3536,8 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       addShift({ label, date, weekdays, start, end }) {
         if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return { error: 'start/end must be HH:MM' };
         if (!date && !(weekdays && weekdays.length)) return { error: 'give a date or weekdays' };
+        // Re-sending a schedule shouldn't double it: replace that day's shift for the same job.
+        if (date) state.shifts = state.shifts.filter((sh) => !(sh.date === date && (sh.label || 'Work') === (label || 'Work')));
         Work.addShift({ label, date: date || null, days: date ? null : weekdays, start, end });
         refresh();
         return { ok: true };

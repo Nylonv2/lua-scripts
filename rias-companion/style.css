@@ -341,3 +341,7 @@ textarea { font: inherit; }
 .pl-paste summary { cursor: pointer; color: var(--gold); padding: 6px 0; }
 .pl-paste textarea { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); font-size: 16px; margin: 6px 0; }
 .pl-day input[type=time]::-webkit-calendar-picker-indicator { display: none; }
+
+.msg-photo { display: block; max-width: 220px; max-height: 260px; border-radius: 12px; margin-bottom: 6px; object-fit: cover; }
+.top .who, .top .avatar { cursor: pointer; }
+.work-photo { display: block; margin: -6px auto 12px; }

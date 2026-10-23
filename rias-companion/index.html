@@ -82,9 +82,12 @@
           <button type="button" data-say="I'm tired">I'm tired</button>
           <button type="button" data-say="I'm bored">I'm bored</button>
           <button type="button" data-say="Praise me">Praise me</button>
+          <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
           <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
+          <button type="button" id="attach" class="mic" aria-label="Send Rias a photo (like your work schedule)">📷</button>
+          <input type="file" id="photo-file" accept="image/*" hidden>
           <button type="button" id="mic" class="mic" aria-label="Talk with your voice" hidden>🎙</button>
           <button type="submit" aria-label="Send">➤</button>
         </form>
@@ -130,6 +133,7 @@
       <!-- Work schedule -->
       <section class="view pad" id="view-work" hidden>
         <button type="button" class="plan-week" id="plan-week">🗓️ Plan my week<small>Set every day at once, paste a schedule, or copy last week</small></button>
+        <button type="button" class="link work-photo" id="work-photo">📷 Or send Rias a photo of your schedule</button>
         <div class="card">
           <b>Next 7 days</b>
           <div class="week" id="week"></div>

@@ -26,6 +26,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
+- If the user sends a photo or screenshot of a work schedule, read it carefully and add every shift with add_work_shift (one call per shift, all in the same turn), using the real dates shown, or the coming dates for weekday names. If several people are listed, use the row with the user's name from the app context; if you can't tell which row is theirs, ask instead of guessing. Skip days marked off. Then tell them in one or two short messages how many shifts you added, the days and times, and that you'll remind them before each one. If the photo is unreadable or isn't a schedule, say so kindly.
 
 Boundaries:
 - Keep it affectionate but non-sexual. If the user pushes for sexual content, deflect playfully in character and change the subject.
@@ -167,22 +168,26 @@ Boundaries:
 
   // Returns { lines } on success, { error } when the user should hear about a problem,
   // or null to quietly fall back to the written replies.
-  async function reply(userText) {
-    if (provider() === 'gemini') return geminiReply(userText);
+  // `image` is an optional base64 JPEG (e.g. a photo of a work schedule).
+  async function reply(userText, image) {
+    if (provider() === 'gemini') return geminiReply(userText, image);
     const api = getClient();
     if (!api) return null;
     const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+    const userContent = image
+      ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } }, { type: 'text', text: userText }]
+      : userText;
     const messages = history().concat(
-      { role: 'user', content: userText },
+      { role: 'user', content: userContent },
       { role: 'system', content: ctx.contextText() },
     );
     const params = {
       model,
-      max_tokens: 2000,
+      max_tokens: image ? 8000 : 2000,
       // Breakpoint on the persona caches tools + persona together (tools render first).
       system: [{ type: 'text', text: PERSONA, cache_control: { type: 'ephemeral' } }],
       tools: TOOLS,
-      output_config: { effort: 'low' }, // chat: quick, natural replies
+      output_config: { effort: image ? 'medium' : 'low' }, // chat: quick replies; reading a photo needs more care
       messages,
     };
     if (MODELS[model].fallbacks) {
@@ -190,7 +195,7 @@ Boundaries:
       params.fallbacks = 'default';
     }
     try {
-      for (let step = 0; step < 5; step++) {
+      for (let step = 0; step < 8; step++) {
         const res = MODELS[model].fallbacks ? await api.beta.messages.create(params) : await api.messages.create(params);
         if (res.stop_reason === 'refusal') return null;
         if (res.stop_reason === 'tool_use') {
@@ -202,8 +207,7 @@ Boundaries:
         }
         const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n').trim();
         if (!text) return null;
-        const lines = text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, 3);
-        return { lines };
+        return { lines: splitLines(text, image ? 4 : 3) };
       }
       return null;
     } catch (e) {
@@ -238,7 +242,7 @@ Boundaries:
 
   // ---------- Google Gemini ----------
   const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
-  const splitLines = (text) => text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, 3);
+  const splitLines = (text, max = 3) => text.split(/\n\s*\n/).map((l) => l.replace(/^\*+|\*+$/g, '').trim()).filter(Boolean).slice(0, max);
 
   // Gemini takes an OpenAPI-style schema: upper-case types, `nullable`, enums on strings only.
   function geminiSchema(sch) {
@@ -304,18 +308,18 @@ Boundaries:
     return pickedModel;
   }
 
-  async function geminiReply(userText) {
+  async function geminiReply(userText, image) {
     if (!ctx.state.ai.geminiKey.trim()) return null;
     const contents = history().map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ text: t.content }] }));
-    contents.push({ role: 'user', parts: [{ text: userText }] });
+    contents.push({ role: 'user', parts: image ? [{ inlineData: { mimeType: 'image/jpeg', data: image } }, { text: userText }] : [{ text: userText }] });
     try {
       const model = await geminiModel();
-      for (let step = 0; step < 5; step++) {
+      for (let step = 0; step < 8; step++) {
         const data = await gemini(`models/${model}:generateContent`, {
           systemInstruction: { parts: [{ text: `${PERSONA}\n\n${ctx.contextText()}` }] },
           contents,
           tools: GEMINI_TOOLS,
-          generationConfig: { maxOutputTokens: 2048 },
+          generationConfig: { maxOutputTokens: image ? 8192 : 2048 },
         });
         const cand = (data.candidates || [])[0];
         if (!cand || !cand.content || !cand.content.parts) return null; // blocked or empty
@@ -336,7 +340,7 @@ Boundaries:
           continue;
         }
         const text = cand.content.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join('\n\n').trim();
-        return text ? { lines: splitLines(text) } : null;
+        return text ? { lines: splitLines(text, image ? 4 : 3) } : null;
       }
       return null;
     } catch (e) {

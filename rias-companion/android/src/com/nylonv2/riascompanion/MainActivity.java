@@ -111,6 +111,18 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/www/index.html");
     }
 
+    // Back goes to Home (or closes a pop-up) instead of leaving; on Home it sends the app to the background.
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() {
+        web.evaluateJavascript("window.riasBack ? window.riasBack() : false", new android.webkit.ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String handled) {
+                if (!"true".equals(handled)) moveTaskToBack(true);
+            }
+        });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();

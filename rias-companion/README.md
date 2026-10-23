@@ -68,6 +68,11 @@ easiest free option is GitHub Pages:
 To try it on a computer, run `python3 -m http.server` inside this folder and open
 http://localhost:8000.
 
+## Getting around
+
+The phone's **back** button closes pop-ups first, then returns to Home; on Home it puts the app in the background
+(so reminders keep running). Tapping Rias's name at the top also goes Home.
+
 ## Home
 
 The app opens on **Home**: an animated Rias (an original drawing, not art from the show) who breathes, blinks, sways
@@ -94,6 +99,9 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   earlier weeks keep their plan). Or paste/type your schedule: "Mon 9-5", "Tue off", "Wed-Fri 12-8",
   "Thu 7am-3:30pm" (AM/PM is guessed when left out: starts from 1 to 5 are afternoon, and the end comes after the start).
   Changing one week of a repeating schedule only changes that week.
+  **📷 Photo of your schedule:** with Rias's AI on (a free Gemini key works), tap 📷 in the chat (or *Send Rias a
+  photo of your schedule* on the Work tab) and pick a photo or screenshot. She reads it, finds your row by your
+  name, adds each shift (re-sending the same week replaces instead of doubling), and tells you what she added.
 - **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
 
 ## Pop-ups

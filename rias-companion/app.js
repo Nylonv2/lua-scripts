@@ -533,6 +533,13 @@
     for (const m of state.messages) {
       const el = document.createElement('div');
       el.className = `msg ${m.from}`;
+      if (m.photo) {
+        const img = document.createElement('img');
+        img.className = 'msg-photo';
+        img.src = m.photo;
+        img.alt = 'Photo you sent';
+        el.append(img);
+      }
       el.append(m.text);
       if (m.itemId) {
         const task = document.createElement('div');
@@ -677,7 +684,20 @@
     touchY = null;
   });
 
+  // Phone back button / browser back: close a pop-up first, then go Home.
+  window.riasBack = () => {
+    const open = document.querySelector('dialog[open]');
+    if (open) { if (open.id === 'alarm') closeAlarm(); else open.close(); return true; }
+    if (currentView !== 'home' && state.profile) { show('home'); return true; }
+    return false;
+  };
+  window.addEventListener('popstate', () => { window.riasBack(); });
+  $('.top .who').addEventListener('click', () => show('home'));
+  $('.top .avatar').addEventListener('click', () => show('home'));
+
   function show(view) {
+    // Leaving Home adds a history entry so browser back returns there.
+    if (view !== 'home' && currentView === 'home' && !window.RiasNative) { try { history.pushState({ rias: view }, ''); } catch { /* ignore */ } }
     currentView = view;
     if (view === 'chat') hideToast();
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
@@ -692,24 +712,31 @@
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
 
   // ---------- chat events ----------
-  async function userSays(text) {
+  // `photo` = { full: base64 JPEG for the AI, thumb: small data URL kept in the chat }.
+  async function userSays(text, photo) {
     text = text.trim();
-    if (!text) return;
-    addMessage('me', text);
-    let r = reply(text, AI.enabled());
+    if (!text && !photo) return;
+    if (photo && !text) text = 'Here’s a photo of my work schedule. Can you add my shifts?';
+    addMessage('me', text, photo ? { photo: photo.thumb } : {});
+    if (photo && !AI.enabled()) {
+      addMessage('rias', say('I need my AI turned on to read photos, {name}. Set it up in Settings → Rias’s mind (a free Gemini key works). Or use Work → Plan my week and paste the schedule as text.'));
+      return;
+    }
+    let r = photo ? undefined : reply(text, AI.enabled());
     let aiTyped = false;
     if (r === undefined) {
       // Her AI is thinking: show typing until it answers, then fall back to written lines if needed.
       const typing = showTyping();
-      const res = await AI.reply(text);
+      const res = await AI.reply(text, photo && photo.full);
       typing.remove();
       aiTyped = true;
       if (res && res.lines) r = res.lines;
       else {
         if (res && res.error) addMessage('rias', res.error);
-        r = reply(text);
+        r = photo ? say('I couldn’t read that photo just now, {name}. Check your internet and try again, or paste the schedule as text in Work → Plan my week.') : reply(text);
       }
       renderToday();
+      if (photo && !$('#view-work').hidden) Work.render();
     }
     // She "types" each message for a time that fits its length.
     const lines = r == null ? [] : [].concat(r);
@@ -723,9 +750,57 @@
     next(0);
   }
   $('#composer').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#say'); spokeLast = false; userSays(i.value); i.value = ''; });
+  // 📷 Send Rias a photo (her AI reads it, e.g. a work schedule).
+  function shrinkPhoto(file, max) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const out = (limit, q) => {
+          const k = Math.min(1, limit / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.naturalWidth * k);
+          c.height = Math.round(img.naturalHeight * k);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          return c.toDataURL('image/jpeg', q);
+        };
+        // Big enough to read small print, small enough to send quickly.
+        const full = out(max, 0.85).split(',')[1];
+        const thumb = out(360, 0.7);
+        URL.revokeObjectURL(url);
+        resolve({ full, thumb });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+      img.src = url;
+    });
+  }
+  const pickPhoto = () => $('#photo-file').click();
+  $('#attach').addEventListener('click', pickPhoto);
+  $('#work-photo').addEventListener('click', () => { show('chat'); pickPhoto(); });
+  $('#photo-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const photo = await shrinkPhoto(file, 1800);
+      const i = $('#say');
+      const text = i.value;
+      i.value = '';
+      spokeLast = false;
+      userSays(text, photo);
+    } catch {
+      addMessage('rias', say('That file didn’t open as a picture, {name}. Try a screenshot or a JPG.'));
+    }
+  });
   $('#mic').hidden = !canListen();
   $('#mic').addEventListener('click', listen);
-  $('#quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { spokeLast = false; userSays(b.dataset.say); } });
+  $('#quick').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.photo) { pickPhoto(); return; }
+    spokeLast = false;
+    userSays(b.dataset.say);
+  });
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
@@ -786,6 +861,8 @@
       addShift({ label, date, weekdays, start, end }) {
         if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return { error: 'start/end must be HH:MM' };
         if (!date && !(weekdays && weekdays.length)) return { error: 'give a date or weekdays' };
+        // Re-sending a schedule shouldn't double it: replace that day's shift for the same job.
+        if (date) state.shifts = state.shifts.filter((sh) => !(sh.date === date && (sh.label || 'Work') === (label || 'Work')));
         Work.addShift({ label, date: date || null, days: date ? null : weekdays, start, end });
         refresh();
         return { ok: true };
