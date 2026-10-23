@@ -345,3 +345,28 @@ textarea { font: inherit; }
 .msg-photo { display: block; max-width: 220px; max-height: 260px; border-radius: 12px; margin-bottom: 6px; object-fit: cover; }
 .top .who, .top .avatar { cursor: pointer; }
 .work-photo { display: block; margin: -6px auto 12px; }
+
+/* Nutrition */
+.kcal-line { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 8px; flex-wrap: wrap; }
+.kcal-big { font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kcal-left { margin-left: auto; font-size: .9rem; color: var(--muted); }
+.kcal-left.over { color: var(--gold); font-weight: 600; }
+.meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.meter span { display: block; height: 100%; border-radius: 999px; background: var(--crimson-2); transition: width .4s; }
+.meter.over span { background: var(--gold); }
+.macros { display: grid; gap: 8px; margin: 12px 0 6px; }
+.macro { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: .88rem; }
+.macro .meter { grid-column: 1 / -1; height: 6px; }
+.macro-val { color: var(--muted); font-variant-numeric: tabular-nums; }
+.week-chart { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 150px; margin: 14px 0 6px; padding-top: 18px; }
+.goal-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); opacity: .7; pointer-events: none; }
+.goal-line span { position: absolute; right: 0; top: -16px; font-size: .68rem; color: var(--muted); }
+.bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; border: 0; background: none; padding: 0; min-width: 0; }
+.bar-col .bar { width: 70%; max-width: 26px; min-height: 2px; background: var(--crimson-2); border-radius: 4px 4px 0 0; opacity: .55; }
+.bar-col.current .bar, .bar-col.picked .bar { opacity: 1; }
+.bar-col .bar-val { font-size: .68rem; color: var(--text); font-variant-numeric: tabular-nums; min-height: 1em; }
+.bar-col .bar-day { font-size: .72rem; color: var(--muted); }
+.bar-col:focus-visible { outline: 2px solid var(--gold); border-radius: 6px; }
+.nutri-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nutri-fields input { padding: 9px 10px; }
+.estimate { background: linear-gradient(135deg, var(--crimson), #8e0f2a) !important; border-color: var(--crimson) !important; font-weight: 600; }

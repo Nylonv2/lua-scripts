@@ -26,6 +26,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
+- When you log food, estimate its nutrition for the portion they describe (assume a typical portion if they don't say, and mention any big assumption in a few words). Use the user's own words for the food name. If they send a photo of a meal, work out what and how much it is, then log it the same way. After logging, react in character and, when it's useful, mention their day's totals against their goals from the app context (for example how much protein is left). Never shame them about food.
 - If the user sends a photo or screenshot of a work schedule, read it carefully and add every shift with add_work_shift (one call per shift, all in the same turn), using the real dates shown, or the coming dates for weekday names. If several people are listed, use the row with the user's name from the app context; if you can't tell which row is theirs, ask instead of guessing. Skip days marked off. Then tell them in one or two short messages how many shifts you added, the days and times, and that you'll remind them before each one. If the photo is unreadable or isn't a schedule, say so kindly.
 
 Boundaries:
@@ -35,6 +36,26 @@ Boundaries:
 - Stay in character. But if the user sincerely asks whether they're talking to a real person or an AI, tell them honestly, in a kind in-character way, that you're an AI playing Rias.`;
 
   const nullable = (schema) => ({ ...schema, type: [schema.type, 'null'] });
+  // Estimated nutrition for the whole portion eaten.
+  const NUTRITION_PROPS = {
+    calories: { type: 'integer', description: 'Estimated kcal for the portion eaten' },
+    protein_g: { type: 'number', description: 'Estimated grams of protein' },
+    carbs_g: { type: 'number', description: 'Estimated grams of carbohydrate' },
+    fat_g: { type: 'number', description: 'Estimated grams of fat' },
+    fiber_g: { type: 'number', description: 'Estimated grams of fiber' },
+    sugar_g: { type: 'number', description: 'Estimated grams of sugar' },
+  };
+  const ESTIMATE_SCHEMA = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      ...NUTRITION_PROPS,
+      kind: { type: 'string', enum: ['healthy', 'normal', 'treat'] },
+      note: { type: 'string', description: 'Under 12 words: the portion you assumed' },
+    },
+    required: [...Object.keys(NUTRITION_PROPS), 'kind', 'note'],
+  };
+  const ESTIMATE_PROMPT = 'Estimate the nutrition of this food for the portion described (assume a typical single portion if none is given). Food: ';
   const TOOLS = [
     {
       name: 'add_reminder',
@@ -80,8 +101,9 @@ Boundaries:
           meal: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'] },
           food: { type: 'string', description: 'What they ate, e.g. "chicken sandwich and an apple"' },
           kind: { type: 'string', enum: ['healthy', 'normal', 'treat'] },
+          ...NUTRITION_PROPS,
         },
-        required: ['meal', 'food', 'kind'],
+        required: ['meal', 'food', 'kind', ...Object.keys(NUTRITION_PROPS)],
       },
     },
     {
@@ -216,6 +238,34 @@ Boundaries:
       if (e instanceof A.RateLimitError) return { error: 'The Claude API is rate-limiting your key right now. I\'ll use my usual replies for a bit.' };
       if (e instanceof A.BadRequestError) return { error: `The Claude API couldn't handle that request (${e.message}).` };
       return null; // offline or a temporary server problem: quietly use the written replies
+    }
+  }
+
+  // Food dialog → "Ask Rias to estimate": nutrition numbers as JSON, or null.
+  async function estimate(food) {
+    try {
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: ESTIMATE_PROMPT + food }] }],
+          generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json', responseSchema: geminiSchema(ESTIMATE_SCHEMA) },
+        });
+        const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        return JSON.parse(parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''));
+      }
+      const api = getClient();
+      if (!api) return null;
+      const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+      const res = await api.messages.create({
+        model,
+        max_tokens: 2000,
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: ESTIMATE_SCHEMA } },
+        messages: [{ role: 'user', content: ESTIMATE_PROMPT + food }],
+      });
+      if (res.stop_reason === 'refusal') return null;
+      return JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+    } catch {
+      return null;
     }
   }
 
@@ -373,5 +423,5 @@ Boundaries:
     }
   }
 
-  return { enabled, reply, test, provider };
+  return { enabled, reply, test, provider, estimate };
 };

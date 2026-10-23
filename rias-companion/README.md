@@ -89,8 +89,12 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
 
 - **Chat**: talk to Rias by typing or with 🎙.
 - **Today**: your routine plus work shifts and phone-calendar events, with a progress ring and streak.
-- **Food**: a food diary (breakfast, lunch, dinner, snacks, each marked healthy / normal / treat), a water tracker
-  with a daily goal, and a diary streak. After a meal reminder, Rias asks what you had; at 9 PM she nudges you if
+- **Food**: a food diary (breakfast, lunch, dinner, snacks, each marked healthy / normal / treat) with **calories and
+  macros**: today's calories against your goal, protein / carbs / fat bars, fiber and sugar, kcal on every entry and
+  meal, and a 7-day calorie chart (tap a bar for that day). Set your goals with **Goals**. Tell Rias what you ate
+  ("I just had a chicken burrito and a Coke", or send a photo of your plate) and, with her AI on, she estimates the
+  nutrition and logs it; in the add-food form, **✨ Ask Rias to estimate** fills the numbers, and you can always type
+  or fix them yourself. Her numbers are estimates. Plus a water tracker with a daily goal and a diary streak. After a meal reminder, Rias asks what you had; at 9 PM she nudges you if
   dinner isn't logged, and at 3 PM if you're behind on water.
 - **Work**: weekly or one-off shifts (overnight shifts work too), a 7-day overview with total hours, and a
   "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.

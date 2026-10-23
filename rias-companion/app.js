@@ -62,6 +62,7 @@
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
+      calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -819,6 +820,9 @@
   const modCtx = {
     state, save, $, R, dateKey, uid, fmtClock, fmtTime, toMin, shiftsOn, silencePast, refresh,
     mealNow: () => mealFor(nowMin()),
+    // Food dialog's "Ask Rias to estimate" (AI is created further down; used only on tap).
+    canEstimate: () => AI.enabled(),
+    estimate: (text) => AI.estimate(text),
     riasLine: (pool) => addMessage('rias', say(pick(pool))),
   };
   const Food = window.createFoodDiary(modCtx);
@@ -867,7 +871,13 @@
         refresh();
         return { ok: true };
       },
-      logFood({ meal, food, kind }) { Food.logFood(meal, food, kind); return { ok: true, today: Food.summary() }; },
+      logFood({ meal, food, kind, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g }) {
+        const r = (v) => (typeof v === 'number' && v >= 0 ? Math.round(v) : undefined);
+        const n = r(calories) == null ? undefined : { kcal: r(calories), p: r(protein_g), c: r(carbs_g), f: r(fat_g), fiber: r(fiber_g), sugar: r(sugar_g) };
+        Food.logFood(meal, food, kind, new Date(), n);
+        if (!$('#view-food').hidden) Food.render();
+        return { ok: true, today: Food.summary() };
+      },
       logWater({ glasses }) { return { ok: true, glassesToday: Food.addWater(Math.max(1, Math.min(10, glasses)), false, dateKey()) }; },
       completeTask({ title }) {
         const q = title.toLowerCase();
@@ -996,8 +1006,9 @@
     $('#tile-today-sub').textContent = `done · streak ${streak()} 🔥`;
     $('#tile-water').textContent = `${state.water[dateKey()] || 0} / ${state.settings.waterGoal} 💧`;
     const meals = state.food[dateKey()] || [];
-    $('#tile-food').textContent = `${meals.length} logged`;
-    $('#tile-food-sub').textContent = meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
+    const t = Food.totals(dateKey());
+    $('#tile-food').textContent = t.counted ? `${Math.round(t.kcal).toLocaleString()} kcal` : `${meals.length} logged`;
+    $('#tile-food-sub').textContent = t.counted ? `of ${Food.goals().kcal.toLocaleString()} · P ${Math.round(t.p)}g` : meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
     const shifts = shiftsOn(new Date());
     if (shifts.length) {
       $('#tile-work').textContent = `${fmtTime(shifts[0].start)}`;

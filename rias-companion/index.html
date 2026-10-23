@@ -62,7 +62,7 @@
         <div class="tiles">
           <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
           <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
-          <button type="button" class="tile" data-go="food"><span class="tile-label">Food</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
+          <button type="button" class="tile" data-go="food"><span class="tile-label">Calories</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
           <button type="button" class="tile" data-go="work"><span class="tile-label">Work</span><b id="tile-work"></b><span class="tile-sub" id="tile-work-sub"></span></button>
         </div>
         <div class="quick-actions">
@@ -116,6 +116,19 @@
           <button type="button" id="food-prev" aria-label="Previous day">‹</button>
           <b id="food-date">Today</b>
           <button type="button" id="food-next" aria-label="Next day">›</button>
+        </div>
+        <div class="card nutri">
+          <div class="row-between"><b>Calories</b><button type="button" class="link" id="goals-btn">Goals</button></div>
+          <div class="kcal-line"><span class="kcal-big" id="kcal-now">0</span> <span class="muted" id="kcal-goal"></span><span class="kcal-left" id="kcal-left"></span></div>
+          <div class="meter" id="kcal-meter"></div>
+          <div class="macros" id="macros"></div>
+          <p class="muted small" id="nutri-extra"></p>
+          <p class="muted small">Numbers from Rias are estimates. Tap an entry to adjust it.</p>
+        </div>
+        <div class="card">
+          <b>Calories, last 7 days</b>
+          <div class="week-chart" id="week-chart" role="group" aria-label="Calories for the last 7 days"></div>
+          <p class="muted small" id="week-note"></p>
         </div>
         <div class="card water">
           <div class="row-between"><b>Water</b><span id="water-count"></span></div>
@@ -419,6 +432,16 @@
         </select>
       </label>
       <label>What you had <input name="text" required maxlength="120" placeholder="e.g. Chicken wrap and an apple"></label>
+      <button type="button" id="food-estimate" class="estimate">✨ Ask Rias to estimate calories &amp; macros</button>
+      <p class="muted small" id="estimate-hint"></p>
+      <div class="nutri-fields">
+        <label>Calories <input name="kcal" type="number" inputmode="numeric" min="0" placeholder="kcal"></label>
+        <label>Protein (g) <input name="protein" type="number" inputmode="numeric" min="0"></label>
+        <label>Carbs (g) <input name="carbs" type="number" inputmode="numeric" min="0"></label>
+        <label>Fat (g) <input name="fat" type="number" inputmode="numeric" min="0"></label>
+        <label>Fiber (g) <input name="fiber" type="number" inputmode="numeric" min="0"></label>
+        <label>Sugar (g) <input name="sugar" type="number" inputmode="numeric" min="0"></label>
+      </div>
       <label>How would you call it?
         <select name="kind">
           <option value="healthy">🥗 Healthy</option>
@@ -430,6 +453,24 @@
         <button type="button" id="food-delete" class="danger">Delete</button>
         <button type="button" id="food-cancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Nutrition goals -->
+  <dialog id="goals-dialog">
+    <form method="dialog" id="goals-form" class="stack">
+      <h2>Daily goals</h2>
+      <p class="muted small">Not sure? 2,000 kcal is a common starting point. A dietitian or doctor can give you numbers that fit you.</p>
+      <div class="nutri-fields">
+        <label>Calories <input name="calorieGoal" type="number" inputmode="numeric" min="500" max="10000"></label>
+        <label>Protein (g) <input name="proteinGoal" type="number" inputmode="numeric" min="0"></label>
+        <label>Carbs (g) <input name="carbGoal" type="number" inputmode="numeric" min="0"></label>
+        <label>Fat (g) <input name="fatGoal" type="number" inputmode="numeric" min="0"></label>
+      </div>
+      <div class="row">
+        <button type="button" id="goals-cancel">Cancel</button>
+        <button type="submit" class="primary">Save goals</button>
       </div>
     </form>
   </dialog>

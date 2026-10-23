@@ -357,6 +357,31 @@ textarea { font: inherit; }
 .msg-photo { display: block; max-width: 220px; max-height: 260px; border-radius: 12px; margin-bottom: 6px; object-fit: cover; }
 .top .who, .top .avatar { cursor: pointer; }
 .work-photo { display: block; margin: -6px auto 12px; }
+
+/* Nutrition */
+.kcal-line { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 8px; flex-wrap: wrap; }
+.kcal-big { font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kcal-left { margin-left: auto; font-size: .9rem; color: var(--muted); }
+.kcal-left.over { color: var(--gold); font-weight: 600; }
+.meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.meter span { display: block; height: 100%; border-radius: 999px; background: var(--crimson-2); transition: width .4s; }
+.meter.over span { background: var(--gold); }
+.macros { display: grid; gap: 8px; margin: 12px 0 6px; }
+.macro { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; font-size: .88rem; }
+.macro .meter { grid-column: 1 / -1; height: 6px; }
+.macro-val { color: var(--muted); font-variant-numeric: tabular-nums; }
+.week-chart { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 150px; margin: 14px 0 6px; padding-top: 18px; }
+.goal-line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); opacity: .7; pointer-events: none; }
+.goal-line span { position: absolute; right: 0; top: -16px; font-size: .68rem; color: var(--muted); }
+.bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; border: 0; background: none; padding: 0; min-width: 0; }
+.bar-col .bar { width: 70%; max-width: 26px; min-height: 2px; background: var(--crimson-2); border-radius: 4px 4px 0 0; opacity: .55; }
+.bar-col.current .bar, .bar-col.picked .bar { opacity: 1; }
+.bar-col .bar-val { font-size: .68rem; color: var(--text); font-variant-numeric: tabular-nums; min-height: 1em; }
+.bar-col .bar-day { font-size: .72rem; color: var(--muted); }
+.bar-col:focus-visible { outline: 2px solid var(--gold); border-radius: 6px; }
+.nutri-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nutri-fields input { padding: 9px 10px; }
+.estimate { background: linear-gradient(135deg, var(--crimson), #8e0f2a) !important; border-color: var(--crimson) !important; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -408,7 +433,7 @@ textarea { font: inherit; }
         <div class="tiles">
           <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
           <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
-          <button type="button" class="tile" data-go="food"><span class="tile-label">Food</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
+          <button type="button" class="tile" data-go="food"><span class="tile-label">Calories</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
           <button type="button" class="tile" data-go="work"><span class="tile-label">Work</span><b id="tile-work"></b><span class="tile-sub" id="tile-work-sub"></span></button>
         </div>
         <div class="quick-actions">
@@ -462,6 +487,19 @@ textarea { font: inherit; }
           <button type="button" id="food-prev" aria-label="Previous day">‹</button>
           <b id="food-date">Today</b>
           <button type="button" id="food-next" aria-label="Next day">›</button>
+        </div>
+        <div class="card nutri">
+          <div class="row-between"><b>Calories</b><button type="button" class="link" id="goals-btn">Goals</button></div>
+          <div class="kcal-line"><span class="kcal-big" id="kcal-now">0</span> <span class="muted" id="kcal-goal"></span><span class="kcal-left" id="kcal-left"></span></div>
+          <div class="meter" id="kcal-meter"></div>
+          <div class="macros" id="macros"></div>
+          <p class="muted small" id="nutri-extra"></p>
+          <p class="muted small">Numbers from Rias are estimates. Tap an entry to adjust it.</p>
+        </div>
+        <div class="card">
+          <b>Calories, last 7 days</b>
+          <div class="week-chart" id="week-chart" role="group" aria-label="Calories for the last 7 days"></div>
+          <p class="muted small" id="week-note"></p>
         </div>
         <div class="card water">
           <div class="row-between"><b>Water</b><span id="water-count"></span></div>
@@ -765,6 +803,16 @@ textarea { font: inherit; }
         </select>
       </label>
       <label>What you had <input name="text" required maxlength="120" placeholder="e.g. Chicken wrap and an apple"></label>
+      <button type="button" id="food-estimate" class="estimate">✨ Ask Rias to estimate calories &amp; macros</button>
+      <p class="muted small" id="estimate-hint"></p>
+      <div class="nutri-fields">
+        <label>Calories <input name="kcal" type="number" inputmode="numeric" min="0" placeholder="kcal"></label>
+        <label>Protein (g) <input name="protein" type="number" inputmode="numeric" min="0"></label>
+        <label>Carbs (g) <input name="carbs" type="number" inputmode="numeric" min="0"></label>
+        <label>Fat (g) <input name="fat" type="number" inputmode="numeric" min="0"></label>
+        <label>Fiber (g) <input name="fiber" type="number" inputmode="numeric" min="0"></label>
+        <label>Sugar (g) <input name="sugar" type="number" inputmode="numeric" min="0"></label>
+      </div>
       <label>How would you call it?
         <select name="kind">
           <option value="healthy">🥗 Healthy</option>
@@ -776,6 +824,24 @@ textarea { font: inherit; }
         <button type="button" id="food-delete" class="danger">Delete</button>
         <button type="button" id="food-cancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Nutrition goals -->
+  <dialog id="goals-dialog">
+    <form method="dialog" id="goals-form" class="stack">
+      <h2>Daily goals</h2>
+      <p class="muted small">Not sure? 2,000 kcal is a common starting point. A dietitian or doctor can give you numbers that fit you.</p>
+      <div class="nutri-fields">
+        <label>Calories <input name="calorieGoal" type="number" inputmode="numeric" min="500" max="10000"></label>
+        <label>Protein (g) <input name="proteinGoal" type="number" inputmode="numeric" min="0"></label>
+        <label>Carbs (g) <input name="carbGoal" type="number" inputmode="numeric" min="0"></label>
+        <label>Fat (g) <input name="fatGoal" type="number" inputmode="numeric" min="0"></label>
+      </div>
+      <div class="row">
+        <button type="button" id="goals-cancel">Cancel</button>
+        <button type="submit" class="primary">Save goals</button>
       </div>
     </form>
   </dialog>
@@ -1545,23 +1611,113 @@ window.createRiasChat = function createRiasChat(api) {
 };
 </script>
   <script>
-// Food diary + water tracker (the Food tab).
+// Food diary + nutrition + water tracker (the Food tab).
+// Each entry can carry estimated nutrition: n = { kcal, p, c, f, fiber, sugar } (grams).
 window.createFoodDiary = function createFoodDiary(ctx) {
   'use strict';
   const { state, save, $, dateKey, uid, fmtClock, riasLine } = ctx;
   const MEALS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner'], ['snack', 'Snacks']];
   const KIND_LABEL = { healthy: '🥗 Healthy', normal: '🍽️ Normal', treat: '🍰 Treat' };
+  const MACROS = [['p', 'Protein', 'proteinGoal'], ['c', 'Carbs', 'carbGoal'], ['f', 'Fat', 'fatGoal']];
   let viewDate = new Date();
   let editing = null; // { date, id } when editing an entry
+  let picked = -1;    // bar selected in the 7-day chart
 
   const keyOf = () => dateKey(viewDate);
   const isToday = () => keyOf() === dateKey();
+  const num = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? undefined : Math.max(0, Math.round(Number(v))));
+  const fmt = (v) => Math.round(v).toLocaleString();
+  const goals = () => ({
+    kcal: state.settings.calorieGoal || 2000,
+    p: state.settings.proteinGoal || 120,
+    c: state.settings.carbGoal || 225,
+    f: state.settings.fatGoal || 65,
+  });
+
+  function totals(k) {
+    const t = { kcal: 0, p: 0, c: 0, f: 0, fiber: 0, sugar: 0, counted: 0, missing: 0 };
+    for (const e of state.food[k] || []) {
+      if (!e.n || e.n.kcal == null) { t.missing++; continue; }
+      t.counted++;
+      for (const key of ['kcal', 'p', 'c', 'f', 'fiber', 'sugar']) t[key] += e.n[key] || 0;
+    }
+    return t;
+  }
+
+  function meter(el, value, goal) {
+    const pct = goal ? Math.min(100, (value / goal) * 100) : 0;
+    el.innerHTML = '<span></span>';
+    el.firstChild.style.width = `${pct}%`;
+    el.classList.toggle('over', value > goal);
+  }
+
+  function renderNutrition(k) {
+    const t = totals(k);
+    const g = goals();
+    $('#kcal-now').textContent = fmt(t.kcal);
+    $('#kcal-goal').textContent = `/ ${fmt(g.kcal)} kcal`;
+    const left = g.kcal - t.kcal;
+    // Over the goal is a status, so it gets an icon and words, not just a color.
+    $('#kcal-left').textContent = left >= 0 ? `${fmt(left)} left` : `⚠ ${fmt(-left)} over`;
+    $('#kcal-left').classList.toggle('over', left < 0);
+    meter($('#kcal-meter'), t.kcal, g.kcal);
+    const box = $('#macros');
+    box.textContent = '';
+    for (const [key, name] of MACROS) {
+      const row = document.createElement('div');
+      row.className = 'macro';
+      row.innerHTML = '<span class="macro-name"></span><span class="macro-val"></span><div class="meter"></div>';
+      row.querySelector('.macro-name').textContent = name;
+      row.querySelector('.macro-val').textContent = `${fmt(t[key])} / ${g[key]} g`;
+      meter(row.querySelector('.meter'), t[key], g[key]);
+      box.append(row);
+    }
+    $('#nutri-extra').textContent = `Fiber ${fmt(t.fiber)} g · Sugar ${fmt(t.sugar)} g${t.missing ? ` · ${t.missing} item${t.missing === 1 ? '' : 's'} without numbers` : ''}`;
+  }
+
+  // Calories for the 7 days ending on the viewed day: one series, goal as a dashed line.
+  function renderWeek() {
+    const days = [];
+    for (let i = 6; i >= 0; i--) { const d = new Date(viewDate); d.setDate(d.getDate() - i); days.push(d); }
+    const g = goals().kcal;
+    const vals = days.map((d) => totals(dateKey(d)).kcal);
+    const max = Math.max(g * 1.15, ...vals, 1);
+    const chart = $('#week-chart');
+    chart.textContent = '';
+    const goalLine = document.createElement('div');
+    goalLine.className = 'goal-line';
+    goalLine.style.bottom = `${(g / max) * 100}%`;
+    goalLine.innerHTML = '<span></span>';
+    goalLine.firstChild.textContent = `Goal ${fmt(g)}`;
+    chart.append(goalLine);
+    days.forEach((d, i) => {
+      const col = document.createElement('button');
+      col.type = 'button';
+      col.className = `bar-col${i === 6 ? ' current' : ''}${i === picked ? ' picked' : ''}`;
+      col.dataset.i = i;
+      const label = `${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}: ${vals[i] ? `${fmt(vals[i])} kcal` : 'nothing logged'}`;
+      col.setAttribute('aria-label', label);
+      col.title = label;
+      col.innerHTML = '<span class="bar-val"></span><span class="bar"></span><span class="bar-day"></span>';
+      col.querySelector('.bar').style.height = `${(vals[i] / max) * 100}%`;
+      col.querySelector('.bar-day').textContent = d.toLocaleDateString([], { weekday: 'narrow' });
+      // Only the current day (or the one you tapped) is labeled, to keep it readable.
+      if ((i === 6 && picked < 0) || i === picked) col.querySelector('.bar-val').textContent = vals[i] ? fmt(vals[i]) : '';
+      chart.append(col);
+    });
+    const avgDays = vals.filter(Boolean);
+    $('#week-note').textContent = picked >= 0
+      ? `${days[picked].toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}: ${vals[picked] ? `${fmt(vals[picked])} kcal` : 'nothing logged'}`
+      : avgDays.length ? `Average ${fmt(avgDays.reduce((a, b) => a + b, 0) / avgDays.length)} kcal on ${avgDays.length} logged day${avgDays.length === 1 ? '' : 's'}` : 'Log meals with calories to see your week.';
+  }
 
   function render() {
     const k = keyOf();
     const label = isToday() ? 'Today' : viewDate.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
     $('#food-date').textContent = label;
     $('#food-next').disabled = isToday();
+    renderNutrition(k);
+    renderWeek();
 
     // Water
     const goal = state.settings.waterGoal || 8;
@@ -1586,7 +1742,9 @@ window.createFoodDiary = function createFoodDiary(ctx) {
       const head = document.createElement('div');
       head.className = 'meal-head';
       const h = document.createElement('h3');
-      h.textContent = name;
+      const list = entries.filter((e) => e.meal === meal);
+      const mealKcal = list.reduce((a, e) => a + ((e.n && e.n.kcal) || 0), 0);
+      h.textContent = mealKcal ? `${name} · ${fmt(mealKcal)} kcal` : name;
       const add = document.createElement('button');
       add.type = 'button';
       add.className = 'link';
@@ -1594,7 +1752,6 @@ window.createFoodDiary = function createFoodDiary(ctx) {
       add.textContent = '＋ Add';
       head.append(h, add);
       sec.append(head);
-      const list = entries.filter((e) => e.meal === meal);
       if (!list.length) {
         const p = document.createElement('p');
         p.className = 'muted small';
@@ -1610,7 +1767,8 @@ window.createFoodDiary = function createFoodDiary(ctx) {
         what.textContent = e.text;
         const meta = document.createElement('span');
         meta.className = 'tag';
-        meta.textContent = `${KIND_LABEL[e.kind] || ''} · ${fmtClock(e.ts)}`;
+        const n = e.n && e.n.kcal != null ? `${fmt(e.n.kcal)} kcal · P ${fmt(e.n.p || 0)} · C ${fmt(e.n.c || 0)} · F ${fmt(e.n.f || 0)} · ` : '';
+        meta.textContent = `${n}${KIND_LABEL[e.kind] || ''} · ${fmtClock(e.ts)}`;
         row.append(what, meta);
         sec.append(row);
       }
@@ -1618,17 +1776,18 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     }
 
     // Streak of days with at least one meal logged.
-    let n = 0;
+    let s = 0;
     const d = new Date();
     if (!(state.food[dateKey(d)] || []).length) d.setDate(d.getDate() - 1);
-    while ((state.food[dateKey(d)] || []).length) { n++; d.setDate(d.getDate() - 1); }
-    $('#food-streak').textContent = n ? `Food diary streak: ${n} day${n === 1 ? '' : 's'} 🔥` : 'Log a meal to start your food diary streak.';
+    while ((state.food[dateKey(d)] || []).length) { s++; d.setDate(d.getDate() - 1); }
+    $('#food-streak').textContent = s ? `Food diary streak: ${s} day${s === 1 ? '' : 's'} 🔥` : 'Log a meal to start your food diary streak.';
   }
 
   // Shared by the dialog and by Rias's AI tools. Returns the saved entry.
-  function logFood(meal, text, kind = 'normal', when = new Date()) {
+  function logFood(meal, text, kind = 'normal', when = new Date(), n) {
     const k = dateKey(when);
     const entry = { id: uid(), meal, text: text.trim(), kind, ts: when.getTime() };
+    if (n && n.kcal != null) entry.n = n;
     (state.food[k] ||= []).push(entry);
     save();
     return entry;
@@ -1645,18 +1804,33 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     return after;
   }
 
+  // ---------- add / edit dialog ----------
   const dlg = $('#food-dialog');
   const form = $('#food-form');
+  const F = form.elements;
+  const nFields = [['kcal', 'kcal'], ['p', 'protein'], ['c', 'carbs'], ['f', 'fat'], ['fiber', 'fiber'], ['sugar', 'sugar']];
+  const readN = () => {
+    const n = {};
+    for (const [key, field] of nFields) { const v = num(F[field].value); if (v !== undefined) n[key] = v; }
+    return n.kcal == null ? undefined : n;
+  };
+  const writeN = (n) => { for (const [key, field] of nFields) F[field].value = n && n[key] != null ? n[key] : ''; };
 
+  function showEstimate() {
+    $('#food-estimate').hidden = !(ctx.canEstimate && ctx.canEstimate());
+    $('#estimate-hint').textContent = '';
+  }
   function openAdd(meal) {
     editing = null;
     $('#food-dialog-title').textContent = 'What did you eat?';
-    form.elements.meal.value = meal || 'snack';
-    form.elements.text.value = '';
-    form.elements.kind.value = 'normal';
+    F.meal.value = meal || 'snack';
+    F.text.value = '';
+    F.kind.value = 'normal';
+    writeN(null);
     $('#food-delete').hidden = true;
+    showEstimate();
     dlg.showModal();
-    form.elements.text.focus();
+    F.text.focus();
   }
   function openEdit(id) {
     const k = keyOf();
@@ -1664,24 +1838,37 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     if (!e) return;
     editing = { date: k, id };
     $('#food-dialog-title').textContent = 'Edit entry';
-    form.elements.meal.value = e.meal;
-    form.elements.text.value = e.text;
-    form.elements.kind.value = e.kind || 'normal';
+    F.meal.value = e.meal;
+    F.text.value = e.text;
+    F.kind.value = e.kind || 'normal';
+    writeN(e.n);
     $('#food-delete').hidden = false;
+    showEstimate();
     dlg.showModal();
   }
 
+  $('#food-estimate').addEventListener('click', async () => {
+    const text = F.text.value.trim();
+    if (!text) { $('#estimate-hint').textContent = 'Type what you ate first, with the portion if you know it.'; return; }
+    $('#estimate-hint').textContent = 'Rias is estimating…';
+    const est = await ctx.estimate(text);
+    if (!est) { $('#estimate-hint').textContent = 'She couldn’t estimate that right now. Check your internet, or type the numbers yourself.'; return; }
+    writeN({ kcal: num(est.calories), p: num(est.protein_g), c: num(est.carbs_g), f: num(est.fat_g), fiber: num(est.fiber_g), sugar: num(est.sugar_g) });
+    if (est.kind && KIND_LABEL[est.kind]) F.kind.value = est.kind;
+    $('#estimate-hint').textContent = est.note ? `Estimate: ${est.note}` : 'Estimated. Adjust anything that looks off.';
+  });
+
   form.addEventListener('submit', () => {
-    const meal = form.elements.meal.value, text = form.elements.text.value.trim(), kind = form.elements.kind.value;
+    const meal = F.meal.value, text = F.text.value.trim(), kind = F.kind.value, n = readN();
     if (!text) return;
     if (editing) {
       const e = (state.food[editing.date] || []).find((x) => x.id === editing.id);
-      if (e) Object.assign(e, { meal, text, kind });
+      if (e) { Object.assign(e, { meal, text, kind }); if (n) e.n = n; else delete e.n; }
       save();
     } else {
       // Logging for a past day keeps the entry on that day.
       const when = isToday() ? new Date() : new Date(viewDate.getFullYear(), viewDate.getMonth(), viewDate.getDate(), 12);
-      logFood(meal, text, kind, when);
+      logFood(meal, text, kind, when, n);
       if (isToday()) riasLine(ctx.R.food[kind] || ctx.R.food.normal);
     }
     render();
@@ -1694,6 +1881,34 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     render();
   });
 
+  // ---------- goals dialog ----------
+  const gd = $('#goals-dialog');
+  const gf = $('#goals-form');
+  $('#goals-btn').addEventListener('click', () => {
+    const g = goals();
+    gf.elements.calorieGoal.value = g.kcal;
+    gf.elements.proteinGoal.value = g.p;
+    gf.elements.carbGoal.value = g.c;
+    gf.elements.fatGoal.value = g.f;
+    gd.showModal();
+  });
+  gf.addEventListener('submit', () => {
+    for (const k of ['calorieGoal', 'proteinGoal', 'carbGoal', 'fatGoal']) {
+      const v = num(gf.elements[k].value);
+      if (v) state.settings[k] = v;
+    }
+    save();
+    render();
+  });
+  $('#goals-cancel').addEventListener('click', () => gd.close());
+
+  $('#week-chart').addEventListener('click', (e) => {
+    const col = e.target.closest('.bar-col');
+    if (!col) return;
+    const i = Number(col.dataset.i);
+    picked = picked === i ? -1 : i;
+    renderWeek();
+  });
   $('#meals').addEventListener('click', (e) => {
     const add = e.target.closest('[data-add-meal]');
     if (add) { openAdd(add.dataset.addMeal); return; }
@@ -1703,20 +1918,21 @@ window.createFoodDiary = function createFoodDiary(ctx) {
   $('#food-add').addEventListener('click', () => openAdd(ctx.mealNow()));
   $('#water-plus').addEventListener('click', () => addWater(1));
   $('#water-minus').addEventListener('click', () => addWater(-1, false));
-  $('#food-prev').addEventListener('click', () => { viewDate.setDate(viewDate.getDate() - 1); render(); });
-  $('#food-next').addEventListener('click', () => { if (!isToday()) { viewDate.setDate(viewDate.getDate() + 1); render(); } });
+  $('#food-prev').addEventListener('click', () => { viewDate.setDate(viewDate.getDate() - 1); picked = -1; render(); });
+  $('#food-next').addEventListener('click', () => { if (!isToday()) { viewDate.setDate(viewDate.getDate() + 1); picked = -1; render(); } });
 
   // Plain-text summary for Rias's AI context.
   function summary(k = dateKey()) {
     const entries = state.food[k] || [];
     const meals = MEALS.map(([meal, name]) => {
-      const list = entries.filter((e) => e.meal === meal).map((e) => `${e.text} (${e.kind})`);
+      const list = entries.filter((e) => e.meal === meal).map((e) => `${e.text} (${e.kind}${e.n && e.n.kcal != null ? `, ${e.n.kcal} kcal` : ''})`);
       return `${name}: ${list.length ? list.join(', ') : 'nothing logged'}`;
     }).join('. ');
-    return `${meals}. Water: ${state.water[k] || 0}/${state.settings.waterGoal || 8} glasses.`;
+    const t = totals(k), g = goals();
+    return `${meals}. Totals so far: ${fmt(t.kcal)}/${g.kcal} kcal, protein ${fmt(t.p)}/${g.p} g, carbs ${fmt(t.c)}/${g.c} g, fat ${fmt(t.f)}/${g.f} g, fiber ${fmt(t.fiber)} g, sugar ${fmt(t.sugar)} g. Water: ${state.water[k] || 0}/${state.settings.waterGoal || 8} glasses.`;
   }
 
-  return { render, openAdd, logFood, addWater, summary, resetView: () => { viewDate = new Date(); } };
+  return { render, openAdd, logFood, addWater, summary, totals, goals, resetView: () => { viewDate = new Date(); } };
 };
 </script>
   <script>
@@ -2131,6 +2347,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
+- When you log food, estimate its nutrition for the portion they describe (assume a typical portion if they don't say, and mention any big assumption in a few words). Use the user's own words for the food name. If they send a photo of a meal, work out what and how much it is, then log it the same way. After logging, react in character and, when it's useful, mention their day's totals against their goals from the app context (for example how much protein is left). Never shame them about food.
 - If the user sends a photo or screenshot of a work schedule, read it carefully and add every shift with add_work_shift (one call per shift, all in the same turn), using the real dates shown, or the coming dates for weekday names. If several people are listed, use the row with the user's name from the app context; if you can't tell which row is theirs, ask instead of guessing. Skip days marked off. Then tell them in one or two short messages how many shifts you added, the days and times, and that you'll remind them before each one. If the photo is unreadable or isn't a schedule, say so kindly.
 
 Boundaries:
@@ -2140,6 +2357,26 @@ Boundaries:
 - Stay in character. But if the user sincerely asks whether they're talking to a real person or an AI, tell them honestly, in a kind in-character way, that you're an AI playing Rias.`;
 
   const nullable = (schema) => ({ ...schema, type: [schema.type, 'null'] });
+  // Estimated nutrition for the whole portion eaten.
+  const NUTRITION_PROPS = {
+    calories: { type: 'integer', description: 'Estimated kcal for the portion eaten' },
+    protein_g: { type: 'number', description: 'Estimated grams of protein' },
+    carbs_g: { type: 'number', description: 'Estimated grams of carbohydrate' },
+    fat_g: { type: 'number', description: 'Estimated grams of fat' },
+    fiber_g: { type: 'number', description: 'Estimated grams of fiber' },
+    sugar_g: { type: 'number', description: 'Estimated grams of sugar' },
+  };
+  const ESTIMATE_SCHEMA = {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      ...NUTRITION_PROPS,
+      kind: { type: 'string', enum: ['healthy', 'normal', 'treat'] },
+      note: { type: 'string', description: 'Under 12 words: the portion you assumed' },
+    },
+    required: [...Object.keys(NUTRITION_PROPS), 'kind', 'note'],
+  };
+  const ESTIMATE_PROMPT = 'Estimate the nutrition of this food for the portion described (assume a typical single portion if none is given). Food: ';
   const TOOLS = [
     {
       name: 'add_reminder',
@@ -2185,8 +2422,9 @@ Boundaries:
           meal: { type: 'string', enum: ['breakfast', 'lunch', 'dinner', 'snack'] },
           food: { type: 'string', description: 'What they ate, e.g. "chicken sandwich and an apple"' },
           kind: { type: 'string', enum: ['healthy', 'normal', 'treat'] },
+          ...NUTRITION_PROPS,
         },
-        required: ['meal', 'food', 'kind'],
+        required: ['meal', 'food', 'kind', ...Object.keys(NUTRITION_PROPS)],
       },
     },
     {
@@ -2321,6 +2559,34 @@ Boundaries:
       if (e instanceof A.RateLimitError) return { error: 'The Claude API is rate-limiting your key right now. I\'ll use my usual replies for a bit.' };
       if (e instanceof A.BadRequestError) return { error: `The Claude API couldn't handle that request (${e.message}).` };
       return null; // offline or a temporary server problem: quietly use the written replies
+    }
+  }
+
+  // Food dialog → "Ask Rias to estimate": nutrition numbers as JSON, or null.
+  async function estimate(food) {
+    try {
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: ESTIMATE_PROMPT + food }] }],
+          generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json', responseSchema: geminiSchema(ESTIMATE_SCHEMA) },
+        });
+        const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        return JSON.parse(parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''));
+      }
+      const api = getClient();
+      if (!api) return null;
+      const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+      const res = await api.messages.create({
+        model,
+        max_tokens: 2000,
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: ESTIMATE_SCHEMA } },
+        messages: [{ role: 'user', content: ESTIMATE_PROMPT + food }],
+      });
+      if (res.stop_reason === 'refusal') return null;
+      return JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+    } catch {
+      return null;
     }
   }
 
@@ -2478,7 +2744,7 @@ Boundaries:
     }
   }
 
-  return { enabled, reply, test, provider };
+  return { enabled, reply, test, provider, estimate };
 };
 </script>
   <script>
@@ -2737,6 +3003,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
+      calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -3494,6 +3761,9 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   const modCtx = {
     state, save, $, R, dateKey, uid, fmtClock, fmtTime, toMin, shiftsOn, silencePast, refresh,
     mealNow: () => mealFor(nowMin()),
+    // Food dialog's "Ask Rias to estimate" (AI is created further down; used only on tap).
+    canEstimate: () => AI.enabled(),
+    estimate: (text) => AI.estimate(text),
     riasLine: (pool) => addMessage('rias', say(pick(pool))),
   };
   const Food = window.createFoodDiary(modCtx);
@@ -3542,7 +3812,13 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
         refresh();
         return { ok: true };
       },
-      logFood({ meal, food, kind }) { Food.logFood(meal, food, kind); return { ok: true, today: Food.summary() }; },
+      logFood({ meal, food, kind, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g }) {
+        const r = (v) => (typeof v === 'number' && v >= 0 ? Math.round(v) : undefined);
+        const n = r(calories) == null ? undefined : { kcal: r(calories), p: r(protein_g), c: r(carbs_g), f: r(fat_g), fiber: r(fiber_g), sugar: r(sugar_g) };
+        Food.logFood(meal, food, kind, new Date(), n);
+        if (!$('#view-food').hidden) Food.render();
+        return { ok: true, today: Food.summary() };
+      },
       logWater({ glasses }) { return { ok: true, glassesToday: Food.addWater(Math.max(1, Math.min(10, glasses)), false, dateKey()) }; },
       completeTask({ title }) {
         const q = title.toLowerCase();
@@ -3671,8 +3947,9 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     $('#tile-today-sub').textContent = `done · streak ${streak()} 🔥`;
     $('#tile-water').textContent = `${state.water[dateKey()] || 0} / ${state.settings.waterGoal} 💧`;
     const meals = state.food[dateKey()] || [];
-    $('#tile-food').textContent = `${meals.length} logged`;
-    $('#tile-food-sub').textContent = meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
+    const t = Food.totals(dateKey());
+    $('#tile-food').textContent = t.counted ? `${Math.round(t.kcal).toLocaleString()} kcal` : `${meals.length} logged`;
+    $('#tile-food-sub').textContent = t.counted ? `of ${Food.goals().kcal.toLocaleString()} · P ${Math.round(t.p)}g` : meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
     const shifts = shiftsOn(new Date());
     if (shifts.length) {
       $('#tile-work').textContent = `${fmtTime(shifts[0].start)}`;
