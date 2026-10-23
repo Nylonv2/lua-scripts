@@ -125,6 +125,17 @@
             </select>
           </label>
 
+          <h2>Rias's picture</h2>
+          <div class="pic-row">
+            <img class="avatar pic-preview" src="icons/icon.svg" alt="Rias's current picture">
+            <div class="stack grow">
+              <button type="button" id="pic-choose">Choose from my photos</button>
+              <button type="button" id="pic-reset">Use the default</button>
+            </div>
+          </div>
+          <input type="file" id="pic-file" accept="image/*" hidden>
+          <p class="muted small" id="pic-hint">Shown as her avatar and next to her notifications. It stays on this phone and is never uploaded.</p>
+
           <h2>Voice</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>

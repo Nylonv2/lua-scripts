@@ -186,6 +186,10 @@ input[type=range] { padding: 0; accent-color: var(--crimson); border: 0; backgro
 .item.src-work { border-left: 3px solid var(--gold); }
 .item.src-calendar { border-left: 3px solid #6aa6ff; }
 textarea { font: inherit; }
+.pic-row { display: flex; align-items: center; gap: 16px; }
+.pic-preview { width: 84px; height: 84px; flex: none; object-fit: cover; }
+.grow { flex: 1; min-width: 0; }
+.avatar { object-fit: cover; }
 </style>
 </head>
 <body>
@@ -299,6 +303,17 @@ textarea { font: inherit; }
               <option value="neutral">Neither (good job)</option>
             </select>
           </label>
+
+          <h2>Rias's picture</h2>
+          <div class="pic-row">
+            <img class="avatar pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="Rias's current picture">
+            <div class="stack grow">
+              <button type="button" id="pic-choose">Choose from my photos</button>
+              <button type="button" id="pic-reset">Use the default</button>
+            </div>
+          </div>
+          <input type="file" id="pic-file" accept="image/*" hidden>
+          <p class="muted small" id="pic-hint">Shown as her avatar and next to her notifications. It stays on this phone and is never uploaded.</p>
 
           <h2>Voice</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
@@ -2729,6 +2744,59 @@ Boundaries:
     return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'yes'), { once: true }));
   }
 
+  // ---------- Rias's picture (chosen from your photos, kept on this phone) ----------
+  const PIC_KEY = 'rias-companion-picture';
+  const DEFAULT_PIC = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K';
+  function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
+  function applyPicture(dataUrl) {
+    for (const img of document.querySelectorAll('img.avatar')) img.src = dataUrl || DEFAULT_PIC;
+  }
+  function setPicture(dataUrl) {
+    try { if (dataUrl) localStorage.setItem(PIC_KEY, dataUrl); else localStorage.removeItem(PIC_KEY); }
+    catch { $('#pic-hint').textContent = 'Couldn’t save the picture on this device (storage is full or blocked).'; return; }
+    applyPicture(dataUrl);
+    // The Android app keeps its own copy for notifications.
+    const N = window.RiasNative;
+    if (N && N.setPicture) { try { N.setPicture(dataUrl ? dataUrl.split(',')[1] : ''); } catch { /* older app */ } }
+  }
+  // Crop to a centered square and shrink to 512px so it's small enough to store.
+  function shrinkPicture(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const size = Math.min(512, side);
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        // Faces are usually in the upper part of a portrait photo, so crop from a bit above center.
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = img.naturalHeight > img.naturalWidth ? (img.naturalHeight - side) * 0.25 : (img.naturalHeight - side) / 2;
+        c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+      img.src = url;
+    });
+  }
+  $('#pic-choose').addEventListener('click', () => $('#pic-file').click());
+  $('#pic-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setPicture(await shrinkPicture(file));
+      $('#pic-hint').textContent = 'Picture updated. It stays on this phone and is never uploaded.';
+    } catch {
+      $('#pic-hint').textContent = 'That file couldn’t be opened as a picture. Try a JPG or PNG.';
+    }
+  });
+  $('#pic-reset').addEventListener('click', () => {
+    setPicture('');
+    $('#pic-hint').textContent = 'Back to the default picture.';
+  });
+
   // ---------- Android app: hand reminders to the phone's alarm system ----------
   // window.RiasNative only exists inside the Android app. There, every reminder and
   // check-in for the next week is scheduled natively, so they fire with the app closed.
@@ -2987,6 +3055,7 @@ Boundaries:
 
   // ---------- boot ----------
   applyNativeVoice();
+  applyPicture(loadPicture());
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   renderFeed();

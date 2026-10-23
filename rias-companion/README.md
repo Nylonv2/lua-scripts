@@ -79,6 +79,12 @@ http://localhost:8000.
   "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
 - **Settings**: name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
 
+## Rias's picture
+
+**Settings → Rias's picture → Choose from my photos** picks any image from your phone. It's cropped to a square,
+used as her avatar in the app and shown beside her Android notifications. It's stored only on your phone (never in
+this repo or uploaded anywhere). **Use the default** switches back to the crimson magic circle.
+
 ## Rias's AI (optional)
 
 Turn on **Settings → Rias's mind (AI)** and pick a service:

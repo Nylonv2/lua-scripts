@@ -107,6 +107,30 @@ final class Scheduler {
         nm.createNotificationChannel(ch);
     }
 
+    static java.io.File pictureFile(Context c) {
+        return new java.io.File(c.getFilesDir(), "rias-picture.jpg");
+    }
+
+    private static android.graphics.Bitmap picture(Context c) {
+        java.io.File f = pictureFile(c);
+        if (!f.exists()) return null;
+        try {
+            android.graphics.Bitmap bm = android.graphics.BitmapFactory.decodeFile(f.getAbsolutePath());
+            if (bm == null) return null;
+            // Crop to a circle so it looks like a contact photo.
+            int size = Math.min(bm.getWidth(), bm.getHeight());
+            android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(out);
+            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
+            paint.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN));
+            canvas.drawBitmap(bm, (size - bm.getWidth()) / 2f, (size - bm.getHeight()) / 2f, paint);
+            return out;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     static boolean enabled(Context c) {
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         return nm != null && nm.areNotificationsEnabled();
@@ -138,6 +162,9 @@ final class Scheduler {
                 .setAutoCancel(true)
                 .setShowWhen(true)
                 .setContentIntent(tap);
+        // Your chosen picture of Rias, shown beside the message.
+        android.graphics.Bitmap pic = picture(c);
+        if (pic != null) b.setLargeIcon(pic);
         nm.notify(id, b.build());
     }
 }

@@ -766,6 +766,59 @@
     return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'yes'), { once: true }));
   }
 
+  // ---------- Rias's picture (chosen from your photos, kept on this phone) ----------
+  const PIC_KEY = 'rias-companion-picture';
+  const DEFAULT_PIC = 'icons/icon.svg';
+  function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
+  function applyPicture(dataUrl) {
+    for (const img of document.querySelectorAll('img.avatar')) img.src = dataUrl || DEFAULT_PIC;
+  }
+  function setPicture(dataUrl) {
+    try { if (dataUrl) localStorage.setItem(PIC_KEY, dataUrl); else localStorage.removeItem(PIC_KEY); }
+    catch { $('#pic-hint').textContent = 'Couldn’t save the picture on this device (storage is full or blocked).'; return; }
+    applyPicture(dataUrl);
+    // The Android app keeps its own copy for notifications.
+    const N = window.RiasNative;
+    if (N && N.setPicture) { try { N.setPicture(dataUrl ? dataUrl.split(',')[1] : ''); } catch { /* older app */ } }
+  }
+  // Crop to a centered square and shrink to 512px so it's small enough to store.
+  function shrinkPicture(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const size = Math.min(512, side);
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        // Faces are usually in the upper part of a portrait photo, so crop from a bit above center.
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = img.naturalHeight > img.naturalWidth ? (img.naturalHeight - side) * 0.25 : (img.naturalHeight - side) / 2;
+        c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('unreadable')); };
+      img.src = url;
+    });
+  }
+  $('#pic-choose').addEventListener('click', () => $('#pic-file').click());
+  $('#pic-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setPicture(await shrinkPicture(file));
+      $('#pic-hint').textContent = 'Picture updated. It stays on this phone and is never uploaded.';
+    } catch {
+      $('#pic-hint').textContent = 'That file couldn’t be opened as a picture. Try a JPG or PNG.';
+    }
+  });
+  $('#pic-reset').addEventListener('click', () => {
+    setPicture('');
+    $('#pic-hint').textContent = 'Back to the default picture.';
+  });
+
   // ---------- Android app: hand reminders to the phone's alarm system ----------
   // window.RiasNative only exists inside the Android app. There, every reminder and
   // check-in for the next week is scheduled natively, so they fire with the app closed.
@@ -1024,6 +1077,7 @@
 
   // ---------- boot ----------
   applyNativeVoice();
+  applyPicture(loadPicture());
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   renderFeed();

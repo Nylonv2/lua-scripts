@@ -174,3 +174,7 @@ input[type=range] { padding: 0; accent-color: var(--crimson); border: 0; backgro
 .item.src-work { border-left: 3px solid var(--gold); }
 .item.src-calendar { border-left: 3px solid #6aa6ff; }
 textarea { font: inherit; }
+.pic-row { display: flex; align-items: center; gap: 16px; }
+.pic-preview { width: 84px; height: 84px; flex: none; object-fit: cover; }
+.grow { flex: 1; min-width: 0; }
+.avatar { object-fit: cover; }

@@ -39,6 +39,8 @@ public class MainActivity extends Activity {
     static volatile boolean visible;
     private static final int REQ_LISTEN = 42;
     private static final int REQ_CALENDAR = 2;
+    private static final int REQ_FILE = 43;
+    private android.webkit.ValueCallback<Uri[]> fileCallback;
     private WebView web;
     private TextToSpeech tts;
     private volatile boolean ttsReady;
@@ -68,7 +70,24 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);
         // The app's own bundled pages only: lets them call api.anthropic.com without CORS trouble.
         s.setAllowUniversalAccessFromFileURLs(true);
-        web.setWebChromeClient(new WebChromeClient());
+        // Lets <input type="file"> open the photo picker (used for Rias's picture).
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, android.webkit.ValueCallback<Uri[]> callback,
+                    FileChooserParams params) {
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                Intent pick = new Intent(Intent.ACTION_GET_CONTENT).setType("image/*")
+                        .addCategory(Intent.CATEGORY_OPENABLE);
+                try {
+                    startActivityForResult(Intent.createChooser(pick, "Choose Rias's picture"), REQ_FILE);
+                } catch (Exception e) {
+                    fileCallback = null;
+                    return false;
+                }
+                return true;
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -126,6 +145,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_FILE) {
+            if (fileCallback != null) {
+                fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+                fileCallback = null;
+            }
+            return;
+        }
         if (requestCode != REQ_LISTEN || resultCode != RESULT_OK || data == null) return;
         ArrayList<String> heard = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
         if (heard == null || heard.isEmpty()) return;
@@ -346,6 +372,20 @@ public class MainActivity extends Activity {
                 }
             }
             return out.toString();
+        }
+
+        /** Saves Rias's picture (base64 JPEG, or "" for the default) for notifications. */
+        @JavascriptInterface
+        public void setPicture(String base64) {
+            java.io.File f = Scheduler.pictureFile(ctx);
+            if (base64 == null || base64.isEmpty()) {
+                f.delete();
+                return;
+            }
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) {
+                out.write(android.util.Base64.decode(base64, android.util.Base64.DEFAULT));
+            } catch (Exception ignored) {
+            }
         }
 
         /** {status, volume, maxVolume} so the app can say why she's silent. */
