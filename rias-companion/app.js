@@ -61,6 +61,7 @@
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
+      homeChar: 'animated',
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -579,6 +580,7 @@
     $('#status').textContent = p ? `Waiting on you: ${p.title}`
       : next ? `Next: ${next.title} · ${fmtTime(next.time)}`
       : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
+    if (currentView === 'home') renderHome();
   }
 
   function renderToday() {
@@ -627,13 +629,14 @@
 
   // ---------- navigation ----------
   // ---------- pop-up banner ----------
-  let currentView = 'chat';
+  let currentView = 'home';
   let toastTimer = 0, toastMsg = null;
   const toast = $('#toast');
   function showToast(m) {
     // Only when you'd otherwise miss it: app open, set up, and on a tab other than Chat.
     if (currentView === 'chat' || document.hidden || !state.profile) return;
     if (m.itemId && alarmFor(findItem(m.itemId))) return; // these get the big pop-up instead
+    if (currentView === 'home') { homeSay(m.text); return; } // she says it herself on Home
     toastMsg = m;
     $('#toast-text').textContent = m.text;
     $('#toast-done').hidden = !(m.itemId && !statusOf(m.itemId) && findItem(m.itemId));
@@ -675,6 +678,7 @@
     if (view === 'today') renderToday();
     if (view === 'settings') fillSettings();
     if (view === 'food') Food.render();
+    if (view === 'home') renderHome();
     if (view === 'work') Work.render();
     if (view === 'chat') feed.scrollTop = feed.scrollHeight;
   }
@@ -820,6 +824,134 @@
     if (N.hasCalendarPermission()) { syncCalendar(); refresh(); }
     else N.requestCalendarPermission();
   }
+
+  // ---------- Home screen ----------
+  const Avatar = window.createRiasAvatar($('#stage'));
+  let moodTimer = 0;
+  const baseMood = () => (!state.profile ? 'neutral' : !isAwake() ? 'sleepy' : pendingItem() ? 'worried' : 'neutral');
+  function homeSay(text, mood) {
+    const b = $('#home-bubble');
+    b.textContent = text;
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    clearTimeout(moodTimer);
+    if (mood) { Avatar.setMood(mood); moodTimer = setTimeout(() => Avatar.setMood(baseMood()), 4500); }
+    Avatar.talk(text.length * 55);
+    const pic = $('#stage-pic');
+    pic.classList.add('talking');
+    setTimeout(() => pic.classList.remove('talking'), Math.min(text.length * 55, 8000));
+  }
+  // What she says when you tap her: whatever is most useful right now.
+  function homeLine() {
+    const p = pendingItem();
+    if (p) return [say(`You still haven't done “${p.title}”, {name}. Go on — I'll wait~`), 'worried'];
+    if (!isAwake()) return [say(pick(R.lateNight)), 'sleepy'];
+    const glasses = state.water[dateKey()] || 0;
+    if (glasses < state.settings.waterGoal / 2 && nowMin() > 12 * 60 && Math.random() < 0.5) return [say(pick(R.water.nudge), { count: glasses }), 'worried'];
+    const nm = nowMin();
+    const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
+    const T = window.RIAS_TALK;
+    const options = [];
+    if (next) options.push([say(`Next up at ${fmtTime(next.time)}: ${next.title}. I'll remind you~`), 'neutral']);
+    if (doneToday()) options.push([say(pick(praiseLines())), 'happy']);
+    options.push([say(pick([].concat(T.whatDoing))), 'happy']);
+    if (R.checkin[period()]) options.push([checkinLine(period(), doneToday()), 'neutral']);
+    const o = pick(options);
+    return [[].concat(o[0]).join(' '), o[1]];
+  }
+  function onRiasTap() {
+    Avatar.react();
+    const [text, mood] = homeLine();
+    homeSay(text, mood === 'neutral' ? 'happy' : mood);
+    speak(text);
+  }
+  $('#stage').addEventListener('click', onRiasTap);
+  $('#stage-pic').addEventListener('click', onRiasTap);
+
+  function renderHome() {
+    if (!state.profile) return;
+    const animated = state.settings.homeChar !== 'picture' || !loadPicture();
+    $('#stage').hidden = !animated;
+    $('#stage-pic').hidden = animated;
+    const nm = nowMin();
+    const hello = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', night: 'Still up' }[period(nm)];
+    $('#home-hello').textContent = `${hello}, ${state.profile.name}${period(nm) === 'night' ? '?' : ''}`;
+    $('#home-date').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    if (!$('#home-bubble').textContent) $('#home-bubble').textContent = say(pick(R.greet[period(nm)] || R.greet.evening));
+    if (Avatar.mood !== 'happy') Avatar.setMood(baseMood());
+
+    // Next up / waiting on you.
+    const card = $('#next-card');
+    const p = pendingItem();
+    const next = p || todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
+    card.classList.toggle('waiting', !!p);
+    card.textContent = '';
+    const info = document.createElement('div');
+    info.className = 'next-info';
+    info.innerHTML = '<div class="next-label"></div><div class="next-title"></div><div class="next-time"></div>';
+    if (next) {
+      info.querySelector('.next-label').textContent = p ? 'Waiting on you' : 'Up next';
+      info.querySelector('.next-title').textContent = next.title;
+      info.querySelector('.next-time').textContent = `${fmtTime(next.time)}${alarmFor(next) ? ' · ⏰ alarm' : ''}`;
+      const acts = document.createElement('div');
+      acts.className = 'next-actions';
+      acts.innerHTML = '<button type="button" class="done" data-next="done">Done ✓</button>';
+      if (p) acts.insertAdjacentHTML('beforeend', '<button type="button" data-next="snooze">Snooze</button>');
+      acts.dataset.item = next.id;
+      card.append(info, acts);
+    } else {
+      info.querySelector('.next-label').textContent = 'All caught up';
+      info.querySelector('.next-title').textContent = todaysItems().length ? 'Nothing left on today\'s list 🎉' : 'Nothing scheduled today';
+      info.querySelector('.next-time').textContent = 'Tap Rias to chat, or add a reminder below.';
+      card.append(info);
+    }
+
+    // Tiles
+    const list = todaysItems();
+    const done = list.filter((it) => statusOf(it.id) === 'done').length;
+    $('#tile-today').textContent = `${done} / ${list.length}`;
+    $('#tile-today-sub').textContent = `done · streak ${streak()} 🔥`;
+    $('#tile-water').textContent = `${state.water[dateKey()] || 0} / ${state.settings.waterGoal} 💧`;
+    const meals = state.food[dateKey()] || [];
+    $('#tile-food').textContent = `${meals.length} logged`;
+    $('#tile-food-sub').textContent = meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
+    const shifts = shiftsOn(new Date());
+    if (shifts.length) {
+      $('#tile-work').textContent = `${fmtTime(shifts[0].start)}`;
+      $('#tile-work-sub').textContent = `${shifts[0].label || 'Work'} until ${fmtTime(shifts[0].end)}`;
+    } else {
+      let nextShift = '';
+      for (let i = 1; i < 8 && !nextShift; i++) {
+        const d = new Date(); d.setDate(d.getDate() + i);
+        const sh = shiftsOn(d)[0];
+        if (sh) nextShift = `Next: ${d.toLocaleDateString([], { weekday: 'short' })} ${fmtTime(sh.start)}`;
+      }
+      $('#tile-work').textContent = 'Day off';
+      $('#tile-work-sub').textContent = nextShift || (state.shifts.length ? 'No shifts this week' : 'Tap to add shifts');
+    }
+  }
+  $('#next-card').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-next]');
+    if (!b) { show('today'); return; }
+    const id = b.parentElement.dataset.item;
+    if (b.dataset.next === 'snooze') snooze(id); else resolve(id, 'done');
+    renderHome();
+  });
+  document.querySelector('.tiles').addEventListener('click', (e) => {
+    if (e.target.closest('#tile-water-add')) {
+      const n = Food.addWater(1, false, dateKey());
+      homeSay(n >= state.settings.waterGoal ? say(pick(R.water.goal)) : say(`That's ${n} glass${n === 1 ? '' : 'es'} today. Good — keep going~`), 'happy');
+      renderHome();
+      return;
+    }
+    const t = e.target.closest('[data-go]');
+    if (t) show(t.dataset.go);
+  });
+  $('#qa-talk').addEventListener('click', () => { show('chat'); $('#say').focus(); });
+  $('#qa-mic').addEventListener('click', () => { show('chat'); listen(); });
+  $('#qa-remind').addEventListener('click', () => { show('today'); openEditor(null); });
+  $('#qa-food').addEventListener('click', () => { show('food'); Food.openAdd(mealFor(nowMin())); });
+  $('#open-settings').addEventListener('click', () => show('settings'));
+  $('#qa-mic').hidden = !canListen();
 
   // ---------- today events / editor ----------
   const editor = $('#editor');
@@ -1038,6 +1170,7 @@
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.alarmPopup.checked = alarmOn();
+    sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     fullScreenHint();
     const list = $('#alarm-cat-list');
     list.textContent = '';
@@ -1087,6 +1220,7 @@
       phoneCalendar: sf.elements.phoneCalendar.checked,
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
+      homeChar: sf.elements.homeChar.value,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
     });
@@ -1098,8 +1232,8 @@
     if (!state.settings.phoneCalendar) state.phoneEvents = [];
     applyNativeVoice();
     save();
+    show('home');
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
-    show('chat');
   });
   function fillVoices() {
     const sel = sf.elements.voiceName;
@@ -1267,6 +1401,7 @@
     tick();
   }
   renderStatus();
+  renderHome();
   setInterval(tick, 20000);
   setInterval(syncCalendar, 15 * 60000);
   document.addEventListener('visibilitychange', () => {

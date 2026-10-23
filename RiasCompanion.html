@@ -244,6 +244,93 @@ textarea { font: inherit; }
 .test-row button { flex: 1 1 30%; min-width: 0; padding: 11px 4px; font-size: .9rem; }
 .test-label { margin: 4px 0 0; font-size: .9rem; color: var(--muted); }
 .alarm-badge { margin-left: 6px; font-size: .8rem; }
+
+/* Home: animated Rias */
+.stage { position: relative; width: min(78vw, 300px); aspect-ratio: 300 / 330; margin: 0 auto; }
+.stage .circle { position: absolute; left: 50%; top: 2%; width: 92%; transform: translateX(-50%); color: var(--crimson-2); opacity: .32;
+  filter: drop-shadow(0 0 8px rgba(232, 57, 90, .6)); animation: spin 60s linear infinite; }
+.stage .rias { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; cursor: pointer;
+  -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+@keyframes spin { to { transform: translateX(-50%) rotate(360deg); } }
+.rias .body, .rias .head, .rias .hair-back, .rias .ahoge, .rias .lock-l, .rias .lock-r, .rias .eye, .rias .brows path { transform-box: fill-box; }
+.rias .body { transform-origin: 50% 100%; animation: breathe 4.2s ease-in-out infinite; }
+.rias .head { transform-origin: 50% 90%; animation: head 7s ease-in-out infinite; }
+.rias .hair-back { transform-origin: 50% 0%; animation: sway 6s ease-in-out infinite; }
+.rias .lock-l { transform-origin: 50% 0%; animation: sway 5s ease-in-out infinite; }
+.rias .lock-r { transform-origin: 50% 0%; animation: sway 5s ease-in-out infinite reverse; }
+.rias .ahoge { transform-origin: 0% 100%; animation: bob 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: translateY(2px) scaleY(.992); } }
+@keyframes head { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-1.6deg); } 65% { transform: rotate(1.2deg); } }
+@keyframes sway { 50% { transform: rotate(1.1deg); } }
+@keyframes bob { 50% { transform: rotate(-9deg); } }
+.rias .eye { transform-origin: 50% 55%; transition: transform .08s; }
+.rias.blink .eye { transform: scaleY(.08); }
+.rias .eyes-happy, .rias .lids, .rias .zzz, .rias .mouth { display: none; }
+.rias .blush { opacity: .25; transition: opacity .3s; }
+.rias .mouth-smile { display: inline; }
+.rias[data-mood="happy"] .eyes { display: none; }
+.rias[data-mood="happy"] .eyes-happy { display: inline; }
+.rias[data-mood="happy"] .blush, .rias[data-mood="shy"] .blush { opacity: .7; }
+.rias[data-mood="sleepy"] .lids { display: inline; }
+.rias[data-mood="sleepy"] .zzz { display: inline; animation: zzz 3s ease-in-out infinite; }
+.rias[data-mood="sleepy"] .mouth-smile { display: none; }
+.rias[data-mood="sleepy"] .mouth-flat { display: inline; }
+.rias[data-mood="worried"] .brow-l { transform: rotate(10deg) translateY(-2px); transform-origin: 100% 50%; }
+.rias[data-mood="worried"] .brow-r { transform: rotate(-10deg) translateY(-2px); transform-origin: 0% 50%; }
+.rias[data-mood="worried"] .mouth-smile { display: none; }
+.rias[data-mood="worried"] .mouth-flat { display: inline; }
+.rias.talking .mouth { display: none !important; }
+.rias.talking[data-mouth="open"] .mouth-open, .rias.talking[data-mouth="o"] .mouth-o, .rias.talking[data-mouth="smile"] .mouth-smile,
+.rias.talking:not([data-mouth]) .mouth-open { display: inline !important; }
+@keyframes zzz { 0%, 100% { opacity: .2; transform: translateY(4px); } 50% { opacity: 1; transform: translateY(-4px); } }
+.rias.hop { animation: hop .5s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes hop { 40% { transform: translateY(-12px); } }
+.hearts { position: absolute; inset: 0; pointer-events: none; }
+.hearts span { position: absolute; top: 30%; color: var(--crimson-2); animation: heart 1.5s ease-out forwards; text-shadow: 0 0 8px rgba(232, 57, 90, .7); }
+@keyframes heart { from { transform: translateY(0) scale(.6); opacity: 1; } to { transform: translateY(-90px) scale(1.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .stage .circle, .rias .body, .rias .head, .rias .hair-back, .rias .ahoge, .rias .lock-l, .rias .lock-r, .rias.hop { animation: none; }
+}
+
+/* Home screen */
+.gear { margin-left: auto; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-size: 1.15rem; }
+.home { padding-top: 6px; }
+.home-hero { position: relative; display: flex; flex-direction: column; align-items: center; }
+.bubble { position: relative; z-index: 2; max-width: 92%; margin: 4px auto -8px; padding: 10px 16px; border-radius: 18px; background: var(--panel-2);
+  border: 1px solid var(--line); font-size: .95rem; line-height: 1.4; text-align: center; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); min-height: 1.4em; }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -8px; width: 14px; height: 14px; background: var(--panel-2);
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: translateX(-50%) rotate(45deg); }
+.bubble:empty { visibility: hidden; }
+.bubble.pop { animation: bubble .35s cubic-bezier(.2, .9, .3, 1.3); }
+@keyframes bubble { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.stage-pic { width: min(60vw, 230px); height: min(60vw, 230px); margin: 18px auto 6px; animation: float 5s ease-in-out infinite;
+  box-shadow: 0 0 0 4px var(--crimson), 0 0 40px rgba(200, 23, 58, .55); cursor: pointer; }
+.stage-pic.talking { animation: float 5s ease-in-out infinite, talkpulse .5s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(-8px); } }
+@keyframes talkpulse { 50% { box-shadow: 0 0 0 6px var(--crimson-2), 0 0 56px rgba(232, 57, 90, .75); } }
+.home-greet { text-align: center; margin: -6px 0 12px; }
+.home-greet h1 { font-family: Georgia, serif; font-weight: normal; font-size: 1.45rem; margin: 0; text-wrap: balance; }
+.home-greet p { margin: 2px 0 0; font-size: .9rem; }
+.next-card { display: flex; align-items: center; gap: 12px; }
+.next-card .next-info { flex: 1; min-width: 0; }
+.next-card .next-label { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+.next-card .next-title { font-size: 1.05rem; font-weight: 600; margin-top: 2px; }
+.next-card .next-time { color: var(--muted); font-size: .85rem; }
+.next-card.waiting { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+.next-card button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 8px 12px; font-size: .85rem; }
+.next-card button.done { background: var(--crimson); border-color: var(--crimson); font-weight: 600; }
+.next-actions { display: flex; flex-direction: column; gap: 6px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.tile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 12px 14px; border-radius: 16px;
+  background: var(--panel); border: 1px solid var(--line); min-width: 0; }
+.tile-label { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tile b { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.tile-sub { font-size: .8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.tile-btn { margin-top: 4px; border: 0; border-radius: 999px; padding: 5px 10px; background: var(--crimson); font-size: .8rem; font-weight: 600; }
+.quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.quick-actions button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--panel); font-size: .8rem; }
+.quick-actions span { font-size: 1.3rem; }
 </style>
 </head>
 <body>
@@ -276,11 +363,38 @@ textarea { font: inherit; }
         <div class="name">Rias Gremory</div>
         <div class="status" id="status">Occult Research Club</div>
       </div>
+      <button type="button" class="gear" id="open-settings" aria-label="Settings">⚙️</button>
     </header>
 
     <main>
+      <!-- Home -->
+      <section class="view pad home" id="view-home">
+        <div class="home-hero">
+          <div class="bubble" id="home-bubble" aria-live="polite"></div>
+          <div class="stage" id="stage" title="Tap Rias"></div>
+          <img class="avatar stage-pic" id="stage-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="" hidden>
+        </div>
+        <div class="home-greet">
+          <h1 id="home-hello"></h1>
+          <p class="muted" id="home-date"></p>
+        </div>
+        <div class="card next-card" id="next-card"></div>
+        <div class="tiles">
+          <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
+          <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
+          <button type="button" class="tile" data-go="food"><span class="tile-label">Food</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
+          <button type="button" class="tile" data-go="work"><span class="tile-label">Work</span><b id="tile-work"></b><span class="tile-sub" id="tile-work-sub"></span></button>
+        </div>
+        <div class="quick-actions">
+          <button type="button" id="qa-talk"><span>💬</span>Talk</button>
+          <button type="button" id="qa-mic"><span>🎙</span>Speak</button>
+          <button type="button" id="qa-remind"><span>⏰</span>Reminder</button>
+          <button type="button" id="qa-food"><span>🍽️</span>Log food</button>
+        </div>
+      </section>
+
       <!-- Chat -->
-      <section class="view" id="view-chat">
+      <section class="view" id="view-chat" hidden>
         <div class="feed" id="feed" aria-live="polite"></div>
         <div class="quick" id="quick">
           <button type="button" data-say="What should I do now?">What now?</button>
@@ -377,6 +491,14 @@ textarea { font: inherit; }
               <option value="boy">Good boy</option>
               <option value="girl">Good girl</option>
               <option value="neutral">Neither (good job)</option>
+            </select>
+          </label>
+
+          <h2>Home screen</h2>
+          <label>On the Home screen, show
+            <select name="homeChar">
+              <option value="animated">Animated Rias</option>
+              <option value="picture">My chosen picture</option>
             </select>
           </label>
 
@@ -501,11 +623,12 @@ textarea { font: inherit; }
     </main>
 
     <nav class="tabs">
-      <button type="button" data-view="chat" class="active"><span>💬</span>Chat</button>
+      <button type="button" data-view="home" class="active"><span>🏠</span>Home</button>
+      <button type="button" data-view="chat"><span>💬</span>Chat</button>
       <button type="button" data-view="today"><span>📋</span>Today</button>
       <button type="button" data-view="food"><span>🍽️</span>Food</button>
       <button type="button" data-view="work"><span>💼</span>Work</button>
-      <button type="button" data-view="settings"><span>⚙️</span>Settings</button>
+
     </nav>
   </div>
 
@@ -2074,6 +2197,197 @@ Boundaries:
 };
 </script>
   <script>
+// The animated Rias on the Home screen: an original drawing (inline SVG) with idle
+// breathing, blinking and hair sway, plus moods and a talking mouth driven by app.js.
+window.createRiasAvatar = function createRiasAvatar(stage) {
+  'use strict';
+
+  stage.innerHTML = `
+  <svg class="circle" viewBox="0 0 200 200" aria-hidden="true">
+    <g fill="none" stroke="currentColor">
+      <circle cx="100" cy="100" r="96" stroke-width="1.6"/>
+      <circle cx="100" cy="100" r="86" stroke-width=".8"/>
+      <circle cx="100" cy="100" r="58" stroke-width="1"/>
+      <polygon points="100,14 174.5,143 25.5,143" stroke-width="1.2"/>
+      <polygon points="100,186 25.5,57 174.5,57" stroke-width="1.2"/>
+      <path d="M100 4 v10 M100 186 v10 M4 100 h10 M186 100 h10" stroke-width="1.2"/>
+    </g>
+    <g fill="currentColor" font-family="Georgia, serif" font-size="7" text-anchor="middle" opacity=".8">
+      <text x="100" y="11">GREMORY</text><text x="100" y="196">KUOH</text>
+    </g>
+  </svg>
+  <svg class="rias" viewBox="0 0 300 360" role="img" aria-label="Rias">
+    <defs>
+      <linearGradient id="rh" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#e3284a"/><stop offset=".55" stop-color="#b8173a"/><stop offset="1" stop-color="#7d0c26"/>
+      </linearGradient>
+      <linearGradient id="rhf" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f0405f"/><stop offset="1" stop-color="#b8173a"/>
+      </linearGradient>
+      <radialGradient id="iris" cx=".5" cy=".38" r=".62">
+        <stop offset="0" stop-color="#7fe3d6"/><stop offset=".55" stop-color="#22a59a"/><stop offset="1" stop-color="#0a4f5a"/>
+      </radialGradient>
+      <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffece3"/><stop offset="1" stop-color="#f9d5c6"/>
+      </linearGradient>
+      <clipPath id="eyeL"><path d="M112 140 Q127 126 143 138 Q141 154 127 156 Q114 154 112 140Z"/></clipPath>
+      <clipPath id="eyeR"><path d="M188 140 Q173 126 157 138 Q159 154 173 156 Q186 154 188 140Z"/></clipPath>
+    </defs>
+
+    <!-- hair behind the body -->
+    <g class="hair-back">
+      <path fill="url(#rh)" d="M150 34 C86 34 58 84 60 146 C62 222 44 296 26 360 L274 360 C256 296 238 222 240 146 C242 84 214 34 150 34Z"/>
+      <path fill="#8e0f2a" opacity=".45" d="M70 170 C66 240 54 300 44 360 L64 360 C70 300 78 240 82 180Z M230 170 C234 240 246 300 256 360 L236 360 C230 300 222 240 218 180Z"/>
+    </g>
+
+    <g class="body">
+      <!-- neck -->
+      <path fill="#f6cdbd" d="M134 190 L166 190 L168 236 Q150 246 132 236Z"/>
+      <!-- blouse + Kuoh-style cape -->
+      <path fill="#fbf6f4" d="M54 360 C60 292 96 252 150 246 C204 252 240 292 246 360Z"/>
+      <path fill="#1d1420" d="M52 360 C58 296 88 262 126 250 L150 312 L174 250 C212 262 242 296 248 360Z"/>
+      <path fill="#2c1f31" d="M64 360 C70 312 92 282 118 268 L104 360Z M236 360 C230 312 208 282 182 268 L196 360Z"/>
+      <!-- collar -->
+      <path fill="#ffffff" d="M126 248 L150 292 L138 250Z M174 248 L150 292 L162 250Z"/>
+      <!-- ribbon -->
+      <g class="ribbon">
+        <path fill="#c8173a" d="M150 292 L128 280 L131 302Z M150 292 L172 280 L169 302Z"/>
+        <path fill="#9e1030" d="M150 292 L141 318 L147 320 L150 300 L153 320 L159 318Z"/>
+        <circle cx="150" cy="292" r="5" fill="#e3284a"/>
+      </g>
+      <!-- front locks over the shoulders -->
+      <path class="lock-l" fill="url(#rh)" d="M100 112 C82 170 92 236 70 312 C96 262 110 200 114 132Z"/>
+      <path class="lock-r" fill="url(#rh)" d="M200 112 C218 170 208 236 230 312 C204 262 190 200 186 132Z"/>
+    </g>
+
+    <g class="head">
+      <!-- face -->
+      <path fill="url(#skin)" d="M100 116 C100 160 112 186 134 203 Q150 213 166 203 C188 186 200 160 200 116 C200 78 178 60 150 60 C122 60 100 78 100 116Z"/>
+      <!-- ears -->
+      <path fill="#f6cdbd" d="M100 134 Q90 132 92 146 Q94 158 103 156Z M200 134 Q210 132 208 146 Q206 158 197 156Z"/>
+      <!-- blush -->
+      <g class="blush"><ellipse cx="119" cy="168" rx="11" ry="5" fill="#ff7d96"/><ellipse cx="181" cy="168" rx="11" ry="5" fill="#ff7d96"/></g>
+
+      <!-- eyes (open) -->
+      <g class="eyes" transform="translate(150 145) scale(1.14) translate(-150 -145)">
+        <g class="eye eye-l">
+          <path fill="#fff" d="M112 140 Q127 126 143 138 Q141 154 127 156 Q114 154 112 140Z"/>
+          <g clip-path="url(#eyeL)">
+            <ellipse class="iris" cx="128" cy="143" rx="10" ry="12.5" fill="url(#iris)"/>
+            <ellipse cx="128" cy="145" rx="4.5" ry="6" fill="#06333b"/>
+            <circle cx="124" cy="138" r="3.6" fill="#fff"/><circle cx="132" cy="150" r="1.6" fill="#fff" opacity=".85"/>
+          </g>
+          <path fill="#3a0a16" d="M109 141 Q126 121 146 137 L143 140 Q127 128 112 143Z"/>
+          <path fill="#3a0a16" d="M112 142 L102 134 L110 147Z"/>
+        </g>
+        <g class="eye eye-r">
+          <path fill="#fff" d="M188 140 Q173 126 157 138 Q159 154 173 156 Q186 154 188 140Z"/>
+          <g clip-path="url(#eyeR)">
+            <ellipse class="iris" cx="172" cy="143" rx="10" ry="12.5" fill="url(#iris)"/>
+            <ellipse cx="172" cy="145" rx="4.5" ry="6" fill="#06333b"/>
+            <circle cx="168" cy="138" r="3.6" fill="#fff"/><circle cx="176" cy="150" r="1.6" fill="#fff" opacity=".85"/>
+          </g>
+          <path fill="#3a0a16" d="M191 141 Q174 121 154 137 L157 140 Q173 128 188 143Z"/>
+          <path fill="#3a0a16" d="M188 142 L198 134 L190 147Z"/>
+        </g>
+      </g>
+      <!-- eyes (closed, happy ^^) -->
+      <g transform="translate(150 145) scale(1.14) translate(-150 -145)" class="eyes-happy" fill="none" stroke="#3a0a16" stroke-width="3.2" stroke-linecap="round">
+        <path d="M114 146 Q127 132 141 146"/><path d="M159 146 Q173 132 186 146"/>
+      </g>
+      <!-- sleepy lids -->
+      <g transform="translate(150 145) scale(1.14) translate(-150 -145)" class="lids" fill="#f9d9cb">
+        <path d="M108 124 L146 124 L146 145 Q127 141 108 145Z"/><path d="M154 124 L192 124 L192 145 Q173 141 154 145Z"/>
+      </g>
+
+      <!-- nose -->
+      <path d="M150 166 L148 172 L151 172" fill="none" stroke="#e0a594" stroke-width="1.6" stroke-linecap="round"/>
+      <!-- mouths -->
+      <path class="mouth mouth-smile" d="M140 184 Q150 192 160 184" fill="none" stroke="#a3283f" stroke-width="2.4" stroke-linecap="round"/>
+      <path class="mouth mouth-open" d="M141 183 Q150 182 159 183 Q157 196 150 197 Q143 196 141 183Z" fill="#a3283f"/>
+      <path class="mouth mouth-o" d="M146 186 Q150 180 154 186 Q154 192 150 192 Q146 192 146 186Z" fill="#a3283f"/>
+      <path class="mouth mouth-flat" d="M142 187 Q150 185 158 187" fill="none" stroke="#a3283f" stroke-width="2.4" stroke-linecap="round"/>
+
+      <!-- bangs -->
+      <path fill="url(#rhf)" d="M96 128 C88 70 122 42 150 42 C184 42 212 70 204 130 C199 117 196 106 190 97 C192 113 190 127 184 140 C182 120 176 105 168 95 C168 111 164 123 158 131 C157 113 153 101 147 90 C143 105 137 119 127 129 C131 113 131 103 129 95 C121 109 115 123 107 138 C107 122 105 111 103 103 C99 111 97 119 96 128Z"/>
+      <path fill="url(#rhf)" d="M103 104 C96 134 98 164 107 190 C109 166 111 136 117 112Z M197 104 C204 134 202 164 193 190 C191 166 189 136 183 112Z"/>
+      <path fill="#ff6b86" opacity=".55" d="M120 62 C132 54 150 52 162 56 C150 58 134 62 124 70Z"/>
+      <!-- brows -->
+      <g class="brows" transform="translate(0 -10)" opacity=".9" fill="none" stroke="#9e1030" stroke-width="2.6" stroke-linecap="round">
+        <path class="brow-l" d="M114 121 Q127 114 140 119"/><path class="brow-r" d="M186 121 Q173 114 160 119"/>
+      </g>
+      <!-- the famous strand on top -->
+      <path class="ahoge" fill="url(#rhf)" d="M150 50 C154 22 172 10 190 18 C172 20 160 30 155 52Z"/>
+    </g>
+
+    <!-- night-time zzz -->
+    <g class="zzz" fill="#e3b866" font-family="Georgia, serif" font-weight="bold">
+      <text x="214" y="86" font-size="16">z</text><text x="228" y="68" font-size="20">z</text><text x="246" y="46" font-size="26">Z</text>
+    </g>
+  </svg>
+  <div class="hearts" aria-hidden="true"></div>`;
+
+  const svg = stage.querySelector('.rias');
+  const hearts = stage.querySelector('.hearts');
+  let mood = 'neutral';
+  let talkTimer = 0;
+  let blinkTimer = 0;
+
+  function setMood(m) {
+    mood = m;
+    svg.dataset.mood = m;
+  }
+
+  // Natural blinking: every 2.5-6 seconds, sometimes a double blink.
+  function scheduleBlink() {
+    clearTimeout(blinkTimer);
+    blinkTimer = setTimeout(() => {
+      if (mood !== 'happy' && mood !== 'sleepy') {
+        svg.classList.add('blink');
+        setTimeout(() => svg.classList.remove('blink'), 140);
+        if (Math.random() < 0.2) setTimeout(() => { svg.classList.add('blink'); setTimeout(() => svg.classList.remove('blink'), 120); }, 320);
+      }
+      scheduleBlink();
+    }, 2500 + Math.random() * 3500);
+  }
+  scheduleBlink();
+
+  // Mouth flaps between shapes while she talks.
+  function talk(ms) {
+    clearInterval(talkTimer);
+    svg.classList.add('talking');
+    const shapes = ['open', 'o', 'open', 'smile'];
+    let i = 0;
+    talkTimer = setInterval(() => { svg.dataset.mouth = shapes[i++ % shapes.length]; }, 130);
+    setTimeout(stopTalking, Math.max(600, Math.min(ms, 12000)));
+  }
+  function stopTalking() {
+    clearInterval(talkTimer);
+    svg.classList.remove('talking');
+    delete svg.dataset.mouth;
+  }
+
+  // Tap: a little hop and a few hearts.
+  function react() {
+    svg.classList.remove('hop');
+    void svg.getBoundingClientRect();
+    svg.classList.add('hop');
+    for (let i = 0; i < 5; i++) {
+      const h = document.createElement('span');
+      h.textContent = Math.random() < 0.5 ? '♥' : '✦';
+      h.style.left = `${35 + Math.random() * 30}%`;
+      h.style.animationDelay = `${i * 90}ms`;
+      h.style.fontSize = `${14 + Math.random() * 12}px`;
+      hearts.append(h);
+      setTimeout(() => h.remove(), 1600 + i * 90);
+    }
+  }
+
+  setMood('neutral');
+  return { talk, stopTalking, setMood, react, get mood() { return mood; } };
+};
+</script>
+  <script>
 (() => {
   'use strict';
 
@@ -2137,6 +2451,7 @@ Boundaries:
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
+      homeChar: 'animated',
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -2655,6 +2970,7 @@ Boundaries:
     $('#status').textContent = p ? `Waiting on you: ${p.title}`
       : next ? `Next: ${next.title} · ${fmtTime(next.time)}`
       : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
+    if (currentView === 'home') renderHome();
   }
 
   function renderToday() {
@@ -2703,13 +3019,14 @@ Boundaries:
 
   // ---------- navigation ----------
   // ---------- pop-up banner ----------
-  let currentView = 'chat';
+  let currentView = 'home';
   let toastTimer = 0, toastMsg = null;
   const toast = $('#toast');
   function showToast(m) {
     // Only when you'd otherwise miss it: app open, set up, and on a tab other than Chat.
     if (currentView === 'chat' || document.hidden || !state.profile) return;
     if (m.itemId && alarmFor(findItem(m.itemId))) return; // these get the big pop-up instead
+    if (currentView === 'home') { homeSay(m.text); return; } // she says it herself on Home
     toastMsg = m;
     $('#toast-text').textContent = m.text;
     $('#toast-done').hidden = !(m.itemId && !statusOf(m.itemId) && findItem(m.itemId));
@@ -2751,6 +3068,7 @@ Boundaries:
     if (view === 'today') renderToday();
     if (view === 'settings') fillSettings();
     if (view === 'food') Food.render();
+    if (view === 'home') renderHome();
     if (view === 'work') Work.render();
     if (view === 'chat') feed.scrollTop = feed.scrollHeight;
   }
@@ -2896,6 +3214,134 @@ Boundaries:
     if (N.hasCalendarPermission()) { syncCalendar(); refresh(); }
     else N.requestCalendarPermission();
   }
+
+  // ---------- Home screen ----------
+  const Avatar = window.createRiasAvatar($('#stage'));
+  let moodTimer = 0;
+  const baseMood = () => (!state.profile ? 'neutral' : !isAwake() ? 'sleepy' : pendingItem() ? 'worried' : 'neutral');
+  function homeSay(text, mood) {
+    const b = $('#home-bubble');
+    b.textContent = text;
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    clearTimeout(moodTimer);
+    if (mood) { Avatar.setMood(mood); moodTimer = setTimeout(() => Avatar.setMood(baseMood()), 4500); }
+    Avatar.talk(text.length * 55);
+    const pic = $('#stage-pic');
+    pic.classList.add('talking');
+    setTimeout(() => pic.classList.remove('talking'), Math.min(text.length * 55, 8000));
+  }
+  // What she says when you tap her: whatever is most useful right now.
+  function homeLine() {
+    const p = pendingItem();
+    if (p) return [say(`You still haven't done “${p.title}”, {name}. Go on — I'll wait~`), 'worried'];
+    if (!isAwake()) return [say(pick(R.lateNight)), 'sleepy'];
+    const glasses = state.water[dateKey()] || 0;
+    if (glasses < state.settings.waterGoal / 2 && nowMin() > 12 * 60 && Math.random() < 0.5) return [say(pick(R.water.nudge), { count: glasses }), 'worried'];
+    const nm = nowMin();
+    const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
+    const T = window.RIAS_TALK;
+    const options = [];
+    if (next) options.push([say(`Next up at ${fmtTime(next.time)}: ${next.title}. I'll remind you~`), 'neutral']);
+    if (doneToday()) options.push([say(pick(praiseLines())), 'happy']);
+    options.push([say(pick([].concat(T.whatDoing))), 'happy']);
+    if (R.checkin[period()]) options.push([checkinLine(period(), doneToday()), 'neutral']);
+    const o = pick(options);
+    return [[].concat(o[0]).join(' '), o[1]];
+  }
+  function onRiasTap() {
+    Avatar.react();
+    const [text, mood] = homeLine();
+    homeSay(text, mood === 'neutral' ? 'happy' : mood);
+    speak(text);
+  }
+  $('#stage').addEventListener('click', onRiasTap);
+  $('#stage-pic').addEventListener('click', onRiasTap);
+
+  function renderHome() {
+    if (!state.profile) return;
+    const animated = state.settings.homeChar !== 'picture' || !loadPicture();
+    $('#stage').hidden = !animated;
+    $('#stage-pic').hidden = animated;
+    const nm = nowMin();
+    const hello = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', night: 'Still up' }[period(nm)];
+    $('#home-hello').textContent = `${hello}, ${state.profile.name}${period(nm) === 'night' ? '?' : ''}`;
+    $('#home-date').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    if (!$('#home-bubble').textContent) $('#home-bubble').textContent = say(pick(R.greet[period(nm)] || R.greet.evening));
+    if (Avatar.mood !== 'happy') Avatar.setMood(baseMood());
+
+    // Next up / waiting on you.
+    const card = $('#next-card');
+    const p = pendingItem();
+    const next = p || todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
+    card.classList.toggle('waiting', !!p);
+    card.textContent = '';
+    const info = document.createElement('div');
+    info.className = 'next-info';
+    info.innerHTML = '<div class="next-label"></div><div class="next-title"></div><div class="next-time"></div>';
+    if (next) {
+      info.querySelector('.next-label').textContent = p ? 'Waiting on you' : 'Up next';
+      info.querySelector('.next-title').textContent = next.title;
+      info.querySelector('.next-time').textContent = `${fmtTime(next.time)}${alarmFor(next) ? ' · ⏰ alarm' : ''}`;
+      const acts = document.createElement('div');
+      acts.className = 'next-actions';
+      acts.innerHTML = '<button type="button" class="done" data-next="done">Done ✓</button>';
+      if (p) acts.insertAdjacentHTML('beforeend', '<button type="button" data-next="snooze">Snooze</button>');
+      acts.dataset.item = next.id;
+      card.append(info, acts);
+    } else {
+      info.querySelector('.next-label').textContent = 'All caught up';
+      info.querySelector('.next-title').textContent = todaysItems().length ? 'Nothing left on today\'s list 🎉' : 'Nothing scheduled today';
+      info.querySelector('.next-time').textContent = 'Tap Rias to chat, or add a reminder below.';
+      card.append(info);
+    }
+
+    // Tiles
+    const list = todaysItems();
+    const done = list.filter((it) => statusOf(it.id) === 'done').length;
+    $('#tile-today').textContent = `${done} / ${list.length}`;
+    $('#tile-today-sub').textContent = `done · streak ${streak()} 🔥`;
+    $('#tile-water').textContent = `${state.water[dateKey()] || 0} / ${state.settings.waterGoal} 💧`;
+    const meals = state.food[dateKey()] || [];
+    $('#tile-food').textContent = `${meals.length} logged`;
+    $('#tile-food-sub').textContent = meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
+    const shifts = shiftsOn(new Date());
+    if (shifts.length) {
+      $('#tile-work').textContent = `${fmtTime(shifts[0].start)}`;
+      $('#tile-work-sub').textContent = `${shifts[0].label || 'Work'} until ${fmtTime(shifts[0].end)}`;
+    } else {
+      let nextShift = '';
+      for (let i = 1; i < 8 && !nextShift; i++) {
+        const d = new Date(); d.setDate(d.getDate() + i);
+        const sh = shiftsOn(d)[0];
+        if (sh) nextShift = `Next: ${d.toLocaleDateString([], { weekday: 'short' })} ${fmtTime(sh.start)}`;
+      }
+      $('#tile-work').textContent = 'Day off';
+      $('#tile-work-sub').textContent = nextShift || (state.shifts.length ? 'No shifts this week' : 'Tap to add shifts');
+    }
+  }
+  $('#next-card').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-next]');
+    if (!b) { show('today'); return; }
+    const id = b.parentElement.dataset.item;
+    if (b.dataset.next === 'snooze') snooze(id); else resolve(id, 'done');
+    renderHome();
+  });
+  document.querySelector('.tiles').addEventListener('click', (e) => {
+    if (e.target.closest('#tile-water-add')) {
+      const n = Food.addWater(1, false, dateKey());
+      homeSay(n >= state.settings.waterGoal ? say(pick(R.water.goal)) : say(`That's ${n} glass${n === 1 ? '' : 'es'} today. Good — keep going~`), 'happy');
+      renderHome();
+      return;
+    }
+    const t = e.target.closest('[data-go]');
+    if (t) show(t.dataset.go);
+  });
+  $('#qa-talk').addEventListener('click', () => { show('chat'); $('#say').focus(); });
+  $('#qa-mic').addEventListener('click', () => { show('chat'); listen(); });
+  $('#qa-remind').addEventListener('click', () => { show('today'); openEditor(null); });
+  $('#qa-food').addEventListener('click', () => { show('food'); Food.openAdd(mealFor(nowMin())); });
+  $('#open-settings').addEventListener('click', () => show('settings'));
+  $('#qa-mic').hidden = !canListen();
 
   // ---------- today events / editor ----------
   const editor = $('#editor');
@@ -3114,6 +3560,7 @@ Boundaries:
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.alarmPopup.checked = alarmOn();
+    sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     fullScreenHint();
     const list = $('#alarm-cat-list');
     list.textContent = '';
@@ -3163,6 +3610,7 @@ Boundaries:
       phoneCalendar: sf.elements.phoneCalendar.checked,
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
+      homeChar: sf.elements.homeChar.value,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
     });
@@ -3174,8 +3622,8 @@ Boundaries:
     if (!state.settings.phoneCalendar) state.phoneEvents = [];
     applyNativeVoice();
     save();
+    show('home');
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
-    show('chat');
   });
   function fillVoices() {
     const sel = sf.elements.voiceName;
@@ -3343,6 +3791,7 @@ Boundaries:
     tick();
   }
   renderStatus();
+  renderHome();
   setInterval(tick, 20000);
   setInterval(syncCalendar, 15 * 60000);
   document.addEventListener('visibilitychange', () => {

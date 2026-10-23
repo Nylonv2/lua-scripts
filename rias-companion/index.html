@@ -43,11 +43,38 @@
         <div class="name">Rias Gremory</div>
         <div class="status" id="status">Occult Research Club</div>
       </div>
+      <button type="button" class="gear" id="open-settings" aria-label="Settings">⚙️</button>
     </header>
 
     <main>
+      <!-- Home -->
+      <section class="view pad home" id="view-home">
+        <div class="home-hero">
+          <div class="bubble" id="home-bubble" aria-live="polite"></div>
+          <div class="stage" id="stage" title="Tap Rias"></div>
+          <img class="avatar stage-pic" id="stage-pic" src="icons/icon.svg" alt="" hidden>
+        </div>
+        <div class="home-greet">
+          <h1 id="home-hello"></h1>
+          <p class="muted" id="home-date"></p>
+        </div>
+        <div class="card next-card" id="next-card"></div>
+        <div class="tiles">
+          <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
+          <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
+          <button type="button" class="tile" data-go="food"><span class="tile-label">Food</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
+          <button type="button" class="tile" data-go="work"><span class="tile-label">Work</span><b id="tile-work"></b><span class="tile-sub" id="tile-work-sub"></span></button>
+        </div>
+        <div class="quick-actions">
+          <button type="button" id="qa-talk"><span>💬</span>Talk</button>
+          <button type="button" id="qa-mic"><span>🎙</span>Speak</button>
+          <button type="button" id="qa-remind"><span>⏰</span>Reminder</button>
+          <button type="button" id="qa-food"><span>🍽️</span>Log food</button>
+        </div>
+      </section>
+
       <!-- Chat -->
-      <section class="view" id="view-chat">
+      <section class="view" id="view-chat" hidden>
         <div class="feed" id="feed" aria-live="polite"></div>
         <div class="quick" id="quick">
           <button type="button" data-say="What should I do now?">What now?</button>
@@ -144,6 +171,14 @@
               <option value="boy">Good boy</option>
               <option value="girl">Good girl</option>
               <option value="neutral">Neither (good job)</option>
+            </select>
+          </label>
+
+          <h2>Home screen</h2>
+          <label>On the Home screen, show
+            <select name="homeChar">
+              <option value="animated">Animated Rias</option>
+              <option value="picture">My chosen picture</option>
             </select>
           </label>
 
@@ -268,11 +303,12 @@
     </main>
 
     <nav class="tabs">
-      <button type="button" data-view="chat" class="active"><span>💬</span>Chat</button>
+      <button type="button" data-view="home" class="active"><span>🏠</span>Home</button>
+      <button type="button" data-view="chat"><span>💬</span>Chat</button>
       <button type="button" data-view="today"><span>📋</span>Today</button>
       <button type="button" data-view="food"><span>🍽️</span>Food</button>
       <button type="button" data-view="work"><span>💼</span>Work</button>
-      <button type="button" data-view="settings"><span>⚙️</span>Settings</button>
+
     </nav>
   </div>
 
@@ -429,6 +465,7 @@
   <script src="work.js"></script>
   <script src="vendor/anthropic-sdk.js"></script>
   <script src="ai.js"></script>
+  <script src="rias-avatar.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -68,6 +68,18 @@ easiest free option is GitHub Pages:
 To try it on a computer, run `python3 -m http.server` inside this folder and open
 http://localhost:8000.
 
+## Home
+
+The app opens on **Home**: an animated Rias (an original drawing, not art from the show) who breathes, blinks, sways
+her hair and moves her mouth when she talks, in front of a slowly turning magic circle. Her face follows the moment:
+happy when you finish things, worried when a reminder is waiting on you, sleepy (with z's) at night. Tap her and she
+tells you something useful: what's next, a nudge about water, praise, or a check-in. When she messages you while
+you're on Home, she says it in her speech bubble.
+
+Below her: a greeting, the **next reminder** (with Done / Snooze), tiles for today's progress, water (＋ Glass),
+food and work, and quick buttons to talk, speak, add a reminder or log food. Settings is the ⚙ button at the top.
+To show your own picture instead of the animated Rias: **Settings → Home screen**.
+
 ## Tabs
 
 - **Chat**: talk to Rias by typing or with 🎙.
@@ -77,7 +89,7 @@ http://localhost:8000.
   dinner isn't logged, and at 3 PM if you're behind on water.
 - **Work**: weekly or one-off shifts (overnight shifts work too), a 7-day overview with total hours, and a
   "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
-- **Settings**: name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
+- **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
 
 ## Pop-ups
 
