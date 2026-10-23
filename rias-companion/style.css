@@ -218,3 +218,17 @@ textarea { font: inherit; }
 @keyframes alarm-in { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes alarm-pulse { 50% { box-shadow: 0 0 0 4px var(--crimson), 0 0 0 16px rgba(200, 23, 58, .12), 0 0 56px rgba(200, 23, 58, .7); } }
 @media (prefers-reduced-motion: reduce) { .alarm[open], .alarm-pic { animation: none; } }
+
+/* Pop-up categories & tests */
+.cats { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px 14px; margin: 0; }
+.cats legend { color: var(--text); padding: 0 6px; font-size: .95rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; display: inline-flex; flex: none; flex-direction: row; gap: 0; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip span { display: inline-block; white-space: nowrap; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: .88rem; }
+.chip input:checked + span { background: var(--crimson); border-color: var(--crimson); color: var(--text); }
+.chip input:focus-visible + span { outline: 2px solid var(--gold); }
+.test-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.test-row button { flex: 1 1 30%; min-width: 0; padding: 11px 4px; font-size: .9rem; }
+.test-label { margin: 4px 0 0; font-size: .9rem; color: var(--muted); }
+.alarm-badge { margin-left: 6px; font-size: .8rem; }

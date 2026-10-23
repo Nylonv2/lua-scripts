@@ -374,6 +374,12 @@ public class MainActivity extends Activity {
             return out.toString();
         }
 
+        /** Settings → "Test on lock screen": an alarm pop-up 10 seconds from now. */
+        @JavascriptInterface
+        public void testAlarm(String text) {
+            Scheduler.addEvent(ctx, System.currentTimeMillis() + 10000, text, "", "Test pop-up");
+        }
+
         @JavascriptInterface
         public String takeActions() {
             return Scheduler.takeActions(ctx);

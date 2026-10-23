@@ -239,10 +239,22 @@
           <label class="switch"><input name="alarmPopup" type="checkbox"> Reminders pop up in the middle of the screen, like an alarm</label>
           <p class="small voice-hint" id="fullscreen-hint" hidden></p>
           <button type="button" id="fullscreen-btn" hidden>Allow pop-ups over the lock screen</button>
+          <fieldset class="cats" id="alarm-cats">
+            <legend>Which reminders pop up like an alarm</legend>
+            <p class="muted small">Ticked types get the big pop-up. The rest come as normal notifications. You can also change it for a single reminder when you edit it.</p>
+            <div class="chips" id="alarm-cat-list"></div>
+          </fieldset>
+          <p class="test-label">Try them out</p>
+          <div class="test-row">
+            <button type="button" id="test-alarm">⏰ Pop-up</button>
+            <button type="button" id="test-lock" hidden>🔒 Lock screen</button>
+            <button type="button" id="test-banner">💬 Banner</button>
+          </div>
+          <p class="muted small" id="test-hint"></p>
           <p class="muted small" id="notify-hint"></p>
           <div class="row">
             <button type="button" id="perm">Allow notifications</button>
-            <button type="button" id="test">Test</button>
+            <button type="button" id="test">Test notification</button>
           </div>
 
           <button type="submit" class="primary">Save</button>
@@ -300,6 +312,13 @@
         </label>
         <label id="date-wrap">Date <input name="date" type="date"></label>
       </div>
+      <label>When it's due
+        <select name="popup">
+          <option value="default">Use the setting for this type</option>
+          <option value="alarm">⏰ Alarm pop-up</option>
+          <option value="normal">🔔 Normal notification</option>
+        </select>
+      </label>
       <div class="row">
         <button type="button" id="edit-delete" class="danger">Delete</button>
         <button type="button" id="edit-cancel">Cancel</button>

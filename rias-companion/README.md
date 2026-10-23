@@ -88,6 +88,12 @@ http://localhost:8000.
   Buttons tapped there are applied the next time the app opens. On Android 14+, allow it once under
   **Settings → Notifications → Allow pop-ups over the lock screen**. Turn it off with *Reminders pop up in the
   middle of the screen*.
+- **Choose which reminders pop up:** under *Which reminders pop up like an alarm*, tick the reminder types that get
+  the big pop-up (default: wake up, medication, work shifts, phone calendar, sleep, other); the rest arrive as
+  normal notifications. When adding or editing a reminder, *When it's due* overrides it for that one reminder.
+  Alarm reminders show ⏰ in Today.
+- **Test them:** *Try them out* → ⏰ Pop-up (shows the card now), 🔒 Lock screen (Android app: fires in 10 seconds,
+  so lock your phone first), 💬 Banner.
 - **Message banner:** other messages from Rias slide in at the top when you're on another tab. Tap to open the chat,
   swipe up to dismiss.
 

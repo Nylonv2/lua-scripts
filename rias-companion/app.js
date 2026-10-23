@@ -60,6 +60,7 @@
     settings: {
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
+      alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -305,13 +306,32 @@
   const alarmQueue = [];
   let alarmItem = null;
   const alarmOn = () => state.settings.alarmPopup !== false;
+  // Reminder types you can pick for the alarm pop-up; work-shift items share one switch.
+  const ALARM_CATS = [
+    ['wake', '⏰ Wake up'], ['meds', '💊 Medication'], ['meal', '🍽️ Meals'], ['water', '💧 Water'],
+    ['shift', '💼 Work shifts'], ['calendar', '📅 Phone calendar'], ['work', '📚 Work / study'], ['exercise', '🏃 Exercise'],
+    ['hygiene', '🪥 Hygiene'], ['break', '☕ Breaks'], ['social', '💬 Social'], ['chores', '🧹 Chores'],
+    ['wind', '🌙 Wind down'], ['sleep', '😴 Sleep'], ['custom', '📌 Other reminders'],
+  ];
+  const catGroup = (cat) => (/^work(Leave|Start|End)$/.test(cat) ? 'shift' : cat);
+  // Per-reminder choice wins; otherwise the type's setting.
+  function alarmFor(item) {
+    if (!alarmOn() || !item) return false;
+    if (item.popup === 'alarm') return true;
+    if (item.popup === 'normal') return false;
+    return (state.settings.alarmCats || []).includes(catGroup(item.category));
+  }
   function showAlarm(item, text) {
-    if (!alarmOn() || document.hidden) return;
+    if (!alarmFor(item) || document.hidden) return;
+    showAlarmCard(item, text);
+  }
+  function showAlarmCard(item, text) {
     if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
     alarmItem = item;
     $('#alarm-time').textContent = fmtClock(Date.now());
     $('#alarm-title').textContent = item.title;
     $('#alarm-text').textContent = text;
+    $('#alarm-done').hidden = $('#alarm-snooze').hidden = !item.id; // tests only get Dismiss
     alarmDlg.showModal();
     const N = window.RiasNative;
     if (N && N.buzz) { try { N.buzz(); } catch { /* older app */ } }
@@ -321,10 +341,10 @@
     if (alarmDlg.open) alarmDlg.close();
     alarmItem = null;
     const next = alarmQueue.shift();
-    if (next) setTimeout(() => showAlarm(...next), 300);
+    if (next) setTimeout(() => showAlarmCard(...next), 300);
   }
-  $('#alarm-done').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it) resolve(it.id, 'done'); });
-  $('#alarm-snooze').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it) snooze(it.id); });
+  $('#alarm-done').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it && it.id) resolve(it.id, 'done'); });
+  $('#alarm-snooze').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it && it.id) snooze(it.id); });
   $('#alarm-dismiss').addEventListener('click', closeAlarm);
   alarmDlg.addEventListener('cancel', (e) => { e.preventDefault(); closeAlarm(); });
 
@@ -594,6 +614,13 @@
       const when = it.source === 'calendar' ? (it.cal || 'calendar') : it.source === 'work' ? 'shift' : { daily: 'every day', weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat];
       li.querySelector('.tag').textContent = `${CATEGORY_LABEL[it.category] || 'Other'} · ${when}${st === 'skipped' ? ' · skipped' : ''}`;
       if (it.source) li.classList.add(`src-${it.source}`);
+      if (alarmFor(it)) {
+        const badge = document.createElement('span');
+        badge.className = 'alarm-badge';
+        badge.title = 'Pops up like an alarm';
+        badge.textContent = '⏰';
+        li.querySelector('.what span').after(badge);
+      }
       ul.append(li);
     }
   }
@@ -606,7 +633,7 @@
   function showToast(m) {
     // Only when you'd otherwise miss it: app open, set up, and on a tab other than Chat.
     if (currentView === 'chat' || document.hidden || !state.profile) return;
-    if (m.itemId && alarmOn()) return; // reminders get the big pop-up instead
+    if (m.itemId && alarmFor(findItem(m.itemId))) return; // these get the big pop-up instead
     toastMsg = m;
     $('#toast-text').textContent = m.text;
     $('#toast-done').hidden = !(m.itemId && !statusOf(m.itemId) && findItem(m.itemId));
@@ -807,6 +834,7 @@
     ef.elements.category.value = item ? item.category : 'custom';
     ef.elements.repeat.value = item ? item.repeat : 'once';
     ef.elements.date.value = (item && item.date) || dateKey();
+    ef.elements.popup.value = (item && item.popup) || 'default';
     $('#edit-delete').hidden = !item;
     $('#date-wrap').hidden = ef.elements.repeat.value !== 'once';
     editor.showModal();
@@ -821,6 +849,7 @@
     const data = {
       title: ef.elements.title.value.trim(), time: ef.elements.time.value, category: ef.elements.category.value,
       repeat: ef.elements.repeat.value, date: ef.elements.repeat.value === 'once' ? ef.elements.date.value : undefined, enabled: true,
+      popup: ef.elements.popup.value === 'default' ? undefined : ef.elements.popup.value,
     };
     const existing = state.items.find((it) => it.id === editingId);
     if (existing) {
@@ -945,8 +974,8 @@
         const t = at(d, toMin(it.time));
         if (t <= now || log[it.id]) continue;
         events.push({
-          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmOn() ? '' : `\n${fmtTime(it.time)} · ${it.title}`}`,
-          itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmOn(),
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}`,
+          itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it),
         });
       }
       if (state.settings.foodReminders) {
@@ -968,7 +997,7 @@
     }
     for (const sn of state.snoozes) {
       const it = findItem(sn.id);
-      if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmOn() });
+      if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmFor(it) });
     }
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
     const last = new Date(); last.setDate(last.getDate() + days);
@@ -1010,6 +1039,20 @@
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.alarmPopup.checked = alarmOn();
     fullScreenHint();
+    const list = $('#alarm-cat-list');
+    list.textContent = '';
+    for (const [key, label] of ALARM_CATS) {
+      const l = document.createElement('label');
+      l.className = 'chip';
+      l.innerHTML = '<input type="checkbox" name="alarmCat"><span></span>';
+      l.querySelector('input').value = key;
+      l.querySelector('input').checked = (state.settings.alarmCats || []).includes(key);
+      l.querySelector('span').textContent = label;
+      list.append(l);
+    }
+    $('#alarm-cats').disabled = !alarmOn();
+    const N2 = window.RiasNative;
+    $('#test-lock').hidden = !(N2 && N2.testAlarm);
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
     fillVoices();
@@ -1044,6 +1087,7 @@
       phoneCalendar: sf.elements.phoneCalendar.checked,
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
+      alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
     });
     Object.assign(state.ai, {
@@ -1133,6 +1177,25 @@
     $('#fullscreen-btn').hidden = !need;
     if (need) $('#fullscreen-hint').textContent = 'To pop up over your lock screen like an alarm, Android needs your OK. Tap below and turn on “Allow full screen notifications” for Rias.';
   }
+  sf.elements.alarmPopup.addEventListener('change', () => { $('#alarm-cats').disabled = !sf.elements.alarmPopup.checked; });
+
+  // Test buttons for the pop-ups.
+  const testText = () => say("This is how I'll call you when it's time, {name}. Don't keep me waiting~");
+  $('#test-alarm').addEventListener('click', () => {
+    alarmQueue.length = 0;
+    showAlarmCard({ id: '', title: 'Test pop-up' }, testText());
+  });
+  $('#test-lock').addEventListener('click', () => {
+    const N = window.RiasNative;
+    if (!N || !N.testAlarm) return;
+    N.testAlarm(testText());
+    $('#test-hint').textContent = 'Lock your phone or go to the home screen now. The pop-up arrives in about 10 seconds.';
+  });
+  $('#test-banner').addEventListener('click', () => {
+    // The banner only shows outside the chat, which is where you are (Settings).
+    showToast({ text: say('Just checking in, {name}. This is what my messages look like when you\'re on another tab.') });
+  });
+
   $('#fullscreen-btn').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openFullScreenSettings) N.openFullScreenSettings(); });
 
   $('#perm').addEventListener('click', async () => {
