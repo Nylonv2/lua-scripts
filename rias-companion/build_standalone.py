@@ -1,6 +1,6 @@
 """Bundle the app into one self-contained HTML file.
 
-    python3 build_standalone.py            -> Rias.html (open it directly, no server needed)
+    python3 build_standalone.py            -> ../RiasCompanion.html (open it directly, no server needed)
     python3 build_standalone.py --fragment OUT.html   -> body-only version for embedding
 """
 import base64
@@ -28,4 +28,4 @@ if '--fragment' in sys.argv:
     head = head.replace('height: 100dvh;', 'height: 100%;')
     out.write_text(head.strip() + '\n' + body, encoding='utf-8')
 else:
-    (here / 'Rias.html').write_text(html, encoding='utf-8')
+    (here.parent / 'RiasCompanion.html').write_text(html, encoding='utf-8')

@@ -24,11 +24,11 @@ step. You install it from your phone's browser.
 
 ## Quickest way to open it
 
-Download **`Rias.html`** and open it in Chrome, Safari or Edge. It's the whole app in
+Download **`RiasCompanion.html`** from the top of the repo and open it in Chrome, Safari or Edge. It's the whole app in
 one file, so nothing else is needed. Notifications and "install as an app" don't work
 this way. Use the phone setup below for those.
 
-`Rias.html` is generated from the other files. After changing them, rebuild it with
+`RiasCompanion.html` is generated from the other files. After changing them, rebuild it with
 `python3 build_standalone.py`.
 
 ## Put it on your phone
