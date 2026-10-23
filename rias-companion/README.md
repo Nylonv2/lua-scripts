@@ -68,7 +68,37 @@ easiest free option is GitHub Pages:
 To try it on a computer, run `python3 -m http.server` inside this folder and open
 http://localhost:8000.
 
-## Talking to Rias
+## Tabs
+
+- **Chat**: talk to Rias by typing or with 🎙.
+- **Today**: your routine plus work shifts and phone-calendar events, with a progress ring and streak.
+- **Food**: a food diary (breakfast, lunch, dinner, snacks, each marked healthy / normal / treat), a water tracker
+  with a daily goal, and a diary streak. After a meal reminder, Rias asks what you had; at 9 PM she nudges you if
+  dinner isn't logged, and at 3 PM if you're behind on water.
+- **Work**: weekly or one-off shifts (overnight shifts work too), a 7-day overview with total hours, and a
+  "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
+- **Settings**: name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
+
+## Rias's AI (optional)
+
+Turn on **Settings → Rias's mind (AI)** and paste a Claude API key from console.anthropic.com. She then writes her
+own replies in character instead of using written lines, knows your schedule, shifts, food and water for the day,
+and can act on what you say: "remind me at 5 to call mom", "I work Saturday 10 to 6", "I just had a burger",
+"I drank two glasses of water", "I took my meds". Default model is Claude Opus 5.5 (about 1–2 cents per message);
+Sonnet 5.5 and Haiku 5.5 are cheaper. Your key is stored only on your phone and sent only to Anthropic's API.
+Without a key, or offline, she uses the written lines below. Requests opt into Anthropic's server-side refusal
+fallback on Opus and Sonnet.
+
+The SDK is bundled as `vendor/anthropic-sdk.js` (rebuild with `vendor/build-sdk.sh`).
+
+## Phone calendar
+
+In the Android app, **Settings → Phone calendar** shows events from Samsung Calendar and Google Calendar in Today
+(all-day events at the top) and Rias reminds you at their start time. Android doesn't let other apps read
+Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
+Rias (with AI on) and she'll add them herself.
+
+## Talking to Rias (written lines)
 
 Type or tap 🎙 and talk to her normally. She understands a few hundred everyday ways of
 saying things: how you feel, what you're doing (work, school, gaming, the gym), being

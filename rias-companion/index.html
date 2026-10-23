@@ -53,8 +53,56 @@
             <div class="muted" id="streak-text">Streak: 0 days</div>
           </div>
         </div>
+        <p class="allday" id="allday" hidden></p>
         <ul class="items" id="items"></ul>
         <button class="fab" id="add" type="button" aria-label="Add reminder">＋</button>
+      </section>
+
+      <!-- Food diary -->
+      <section class="view pad" id="view-food" hidden>
+        <div class="daynav">
+          <button type="button" id="food-prev" aria-label="Previous day">‹</button>
+          <b id="food-date">Today</b>
+          <button type="button" id="food-next" aria-label="Next day">›</button>
+        </div>
+        <div class="card water">
+          <div class="row-between"><b>Water</b><span id="water-count"></span></div>
+          <div class="drops" id="water-drops"></div>
+          <div class="row">
+            <button type="button" id="water-minus" aria-label="Remove a glass">−</button>
+            <button type="button" id="water-plus" class="primary">＋ Glass of water</button>
+          </div>
+        </div>
+        <div id="meals"></div>
+        <p class="muted small center" id="food-streak"></p>
+        <button class="fab" id="food-add" type="button" aria-label="Log food">＋</button>
+      </section>
+
+      <!-- Work schedule -->
+      <section class="view pad" id="view-work" hidden>
+        <div class="card">
+          <b>Next 7 days</b>
+          <div class="week" id="week"></div>
+          <p class="muted small" id="week-hours"></p>
+        </div>
+        <h3 class="section-title">Your shifts</h3>
+        <ul class="items" id="shifts"></ul>
+        <form class="card stack" id="work-settings">
+          <label>Remind me to leave
+            <select name="commute">
+              <option value="0">Don't remind me</option>
+              <option value="10">10 minutes before</option>
+              <option value="15">15 minutes before</option>
+              <option value="20">20 minutes before</option>
+              <option value="30">30 minutes before</option>
+              <option value="45">45 minutes before</option>
+              <option value="60">1 hour before</option>
+              <option value="90">1.5 hours before</option>
+            </select>
+          </label>
+          <label class="switch"><input name="workReminders" type="checkbox"> Rias reminds me before and after shifts</label>
+        </form>
+        <button class="fab" id="shift-add" type="button" aria-label="Add shift">＋</button>
       </section>
 
       <!-- Settings -->
@@ -95,6 +143,38 @@
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
 
+          <h2>Rias's mind (AI)</h2>
+          <label class="switch"><input name="aiOn" type="checkbox"> Let Rias think up her own replies</label>
+          <p class="muted small">Uses the Claude API with your own API key, so she can talk about anything, remember your day, and add reminders, shifts and food for you when you ask. Get a key at console.anthropic.com (each message costs about 1–2 cents with Opus, much less with Haiku). Without a key or internet she uses her written lines.</p>
+          <label>API key
+            <input name="aiKey" type="password" autocomplete="off" placeholder="sk-ant-…">
+          </label>
+          <label>Model
+            <select name="aiModel">
+              <option value="claude-opus-5-5">Claude Opus 5.5 — best conversation (default)</option>
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — good, cheaper</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5 — fastest, cheapest</option>
+            </select>
+          </label>
+          <button type="button" id="ai-test">Test connection</button>
+          <p class="small voice-hint" id="ai-hint"></p>
+
+          <h2>Phone calendar</h2>
+          <label class="switch"><input name="phoneCalendar" type="checkbox"> Show my phone's calendar events</label>
+          <p class="muted small" id="calendar-hint"></p>
+
+          <h2>Food &amp; water</h2>
+          <label class="switch"><input name="foodReminders" type="checkbox"> Rias nudges me about meals and water</label>
+          <label>Daily water goal
+            <select name="waterGoal">
+              <option value="4">4 glasses</option>
+              <option value="6">6 glasses</option>
+              <option value="8">8 glasses</option>
+              <option value="10">10 glasses</option>
+              <option value="12">12 glasses</option>
+            </select>
+          </label>
+
           <h2>Check-ins</h2>
           <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
           <label>When she's been quiet for
@@ -127,6 +207,8 @@
     <nav class="tabs">
       <button type="button" data-view="chat" class="active"><span>💬</span>Chat</button>
       <button type="button" data-view="today"><span>📋</span>Today</button>
+      <button type="button" data-view="food"><span>🍽️</span>Food</button>
+      <button type="button" data-view="work"><span>💼</span>Work</button>
       <button type="button" data-view="settings"><span>⚙️</span>Settings</button>
     </nav>
   </div>
@@ -175,6 +257,67 @@
     </form>
   </dialog>
 
+  <!-- Log food -->
+  <dialog id="food-dialog">
+    <form method="dialog" id="food-form" class="stack">
+      <h2 id="food-dialog-title">What did you eat?</h2>
+      <label>Meal
+        <select name="meal">
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snack">Snack</option>
+        </select>
+      </label>
+      <label>What you had <input name="text" required maxlength="120" placeholder="e.g. Chicken wrap and an apple"></label>
+      <label>How would you call it?
+        <select name="kind">
+          <option value="healthy">🥗 Healthy</option>
+          <option value="normal">🍽️ Normal</option>
+          <option value="treat">🍰 Treat</option>
+        </select>
+      </label>
+      <div class="row">
+        <button type="button" id="food-delete" class="danger">Delete</button>
+        <button type="button" id="food-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add / edit a shift -->
+  <dialog id="shift-dialog">
+    <form method="dialog" id="shift-form" class="stack">
+      <h2 id="shift-title">New shift</h2>
+      <label>Job or place <input name="label" maxlength="40" placeholder="Work"></label>
+      <label>Repeats
+        <select name="type">
+          <option value="weekly">Every week</option>
+          <option value="once">Just one day</option>
+        </select>
+      </label>
+      <div class="daypick" id="shift-days">
+        <label><input type="checkbox" name="day" value="0"><span>S</span></label>
+        <label><input type="checkbox" name="day" value="1"><span>M</span></label>
+        <label><input type="checkbox" name="day" value="2"><span>T</span></label>
+        <label><input type="checkbox" name="day" value="3"><span>W</span></label>
+        <label><input type="checkbox" name="day" value="4"><span>T</span></label>
+        <label><input type="checkbox" name="day" value="5"><span>F</span></label>
+        <label><input type="checkbox" name="day" value="6"><span>S</span></label>
+      </div>
+      <label id="shift-date-wrap">Date <input name="date" type="date"></label>
+      <div class="row">
+        <label>Starts <input name="start" type="time" required></label>
+        <label>Ends <input name="end" type="time" required></label>
+      </div>
+      <div class="row">
+        <button type="button" id="shift-delete" class="danger">Delete</button>
+        <button type="button" id="shift-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Yes / no prompt -->
   <dialog id="ask">
     <form method="dialog" class="stack">
@@ -212,6 +355,10 @@
   <script src="dialogue.js"></script>
   <script src="talk.js"></script>
   <script src="chat.js"></script>
+  <script src="food.js"></script>
+  <script src="work.js"></script>
+  <script src="vendor/anthropic-sdk.js"></script>
+  <script src="ai.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Caches the app so it opens offline, and focuses the app when a notification is tapped.
-const CACHE = 'rias-v2';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'dialogue.js', 'talk.js', 'chat.js', 'manifest.webmanifest',
+const CACHE = 'rias-v3';
+const FILES = ['./', 'index.html', 'style.css', 'app.js', 'dialogue.js', 'talk.js', 'chat.js', 'food.js', 'work.js', 'ai.js', 'vendor/anthropic-sdk.js', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

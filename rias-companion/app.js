@@ -22,7 +22,9 @@
   const CATEGORY_LABEL = {
     custom: 'Other', wake: 'Wake up', water: 'Water', meal: 'Meal', exercise: 'Exercise', work: 'Work / study',
     break: 'Break', hygiene: 'Hygiene', meds: 'Medication', social: 'Social', chores: 'Chores', wind: 'Wind down', sleep: 'Sleep',
+    workLeave: '💼 Work', workStart: '💼 Work', workEnd: '💼 Work', calendar: '📅 Phone calendar',
   };
+  const mealFor = (nm) => (nm < 11 * 60 ? 'breakfast' : nm < 16 * 60 ? 'lunch' : nm < 21 * 60 ? 'dinner' : 'snack');
 
   function defaultItems(wake, sleep) {
     const w = toMin(wake), s = toMin(sleep);
@@ -55,14 +57,26 @@
     greeted: {},    // { date: true }
     snoozes: [],    // [{ id, at }]
     messages: [],   // [{ id, from, text, ts, itemId? }]
-    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9 },
+    settings: {
+      checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
+      commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false,
+    },
     lastRias: 0,
-    chat: {},       // what Rias remembers from conversations (chat.js)
+    chat: {},        // what Rias remembers from conversations (chat.js)
+    shifts: [],      // [{ id, label, days: [0-6] | null, date: 'YYYY-MM-DD' | null, start, end }]
+    food: {},        // { date: [{ id, meal, text, kind, ts }] }
+    water: {},       // { date: glasses }
+    nudged: {},      // { date: { food, water } }
+    phoneEvents: [], // from the phone's calendar (Android app)
+    ai: { on: false, key: '', model: 'claude-opus-5-5' },
   });
 
   let state;
   try { state = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY)) || {}); }
   catch { state = blank(); }
+  // Fill in settings added in newer versions.
+  state.settings = { ...blank().settings, ...state.settings };
+  state.ai = { ...blank().ai, ...state.ai };
   const save = () => {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full / private mode */ }
     syncNative();
@@ -70,6 +84,8 @@
 
   const say = (line, extra = {}) => line
     .replaceAll('{name}', state.profile ? state.profile.name : 'you')
+    .replaceAll('{praise}', praiseWord())
+    .replaceAll('{count}', String(extra.count ?? ''))
     .replaceAll('{title}', extra.title || '');
 
   const praiseLines = (pool = R.praise) => pool[state.settings.praise] || pool.neutral;
@@ -93,8 +109,49 @@
       default: return true;
     }
   }
-  const todaysItems = (d = new Date()) =>
-    state.items.filter((it) => appliesOn(it, d)).sort((a, b) => toMin(a.time) - toMin(b.time));
+  // Work shifts and phone-calendar events show up as read-only items on their day.
+  function shiftsOn(d) {
+    const day = d.getDay(), k = dateKey(d);
+    return state.shifts.filter((sh) => (sh.date ? sh.date === k : (sh.days || []).includes(day)));
+  }
+  const overnight = (sh) => toMin(sh.end) <= toMin(sh.start);
+  function virtualItems(d) {
+    const out = [];
+    const st = state.settings;
+    for (const sh of shiftsOn(d)) {
+      const label = sh.label || 'Work';
+      if (st.workReminders && st.commute > 0) {
+        out.push({ id: `w:${sh.id}:leave`, time: minToTime(toMin(sh.start) - st.commute), title: `Leave for ${label}`, category: 'workLeave', source: 'work' });
+      }
+      out.push({ id: `w:${sh.id}:start`, time: sh.start, title: `${label} starts (until ${fmtTime(sh.end)})`, category: 'workStart', source: 'work' });
+      if (!overnight(sh)) out.push({ id: `w:${sh.id}:end`, time: sh.end, title: `${label} ends`, category: 'workEnd', source: 'work' });
+    }
+    // An overnight shift that started yesterday ends today.
+    const y = new Date(d); y.setDate(y.getDate() - 1);
+    for (const sh of shiftsOn(y)) {
+      if (overnight(sh)) out.push({ id: `w:${sh.id}:end`, time: sh.end, title: `${sh.label || 'Work'} ends`, category: 'workEnd', source: 'work' });
+    }
+    if (st.phoneCalendar) {
+      const k = dateKey(d);
+      for (const ev of state.phoneEvents) {
+        if (ev.allDay || evDateKey(ev) !== k) continue;
+        const b = new Date(ev.begin);
+        out.push({ id: `c:${ev.id}:${ev.begin}`, time: `${pad(b.getHours())}:${pad(b.getMinutes())}`, title: ev.title || 'Calendar event', category: 'calendar', source: 'calendar', cal: ev.cal });
+      }
+    }
+    return out;
+  }
+  // All-day calendar events are stored at UTC midnight; timed ones in local time.
+  const evDateKey = (ev) => {
+    if (!ev.allDay) return dateKey(new Date(ev.begin));
+    const u = new Date(ev.begin);
+    return `${u.getUTCFullYear()}-${pad(u.getUTCMonth() + 1)}-${pad(u.getUTCDate())}`;
+  };
+  const itemsOn = (d) => state.items.filter((it) => appliesOn(it, d)).concat(virtualItems(d))
+    .sort((a, b) => toMin(a.time) - toMin(b.time));
+  const todaysItems = (d = new Date()) => itemsOn(d);
+  const findItem = (id) => state.items.find((it) => it.id === id) || virtualItems(new Date()).find((it) => it.id === id);
+  const allDayEvents = (d = new Date()) => (state.settings.phoneCalendar ? state.phoneEvents.filter((ev) => ev.allDay && evDateKey(ev) === dateKey(d)) : []);
   const statusOf = (id, day = dateKey()) => (state.log[day] || {})[id];
 
   function isAwake(nm = nowMin()) {
@@ -126,11 +183,12 @@
   function pruneOld() {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
     const ck = dateKey(cutoff);
-    for (const bucket of [state.log, state.fired, state.summary, state.greeted]) {
+    for (const bucket of [state.log, state.fired, state.summary, state.greeted, state.nudged, state.water, state.food]) {
       for (const k of Object.keys(bucket)) if (k < ck) delete bucket[k];
     }
     const today = dateKey();
     state.items = state.items.filter((it) => it.repeat !== 'once' || it.date >= today || !it.date);
+    state.shifts = state.shifts.filter((sh) => !sh.date || sh.date >= today);
   }
 
   // ---------- messages ----------
@@ -244,7 +302,7 @@
   // ---------- actions on a task ----------
   function resolve(itemId, status) {
     const today = dateKey();
-    const item = state.items.find((it) => it.id === itemId);
+    const item = findItem(itemId);
     if (!item || statusOf(itemId)) return;
     (state.log[today] ||= {})[itemId] = status;
     state.snoozes = state.snoozes.filter((s) => s.id !== itemId);
@@ -255,6 +313,9 @@
       const list = todaysItems();
       if (status === 'done' && list.length && list.every((it) => statusOf(it.id) === 'done')) {
         setTimeout(() => addMessage('rias', say(pick(R.allDone))), 900);
+      } else if (status === 'done' && item.category === 'meal') {
+        // Finished a meal reminder: ask what it was, with a button into the food diary.
+        setTimeout(() => addMessage('rias', say(pick(R.food.ask)), { action: 'food', meal: mealFor(toMin(item.time)) }), 900);
       }
     }, 500);
     renderToday();
@@ -262,7 +323,7 @@
   }
 
   function snooze(itemId) {
-    const item = state.items.find((it) => it.id === itemId);
+    const item = findItem(itemId);
     if (!item || statusOf(itemId)) return;
     state.snoozes = state.snoozes.filter((s) => s.id !== itemId);
     state.snoozes.push({ id: itemId, at: Date.now() + SNOOZE_MIN * 60000 });
@@ -305,9 +366,22 @@
     if (due.length) {
       state.snoozes = state.snoozes.filter((s) => s.at > Date.now());
       for (const s of due) {
-        const item = state.items.find((it) => it.id === s.id);
+        const item = findItem(s.id);
         if (item && !statusOf(item.id)) fireItem(item);
       }
+    }
+
+    // Food diary and water nudges, once a day each.
+    const nudged = (state.nudged[today] ||= {});
+    const foodToday = state.food[today] || [];
+    if (state.settings.foodReminders && !nudged.food && nm >= 21 * 60 && isAwake(nm) && !foodToday.some((f) => f.meal === 'dinner')) {
+      nudged.food = true;
+      riasSays(say(pick(R.food.nudge)), { action: 'food', meal: 'dinner' });
+    }
+    const glasses = state.water[today] || 0;
+    if (state.settings.foodReminders && !nudged.water && nm >= 15 * 60 && isAwake(nm) && glasses < state.settings.waterGoal / 2) {
+      nudged.water = true;
+      riasSays(say(pick(R.water.nudge), { count: glasses }));
     }
 
     // Idle check-ins while you're awake.
@@ -324,10 +398,16 @@
   function planText() {
     const list = todaysItems();
     const nm = nowMin();
-    const upcoming = list.filter((it) => toMin(it.time) >= nm && !statusOf(it.id)).slice(0, 4);
-    if (!list.length) return "Your schedule is empty today. Let's add a few things in the Today tab.";
-    if (!upcoming.length) return "That's everything scheduled for today. Relax a little — you've earned it.";
-    return `Here's what's next:\n${upcoming.map((it) => `• ${fmtTime(it.time)} — ${it.title}`).join('\n')}`;
+    const upcoming = list.filter((it) => toMin(it.time) >= nm && !statusOf(it.id)).slice(0, 5);
+    const shifts = shiftsOn(new Date());
+    const extra = [];
+    if (shifts.length) extra.push(`You're working today: ${shifts.map((sh) => `${fmtTime(sh.start)}–${fmtTime(sh.end)}`).join(', ')}.`);
+    const allDay = allDayEvents();
+    if (allDay.length) extra.push(`All day: ${allDay.map((ev) => ev.title).join(', ')}.`);
+    const tail = extra.length ? `\n\n${extra.join(' ')}` : '';
+    if (!list.length) return `Your schedule is empty today. Let's add a few things in the Today tab.${tail}`;
+    if (!upcoming.length) return `That's everything scheduled for today. Relax a little — you've earned it.${tail}`;
+    return `Here's what's next:\n${upcoming.map((it) => `• ${fmtTime(it.time)} — ${it.title}`).join('\n')}${tail}`;
   }
 
   // ---------- chat replies ----------
@@ -338,7 +418,8 @@
     return todaysItems().filter((it) => fired[it.id] === 'ping' && !statusOf(it.id) && toMin(it.time) <= nm && nm - toMin(it.time) <= 180).pop();
   }
 
-  function reply(raw) {
+  // With AI on, only safety lines and "done" stay local; everything else goes to her AI.
+  function reply(raw, aiOn = false) {
     const t = raw.toLowerCase();
     // Match at word starts so 'eat' doesn't fire on 'great'.
     const has = (...words) => words.some((w) => new RegExp(`(^|\\W)${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(t));
@@ -348,8 +429,9 @@
     if (/^(done|did it|finished|i did it|complete|ok done)\b/.test(t) || has("i'm done", 'im done', 'all done')) {
       const p = pendingItem();
       if (p) { resolve(p.id, 'done'); return null; }
-      return doneLine();
+      if (!aiOn) return doneLine();
     }
+    if (aiOn) return undefined;
     if (has('what now', 'what should i do', "what's next", 'whats next', 'what do i do')) {
       const p = pendingItem();
       if (p) return say(`You still haven't done this one: ${p.title}. Go on, I'll wait~`);
@@ -380,7 +462,7 @@
         task.append(b, ` · ${m.title}`);
         el.append(task);
         const st = new Date(m.ts).toDateString() === new Date().toDateString() ? statusOf(m.itemId) : 'old';
-        if (!st && state.items.some((it) => it.id === m.itemId)) {
+        if (!st && findItem(m.itemId)) {
           const acts = document.createElement('div');
           acts.className = 'actions';
           acts.innerHTML = '<button class="done" data-act="done">Done ✓</button><button data-act="snooze">Snooze 10m</button><button data-act="skip">Skip</button>';
@@ -392,6 +474,13 @@
           r.textContent = st === 'done' ? '✓ Done' : 'Skipped';
           el.append(r);
         }
+      }
+      if (m.action === 'food') {
+        const acts = document.createElement('div');
+        acts.className = 'actions';
+        acts.innerHTML = '<button class="done" data-food="1">🍽️ Log food</button>';
+        acts.dataset.meal = m.meal || '';
+        el.append(acts);
       }
       const time = document.createElement('time');
       time.textContent = fmtClock(m.ts);
@@ -430,6 +519,9 @@
     const s = streak();
     $('#streak-text').textContent = `Streak: ${s} day${s === 1 ? '' : 's'} 🔥`;
 
+    const allDay = allDayEvents();
+    $('#allday').hidden = !allDay.length;
+    $('#allday').textContent = allDay.length ? `📅 All day: ${allDay.map((ev) => ev.title).join(' · ')}` : '';
     const ul = $('#items');
     ul.textContent = '';
     if (!list.length) {
@@ -447,7 +539,9 @@
       li.innerHTML = `<span class="t"></span><span class="what"><span></span><br><span class="tag"></span></span><button class="check" aria-label="Mark done">${st === 'done' ? '✓' : ''}</button>`;
       li.querySelector('.t').textContent = fmtTime(it.time);
       li.querySelector('.what span').textContent = it.title;
-      li.querySelector('.tag').textContent = `${CATEGORY_LABEL[it.category] || 'Other'} · ${{ daily: 'every day', weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat]}${st === 'skipped' ? ' · skipped' : ''}`;
+      const when = it.source === 'calendar' ? (it.cal || 'calendar') : it.source === 'work' ? 'shift' : { daily: 'every day', weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat];
+      li.querySelector('.tag').textContent = `${CATEGORY_LABEL[it.category] || 'Other'} · ${when}${st === 'skipped' ? ' · skipped' : ''}`;
+      if (it.source) li.classList.add(`src-${it.source}`);
       ul.append(li);
     }
   }
@@ -458,21 +552,38 @@
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
     if (view === 'today') renderToday();
     if (view === 'settings') fillSettings();
+    if (view === 'food') Food.render();
+    if (view === 'work') Work.render();
     if (view === 'chat') feed.scrollTop = feed.scrollHeight;
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
 
   // ---------- chat events ----------
-  function userSays(text) {
+  async function userSays(text) {
     text = text.trim();
     if (!text) return;
     addMessage('me', text);
+    let r = reply(text, AI.enabled());
+    let aiTyped = false;
+    if (r === undefined) {
+      // Her AI is thinking: show typing until it answers, then fall back to written lines if needed.
+      const typing = showTyping();
+      const res = await AI.reply(text);
+      typing.remove();
+      aiTyped = true;
+      if (res && res.lines) r = res.lines;
+      else {
+        if (res && res.error) addMessage('rias', res.error);
+        r = reply(text);
+      }
+      renderToday();
+    }
     // She "types" each message for a time that fits its length.
-    const r = reply(text);
     const lines = r == null ? [] : [].concat(r);
     const typeTime = (line) => Math.min(2600, 500 + line.length * 18 + Math.random() * 400);
     const next = (i) => {
       if (i >= lines.length) { renderStatus(); save(); return; }
+      if (i === 0 && aiTyped) { addMessage('rias', lines[0]); next(1); return; }
       const typing = showTyping();
       setTimeout(() => { typing.remove(); addMessage('rias', lines[i]); next(i + 1); }, typeTime(lines[i]));
     };
@@ -483,11 +594,110 @@
   $('#mic').addEventListener('click', listen);
   $('#quick').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { spokeLast = false; userSays(b.dataset.say); } });
   feed.addEventListener('click', (e) => {
+    const fb = e.target.closest('[data-food]');
+    if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
     const b = e.target.closest('[data-act]');
     if (!b) return;
     const id = b.parentElement.dataset.item;
     if (b.dataset.act === 'snooze') snooze(id); else resolve(id, b.dataset.act === 'done' ? 'done' : 'skipped');
   });
+
+  // ---------- food, work, phone calendar, AI ----------
+  function silencePast() {
+    const f = (state.fired[dateKey()] ||= {});
+    for (const it of todaysItems()) if (toMin(it.time) <= nowMin() && !f[it.id]) f[it.id] = 'silent';
+  }
+  function refresh() { updateSummary(); renderToday(); renderStatus(); }
+  const modCtx = {
+    state, save, $, R, dateKey, uid, fmtClock, fmtTime, toMin, shiftsOn, silencePast, refresh,
+    mealNow: () => mealFor(nowMin()),
+    riasLine: (pool) => addMessage('rias', say(pick(pool))),
+  };
+  const Food = window.createFoodDiary(modCtx);
+  const Work = window.createWorkSchedule(modCtx);
+
+  // What Rias's AI knows about right now. Rebuilt for every message.
+  function contextText() {
+    const now = new Date();
+    const nm = nowMin();
+    const items = todaysItems().map((it) => {
+      const st = statusOf(it.id);
+      const state_ = st || (toMin(it.time) <= nm ? 'not done' : 'upcoming');
+      return `${fmtTime(it.time)} ${it.title} (${state_})`;
+    });
+    const allDay = allDayEvents().map((ev) => ev.title);
+    const likes = (state.chat && state.chat.likes) || [];
+    return [
+      'App context for this message (from the app, not written by the user):',
+      `Now: ${now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, ${fmtClock(now)} (date ${dateKey(now)}, time ${minToTime(nm)}).`,
+      `User: ${state.profile.name}. Praise word: "${praiseWord()}". Wakes ${fmtTime(state.profile.wake)}, bedtime ${fmtTime(state.profile.sleep)}. Right now it is ${period(nm)}.`,
+      `Today's schedule: ${items.length ? items.join('; ') : 'nothing scheduled'}.`,
+      allDay.length ? `All-day calendar events today: ${allDay.join(', ')}.` : '',
+      `Work shifts, next 7 days: ${Work.summary()}.`,
+      `Food diary today: ${Food.summary()}`,
+      likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
+    ].filter(Boolean).join('\n');
+  }
+
+  const AI = window.createRiasAI({
+    state, contextText,
+    tools: {
+      addReminder({ title, time, repeat, date }) {
+        if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
+        const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
+        state.items.push(item);
+        if (item.repeat !== 'once' || item.date === dateKey()) { if (toMin(time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'silent'; }
+        refresh(); save();
+        return { ok: true, added: `${title} at ${time}${item.date ? ` on ${item.date}` : ` (${repeat})`}` };
+      },
+      addShift({ label, date, weekdays, start, end }) {
+        if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return { error: 'start/end must be HH:MM' };
+        if (!date && !(weekdays && weekdays.length)) return { error: 'give a date or weekdays' };
+        Work.addShift({ label, date: date || null, days: date ? null : weekdays, start, end });
+        refresh();
+        return { ok: true };
+      },
+      logFood({ meal, food, kind }) { Food.logFood(meal, food, kind); return { ok: true, today: Food.summary() }; },
+      logWater({ glasses }) { return { ok: true, glassesToday: Food.addWater(Math.max(1, Math.min(10, glasses)), false, dateKey()) }; },
+      completeTask({ title }) {
+        const q = title.toLowerCase();
+        const it = todaysItems().find((x) => !statusOf(x.id) && x.title.toLowerCase().includes(q));
+        if (!it) return { error: `No open task today matching "${title}"` };
+        (state.log[dateKey()] ||= {})[it.id] = 'done';
+        state.snoozes = state.snoozes.filter((sn) => sn.id !== it.id);
+        refresh(); save();
+        return { ok: true, completed: it.title };
+      },
+    },
+  });
+
+  // Phone calendar (Android app only): events from Samsung/Google Calendar.
+  function syncCalendar() {
+    const N = window.RiasNative;
+    if (!N || !N.calendarEvents || !state.settings.phoneCalendar) return;
+    try {
+      const from = new Date(); from.setHours(0, 0, 0, 0);
+      const to = new Date(from); to.setDate(to.getDate() + 8);
+      const res = JSON.parse(N.calendarEvents(from.getTime(), to.getTime()));
+      if (!res.permission) return;
+      state.phoneEvents = res.events || [];
+      save();
+      renderStatus();
+    } catch { /* calendar unavailable */ }
+  }
+  // Called by the Android app after a permission prompt.
+  window.riasPermission = (what, granted) => {
+    if (what !== 'calendar') return;
+    if (granted) { syncCalendar(); refresh(); addMessage('rias', say("I can see your calendar now, {name}. I'll remind you about those events too.")); }
+    else { state.settings.phoneCalendar = false; save(); }
+    if (!$('#view-settings').hidden) fillSettings();
+  };
+  function enableCalendar() {
+    const N = window.RiasNative;
+    if (!N || !N.calendarEvents) return;
+    if (N.hasCalendarPermission()) { syncCalendar(); refresh(); }
+    else N.requestCalendarPermission();
+  }
 
   // ---------- today events / editor ----------
   const editor = $('#editor');
@@ -541,7 +751,10 @@
       if (statusOf(id)) undo(id); else resolve(id, 'done');
       return;
     }
-    openEditor(state.items.find((it) => it.id === id));
+    const item = findItem(id);
+    if (item && item.source === 'work') { show('work'); return; }
+    if (item && item.source === 'calendar') return; // edit it in your phone's calendar
+    openEditor(item);
   });
 
   // In-app yes/no prompt (window.confirm is blocked in some app views).
@@ -562,7 +775,8 @@
     if (!Native || !state.profile) return;
     const today = dateKey();
     // Only reschedule when something that affects the schedule changed.
-    const sig = JSON.stringify([state.items, state.settings, state.profile, state.log[today], state.snoozes, today]);
+    const sig = JSON.stringify([state.items, state.settings, state.profile, state.log[today], state.snoozes, today,
+      state.shifts, state.phoneEvents, (state.food[today] || []).length, state.water[today] || 0]);
     if (sig === lastSync) return;
     lastSync = sig;
     try { Native.schedule(JSON.stringify(upcomingEvents())); } catch { /* bridge unavailable */ }
@@ -578,11 +792,18 @@
     for (let i = 0; i < days; i++) {
       const d = new Date(); d.setDate(d.getDate() + i);
       const log = state.log[dateKey(d)] || {};
-      const items = state.items.filter((it) => appliesOn(it, d));
+      const items = itemsOn(d);
       for (const it of items) {
         const t = at(d, toMin(it.time));
         if (t <= now || log[it.id]) continue;
         events.push({ at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${fmtTime(it.time)} · ${it.title}` });
+      }
+      if (state.settings.foodReminders) {
+        const k = dateKey(d);
+        const t = at(d, 21 * 60);
+        if (t > now && !(state.food[k] || []).some((f) => f.meal === 'dinner')) events.push({ at: t, text: say(pick(R.food.nudge)) });
+        const tw = at(d, 15 * 60);
+        if (tw > now && (state.water[k] || 0) < state.settings.waterGoal / 2) events.push({ at: tw, text: say(pick(R.water.nudge), { count: state.water[k] || 0 }) });
       }
       if (!state.settings.checkins) continue;
       const every = state.settings.checkinEvery;
@@ -595,7 +816,7 @@
       }
     }
     for (const sn of state.snoozes) {
-      const it = state.items.find((x) => x.id === sn.id);
+      const it = findItem(sn.id);
       if (it && sn.at > now) events.push({ at: sn.at, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${it.title}` });
     }
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
@@ -644,12 +865,33 @@
     sf.elements.voicePitch.value = o.pitch;
     sf.elements.voiceRate.value = o.rate;
     notifyHint();
+    sf.elements.aiOn.checked = state.ai.on;
+    sf.elements.aiKey.value = state.ai.key;
+    sf.elements.aiModel.value = state.ai.model;
+    sf.elements.phoneCalendar.checked = state.settings.phoneCalendar;
+    sf.elements.foodReminders.checked = state.settings.foodReminders;
+    sf.elements.waterGoal.value = String(state.settings.waterGoal);
+    const N = window.RiasNative;
+    $('#calendar-hint').textContent = !(N && N.calendarEvents)
+      ? 'Phone calendar sync works in the Android app.'
+      : state.settings.phoneCalendar
+        ? `Showing ${state.phoneEvents.length} event${state.phoneEvents.length === 1 ? '' : 's'} from your phone's calendar for the next week.`
+        : 'Shows events from Samsung Calendar and Google Calendar in Today, and Rias reminds you about them.';
   }
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
+    const calWas = state.settings.phoneCalendar;
+    Object.assign(state.settings, {
+      phoneCalendar: sf.elements.phoneCalendar.checked,
+      foodReminders: sf.elements.foodReminders.checked,
+      waterGoal: Number(sf.elements.waterGoal.value),
+    });
+    Object.assign(state.ai, { on: sf.elements.aiOn.checked, key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value });
+    if (state.settings.phoneCalendar && !calWas) enableCalendar();
+    if (!state.settings.phoneCalendar) state.phoneEvents = [];
     applyNativeVoice();
     save();
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
@@ -694,6 +936,13 @@
     hint.hidden = !msg;
     btn.hidden = !needsSettings && !(N && N.openTtsSettings && msg);
   }
+  $('#ai-test').addEventListener('click', async () => {
+    const saved = { ...state.ai };
+    Object.assign(state.ai, { key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value });
+    $('#ai-hint').textContent = 'Testing…';
+    $('#ai-hint').textContent = await AI.test();
+    state.ai = saved;
+  });
   $('#tts-settings').addEventListener('click', () => {
     const N = window.RiasNative;
     if (N && N.openTtsSettings) N.openTtsSettings();
@@ -767,9 +1016,15 @@
     if (Date.now() - state.lastRias > 3 * 3600000 && (state.greeted[dateKey()] || !isAwake())) {
       addMessage('rias', say(pick(R.greet[period()])));
     }
+    syncCalendar();
     tick();
   }
   renderStatus();
   setInterval(tick, 20000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); renderFeed(); renderToday(); if (state.profile && !$('#view-settings').hidden) notifyHint(); } });
+  setInterval(syncCalendar, 15 * 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    syncCalendar(); tick(); renderFeed(); renderToday();
+    if (state.profile && !$('#view-settings').hidden) notifyHint();
+  });
 })();

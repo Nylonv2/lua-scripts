@@ -2,7 +2,9 @@ package com.nylonv2.riascompanion;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.ContentUris;
 import android.content.Intent;
+import android.database.Cursor;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.media.AudioAttributes;
@@ -12,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.CalendarContract;
 import android.provider.Settings;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
@@ -31,9 +34,11 @@ import java.util.List;
 import java.util.Locale;
 
 /** Hosts the web app (assets/www) full screen and exposes a small bridge as window.RiasNative. */
+@SuppressWarnings("deprecation")
 public class MainActivity extends Activity {
     static volatile boolean visible;
     private static final int REQ_LISTEN = 42;
+    private static final int REQ_CALENDAR = 2;
     private WebView web;
     private TextToSpeech tts;
     private volatile boolean ttsReady;
@@ -61,6 +66,8 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true);
+        // The app's own bundled pages only: lets them call api.anthropic.com without CORS trouble.
+        s.setAllowUniversalAccessFromFileURLs(true);
         web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -106,6 +113,14 @@ public class MainActivity extends Activity {
         if (tts != null) tts.shutdown();
         web.destroy();
         super.onDestroy();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode != REQ_CALENDAR) return;
+        boolean granted = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
+        web.evaluateJavascript("window.riasPermission && window.riasPermission('calendar', " + granted + ")", null);
     }
 
     @Override
@@ -265,6 +280,72 @@ public class MainActivity extends Activity {
                     activity.speakNow(text);
                 }
             });
+        }
+
+        @JavascriptInterface
+        public boolean hasCalendarPermission() {
+            return ctx.checkSelfPermission(android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestCalendarPermission() {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.requestPermissions(new String[] {android.Manifest.permission.READ_CALENDAR}, REQ_CALENDAR);
+                }
+            });
+        }
+
+        /** Events (with repeats expanded) between two times: {permission, events: [{id, title, begin, end, allDay, cal}]}. */
+        @JavascriptInterface
+        public String calendarEvents(double fromMs, double toMs) {
+            JSONObject out = new JSONObject();
+            JSONArray events = new JSONArray();
+            try {
+                if (!hasCalendarPermission()) {
+                    out.put("permission", false);
+                    return out.toString();
+                }
+                out.put("permission", true);
+                Uri.Builder b = CalendarContract.Instances.CONTENT_URI.buildUpon();
+                ContentUris.appendId(b, (long) fromMs);
+                ContentUris.appendId(b, (long) toMs);
+                String[] cols = {
+                        CalendarContract.Instances.EVENT_ID,
+                        CalendarContract.Instances.TITLE,
+                        CalendarContract.Instances.BEGIN,
+                        CalendarContract.Instances.END,
+                        CalendarContract.Instances.ALL_DAY,
+                        CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
+                };
+                Cursor c = ctx.getContentResolver().query(b.build(), cols,
+                        CalendarContract.Instances.VISIBLE + "=1", null,
+                        CalendarContract.Instances.BEGIN + " ASC");
+                if (c != null) {
+                    try {
+                        while (c.moveToNext() && events.length() < 300) {
+                            JSONObject e = new JSONObject();
+                            e.put("id", c.getLong(0));
+                            e.put("title", c.getString(1) == null ? "" : c.getString(1));
+                            e.put("begin", c.getLong(2));
+                            e.put("end", c.getLong(3));
+                            e.put("allDay", c.getInt(4) == 1);
+                            e.put("cal", c.getString(5) == null ? "" : c.getString(5));
+                            events.put(e);
+                        }
+                    } finally {
+                        c.close();
+                    }
+                }
+                out.put("events", events);
+            } catch (Exception e) {
+                try {
+                    out.put("error", String.valueOf(e.getMessage()));
+                } catch (Exception ignored) {
+                }
+            }
+            return out.toString();
         }
 
         /** {status, volume, maxVolume} so the app can say why she's silent. */

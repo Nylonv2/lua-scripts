@@ -134,3 +134,43 @@ dialog h2 { margin-top: 0 !important; }
 .intro { font-family: Georgia, serif; font-style: italic; text-align: center; margin: 4px 0 6px; }
 input[type=range] { padding: 0; accent-color: var(--crimson); border: 0; background: none; height: 32px; }
 .voice-hint { color: var(--gold); margin: 0; white-space: pre-wrap; user-select: text; }
+
+/* Food & Work tabs */
+.view.pad { overflow-y: auto; padding: 16px 16px 90px; display: block; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+.row-between { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.daynav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.daynav b { font-family: Georgia, serif; font-weight: normal; font-size: 1.15rem; color: var(--gold); }
+.daynav button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-size: 1.3rem; }
+.daynav button:disabled { opacity: .35; }
+.drops { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0; }
+.drop { font-size: 1.3rem; filter: grayscale(1) opacity(.35); }
+.drop.full { filter: none; }
+.water .row button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 12px; padding: 10px 14px; }
+.water .row button:first-child { flex: 0 0 56px; }
+.water .row button.primary { background: var(--crimson); border-color: var(--crimson); font-weight: 600; }
+.meal { margin-bottom: 12px; }
+.meal-head { display: flex; justify-content: space-between; align-items: center; }
+.meal-head h3, .section-title { font-family: Georgia, serif; font-weight: normal; color: var(--gold); font-size: 1.05rem; margin: 6px 0; }
+.link { background: none; border: 0; color: var(--crimson-2); font-weight: 600; padding: 6px 0; }
+.food-entry { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; padding: 10px 14px; margin-bottom: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.food-entry .tag, .item .tag { font-size: .72rem; color: var(--muted); }
+.center { text-align: center; }
+.week { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.week-row { display: flex; gap: 12px; font-size: .9rem; color: var(--muted); }
+.week-row b { width: 76px; flex: none; font-weight: 600; }
+.week-row.on { color: var(--text); }
+.week-row.on b { color: var(--gold); }
+#shifts .item .t { width: auto; text-align: right; }
+.daypick { display: flex; gap: 6px; justify-content: space-between; }
+.daypick label { flex: 1; }
+.daypick input { position: absolute; opacity: 0; pointer-events: none; }
+.daypick span { display: grid; place-items: center; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-weight: 600; }
+.daypick input:checked + span { background: var(--crimson); border-color: var(--crimson); color: var(--text); }
+.daypick input:focus-visible + span { outline: 2px solid var(--gold); }
+.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.allday { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: var(--panel-2); border: 1px dashed var(--line); font-size: .9rem; }
+.item.src-work { border-left: 3px solid var(--gold); }
+.item.src-calendar { border-left: 3px solid #6aa6ff; }
+textarea { font: inherit; }

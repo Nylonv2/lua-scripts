@@ -58,10 +58,64 @@ window.RIAS = {
       "Lights out. You did enough today. Rest well — that's an order from your King.",
       "Go to sleep, {name}. A well-rested servant is worth ten tired ones. Goodnight~",
     ],
+    workLeave: [
+      "Time to head out, {name}. {title} — grab your keys, your water, and go. Don't be late on my account.",
+      "Leave now and you'll arrive calm instead of rushing. Shoes on~",
+      "Off you go to work. Do your best — I'll be here when you get back.",
+    ],
+    workStart: [
+      "Your shift is starting. Focus, work hard, and take your breaks. That's an order.",
+      "Work time, {name}. Show them what a member of the Gremory household can do.",
+    ],
+    workEnd: [
+      "Your shift is over! Well done, {name}. Come home and rest.",
+      "Clocking out? Good. You've earned a proper meal and a quiet evening.",
+    ],
+    calendar: [
+      "From your calendar: {title}. Don't forget~",
+      "{name}, {title} is coming up. Be ready.",
+    ],
     custom: [
       "{name}, you asked me to remind you: {title}.",
       "Don't forget — {title}. I believe in you.",
       "It's time for {title}. Let's not keep it waiting, hm?",
+    ],
+  },
+
+  // Food diary reactions and nudges.
+  food: {
+    healthy: [
+      "Look at you, eating properly. That's my {praise}.",
+      "Good choice. Your body will thank you — and so do I.",
+      "Healthy and delicious? I approve.",
+    ],
+    normal: [
+      "Noted. Thank you for telling me what you ate.",
+      "Good — a fed servant is a happy servant.",
+      "Logged. Don't forget some water with it.",
+    ],
+    treat: [
+      "A treat? Fine, you've earned it. Just don't make it every meal~",
+      "Ufufu, I won't scold you this time. Balance it out later, okay?",
+      "Sweets and snacks happen. I'm just glad you told me.",
+    ],
+    ask: [
+      "What did you have, {name}? Tell me so I can keep track.",
+      "Done eating? Log it for me — I like knowing you're eating well.",
+    ],
+    nudge: [
+      "You haven't told me what you had for dinner, {name}. Did you eat? Log it for me.",
+      "I don't see dinner in your food diary. Don't tell me you skipped it…",
+    ],
+  },
+  water: {
+    nudge: [
+      "You've only had {count} glasses of water today. Go drink one. Now~",
+      "Hydration check: {count} glasses so far. That's not enough for my servant.",
+    ],
+    goal: [
+      "That's your water goal for today! Good job, {name}.",
+      "All your water for the day. I'm impressed.",
     ],
   },
 

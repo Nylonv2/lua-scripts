@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Read-only access so events from Samsung/Google Calendar show up in Rias. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Rias's AI replies (only if you add an API key) talk to api.anthropic.com. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Exact reminder times: granted at install on Android 13+, user-grantable on 12. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />

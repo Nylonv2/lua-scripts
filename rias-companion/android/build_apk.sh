@@ -29,7 +29,8 @@ java -cp "$TOOLS/dx/dx.jar" com.android.dx.command.Main --dex --min-sdk-version=
 echo "Packaging…"
 cp AndroidManifest.xml apktool.yml "$WORK/app/"
 cp -r res "$WORK/app/res"
-(cd .. && cp -r index.html style.css app.js dialogue.js talk.js chat.js manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
+(cd .. && cp -r index.html style.css app.js dialogue.js talk.js chat.js food.js work.js ai.js manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
+mkdir -p "$WORK/app/assets/www/vendor" && cp ../vendor/anthropic-sdk.js "$WORK/app/assets/www/vendor/"
 java -jar "$TOOLS/apktool/apktool.jar" b "$WORK/app" -o "$WORK/unsigned.apk"
 
 echo "Signing…"
