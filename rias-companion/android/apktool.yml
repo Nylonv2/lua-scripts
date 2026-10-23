@@ -10,7 +10,7 @@ packageInfo:
   renameManifestPackage: null
 sdkInfo:
   minSdkVersion: '24'
-  targetSdkVersion: '29'
+  targetSdkVersion: '34'
 sharedLibrary: false
 sparseResources: false
 usesFramework:
@@ -19,5 +19,5 @@ usesFramework:
   tag: null
 version: 2.10.0
 versionInfo:
-  versionCode: '6'
-  versionName: '1.5'
+  versionCode: '7'
+  versionName: '1.6'

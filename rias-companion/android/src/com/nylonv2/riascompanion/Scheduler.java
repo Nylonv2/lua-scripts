@@ -71,7 +71,11 @@ final class Scheduler {
             am.cancel(pi);
             return;
         }
-        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, pi);
+        if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, pi); // within a few minutes
+        } else {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, pi);
+        }
     }
 
     /** The alarm went off: show everything that is due, then arm the next one. */

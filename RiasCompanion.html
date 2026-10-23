@@ -1264,7 +1264,7 @@ window.RIAS = {
       let st = {};
       try { st = JSON.parse(N.voiceStatus()); } catch { /* older app */ }
       if (st.status === 'starting') msg = 'Her voice is still loading. Try again in a few seconds.';
-      else if (st.status === 'failed') { msg = 'Your phone has no working text-to-speech engine. Tap below and install or enable “Speech Services by Google”.'; needsSettings = true; }
+      else if (st.status === 'failed') { msg = 'Rias couldn’t connect to your phone’s voice engine. Install “Speech Recognition and Synthesis from Google” from the Play Store, set it as the preferred engine under Settings → Accessibility → Text-to-speech, then reopen the app.'; needsSettings = true; }
       else if (st.status === 'no-language') { msg = 'Your phone is missing voice data for your language. Tap below and download an English voice.'; needsSettings = true; }
       else if (st.status === 'error') { msg = 'That voice couldn’t play. Pick “Automatic” or another voice, or check your phone’s voice settings.'; needsSettings = true; }
       else if (st.volume === 0) msg = 'Your media volume is at zero. Press volume up while the app is open.';

@@ -3,6 +3,7 @@ package com.nylonv2.riascompanion;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -74,6 +75,11 @@ public class MainActivity extends Activity {
             }
         });
         startTts();
+        // Android 13+ asks before an app may post notifications.
+        if (Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[] {"android.permission.POST_NOTIFICATIONS"}, 1);
+        }
         web.addJavascriptInterface(new Bridge(this), "RiasNative");
         setContentView(web);
         web.loadUrl("file:///android_asset/www/index.html");
