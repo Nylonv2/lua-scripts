@@ -133,4 +133,4 @@ dialog h2 { margin-top: 0 !important; }
 .big-avatar { width: 96px; height: 96px; align-self: center; }
 .intro { font-family: Georgia, serif; font-style: italic; text-align: center; margin: 4px 0 6px; }
 input[type=range] { padding: 0; accent-color: var(--crimson); border: 0; background: none; height: 32px; }
-.voice-hint { color: var(--gold); margin: 0; }
+.voice-hint { color: var(--gold); margin: 0; white-space: pre-wrap; user-select: text; }

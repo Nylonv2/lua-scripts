@@ -693,6 +693,12 @@
     } else if (!('speechSynthesis' in window) || !speechSynthesis.getVoices().length) {
       msg = 'This browser can’t speak. Use the Android app, or open the page in Chrome.';
     }
+    if (msg && N && N.voiceStatus) {
+      try {
+        const st = JSON.parse(N.voiceStatus());
+        if (st.detail) msg += `\n\nDetails for support: Android ${st.android}, ${st.device}, ${st.detail}`;
+      } catch { /* ignore */ }
+    }
     hint.textContent = msg;
     hint.hidden = !msg;
     btn.hidden = !needsSettings && !(N && N.openTtsSettings && msg);

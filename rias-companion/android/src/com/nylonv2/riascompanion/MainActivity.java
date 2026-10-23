@@ -3,6 +3,7 @@ package com.nylonv2.riascompanion;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -25,6 +26,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /** Hosts the web app (assets/www) full screen and exposes a small bridge as window.RiasNative. */
@@ -36,7 +38,10 @@ public class MainActivity extends Activity {
     private volatile boolean ttsReady;
     /** starting | ready | failed | no-language | error — shown in Settings when she's silent. */
     private volatile String ttsStatus = "starting";
-    private boolean ttsRetried;
+    /** Engines still to try, in order; null means "the phone's default". */
+    private final ArrayList<String> enginesToTry = new ArrayList<>();
+    private final StringBuilder ttsLog = new StringBuilder();
+    private String currentEngine;
     private String pendingSpeech;
     // Voice settings from the web app; applied once the speech engine is ready.
     private String voiceName = "";
@@ -107,36 +112,82 @@ public class MainActivity extends Activity {
     }
 
     // Anonymous classes rather than lambdas: dx can't convert lambdas.
+    /** Speech engines installed on the phone, Google's first. */
+    private List<String> installedEngines() {
+        ArrayList<String> out = new ArrayList<>();
+        try {
+            for (ResolveInfo ri : getPackageManager().queryIntentServices(
+                    new Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), 0)) {
+                if (ri.serviceInfo != null) out.add(ri.serviceInfo.packageName);
+            }
+        } catch (Exception ignored) {
+        }
+        if (out.remove("com.google.android.tts")) out.add(0, "com.google.android.tts");
+        return out;
+    }
+
     private void startTts() {
         ttsStatus = "starting";
-        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+        List<String> engines = installedEngines();
+        ttsLog.append("engines=").append(engines.isEmpty() ? "none" : engines.toString());
+        enginesToTry.clear();
+        enginesToTry.add(null);
+        enginesToTry.addAll(engines);
+        tryNextEngine();
+    }
+
+    // Some phones refuse "the default engine" but connect fine when asked for one by name,
+    // so try the default, then every installed engine, before giving up.
+    private void tryNextEngine() {
+        if (tts != null) {
+            try {
+                tts.shutdown();
+            } catch (Exception ignored) {
+            }
+            tts = null;
+        }
+        if (enginesToTry.isEmpty()) {
+            ttsStatus = "failed";
+            return;
+        }
+        currentEngine = enginesToTry.remove(0);
+        TextToSpeech.OnInitListener listener = new TextToSpeech.OnInitListener() {
             @Override
-            public void onInit(int status) {
-                runOnUiThread(new Runnable() {
+            public void onInit(final int status) {
+                // Posted, never run inline: some engines call this from inside the constructor.
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
                     @Override
                     public void run() {
                         onTtsInit(status);
                     }
                 });
             }
-        });
+        };
+        try {
+            tts = currentEngine == null
+                    ? new TextToSpeech(getApplicationContext(), listener)
+                    : new TextToSpeech(getApplicationContext(), listener, currentEngine);
+        } catch (Exception e) {
+            ttsLog.append("; ").append(currentEngine).append("=crash");
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    tryNextEngine();
+                }
+            });
+        }
     }
 
     private void onTtsInit(int status) {
-        if (status != TextToSpeech.SUCCESS) {
-            // Some engines fail the first bind right after install; try once more.
-            if (!ttsRetried) {
-                ttsRetried = true;
-                if (tts != null) tts.shutdown();
-                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        startTts();
-                    }
-                }, 1500);
-            } else {
-                ttsStatus = "failed";
-            }
+        ttsLog.append("; ").append(currentEngine == null ? "default" : currentEngine)
+                .append(status == TextToSpeech.SUCCESS ? "=ok" : "=err" + status);
+        if (status != TextToSpeech.SUCCESS || tts == null) {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    tryNextEngine();
+                }
+            }, 400);
             return;
         }
         tts.setAudioAttributes(new AudioAttributes.Builder()
@@ -217,6 +268,9 @@ public class MainActivity extends Activity {
             try {
                 AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
                 o.put("status", activity.ttsStatus);
+                o.put("detail", activity.ttsLog.toString());
+                o.put("android", Build.VERSION.SDK_INT);
+                o.put("device", Build.MANUFACTURER + " " + Build.MODEL);
                 o.put("volume", am == null ? -1 : am.getStreamVolume(AudioManager.STREAM_MUSIC));
                 o.put("maxVolume", am == null ? -1 : am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
             } catch (Exception ignored) {
