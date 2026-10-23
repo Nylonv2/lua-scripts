@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#16090e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Rias">
+  <title>Rias Companion</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <img class="avatar" src="icons/icon.svg" alt="">
+      <div class="who">
+        <div class="name">Rias Gremory</div>
+        <div class="status" id="status">Occult Research Club</div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Chat -->
+      <section class="view" id="view-chat">
+        <div class="feed" id="feed" aria-live="polite"></div>
+        <div class="quick" id="quick">
+          <button type="button" data-say="What should I do now?">What now?</button>
+          <button type="button" data-say="What's my plan for today?">Today's plan</button>
+          <button type="button" data-say="I'm tired">I'm tired</button>
+          <button type="button" data-say="I'm bored">I'm bored</button>
+        </div>
+        <form class="composer" id="composer" autocomplete="off">
+          <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
+          <button type="submit" aria-label="Send">➤</button>
+        </form>
+      </section>
+
+      <!-- Today -->
+      <section class="view" id="view-today" hidden>
+        <div class="summary">
+          <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
+            <circle cx="18" cy="18" r="15.9" class="ring-bg"/>
+            <circle cx="18" cy="18" r="15.9" class="ring-fg" id="ring"/>
+          </svg>
+          <div>
+            <div class="big" id="progress-text">0 / 0</div>
+            <div class="muted" id="streak-text">Streak: 0 days</div>
+          </div>
+        </div>
+        <ul class="items" id="items"></ul>
+        <button class="fab" id="add" type="button" aria-label="Add reminder">＋</button>
+      </section>
+
+      <!-- Settings -->
+      <section class="view" id="view-settings" hidden>
+        <form id="settings" class="stack">
+          <h2>You</h2>
+          <label>What should Rias call you?
+            <input name="name" required maxlength="30">
+          </label>
+          <div class="row">
+            <label>Wake up <input name="wake" type="time" required></label>
+            <label>Bedtime <input name="sleep" type="time" required></label>
+          </div>
+
+          <h2>Check-ins</h2>
+          <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
+          <label>When she's been quiet for
+            <select name="checkinEvery">
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+            </select>
+          </label>
+
+          <h2>Notifications</h2>
+          <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
+          <p class="muted small" id="notify-hint"></p>
+          <div class="row">
+            <button type="button" id="perm">Allow notifications</button>
+            <button type="button" id="test">Test</button>
+          </div>
+
+          <button type="submit" class="primary">Save</button>
+
+          <h2>Data</h2>
+          <button type="button" id="regen">Rebuild default routine</button>
+          <button type="button" id="clear-chat">Clear chat history</button>
+          <button type="button" id="reset" class="danger">Reset everything</button>
+        </form>
+      </section>
+    </main>
+
+    <nav class="tabs">
+      <button type="button" data-view="chat" class="active"><span>💬</span>Chat</button>
+      <button type="button" data-view="today"><span>📋</span>Today</button>
+      <button type="button" data-view="settings"><span>⚙️</span>Settings</button>
+    </nav>
+  </div>
+
+  <!-- Add / edit a reminder -->
+  <dialog id="editor">
+    <form method="dialog" id="edit-form" class="stack">
+      <h2 id="edit-title">New reminder</h2>
+      <label>What <input name="title" required maxlength="60" placeholder="e.g. Take vitamins"></label>
+      <div class="row">
+        <label>Time <input name="time" type="time" required></label>
+        <label>Type
+          <select name="category">
+            <option value="custom">Other</option>
+            <option value="wake">Wake up</option>
+            <option value="water">Water</option>
+            <option value="meal">Meal</option>
+            <option value="exercise">Exercise</option>
+            <option value="work">Work / study</option>
+            <option value="break">Break</option>
+            <option value="hygiene">Hygiene</option>
+            <option value="meds">Medication</option>
+            <option value="social">Social</option>
+            <option value="chores">Chores</option>
+            <option value="wind">Wind down</option>
+            <option value="sleep">Sleep</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Repeat
+          <select name="repeat">
+            <option value="daily">Every day</option>
+            <option value="weekdays">Weekdays</option>
+            <option value="weekends">Weekends</option>
+            <option value="once">Once</option>
+          </select>
+        </label>
+        <label id="date-wrap">Date <input name="date" type="date"></label>
+      </div>
+      <div class="row">
+        <button type="button" id="edit-delete" class="danger">Delete</button>
+        <button type="button" id="edit-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- First launch -->
+  <div class="onboarding" id="onboarding" hidden>
+    <form id="onboard-form" class="stack card">
+      <img class="avatar big-avatar" src="icons/icon.svg" alt="">
+      <p class="intro">“So you're the one who'll be joining my household? I'm Rias Gremory. From today, I'll be looking after your days — so don't disappoint me.”</p>
+      <label>What should I call you?
+        <input name="name" required maxlength="30" placeholder="Your name">
+      </label>
+      <div class="row">
+        <label>You wake up at <input name="wake" type="time" value="07:00" required></label>
+        <label>Bedtime <input name="sleep" type="time" value="23:00" required></label>
+      </div>
+      <button type="submit" class="primary">Join the Occult Research Club</button>
+    </form>
+  </div>
+
+  <script src="dialogue.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
