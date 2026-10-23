@@ -190,9 +190,71 @@ textarea { font: inherit; }
 .pic-preview { width: 84px; height: 84px; flex: none; object-fit: cover; }
 .grow { flex: 1; min-width: 0; }
 .avatar { object-fit: cover; }
+
+/* Pop-up banner */
+.toast {
+  position: fixed; z-index: 20; left: 50%; top: calc(env(safe-area-inset-top) + 10px);
+  width: min(calc(100% - 24px), 560px); transform: translate(-50%, 0);
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: rgba(48, 23, 35, .96); border: 1px solid var(--crimson); border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 24px rgba(200, 23, 58, .35);
+  backdrop-filter: blur(10px); cursor: pointer; touch-action: pan-x;
+  animation: toast-in .35s cubic-bezier(.2, .9, .3, 1.2);
+}
+.toast.out { animation: toast-out .25s ease-in forwards; }
+.toast-pic { width: 46px; height: 46px; flex: none; }
+.toast-body { flex: 1; min-width: 0; }
+.toast-head { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; }
+.toast-head b { font-family: Georgia, serif; font-weight: normal; color: var(--gold); }
+.toast-head span { color: var(--muted); font-size: .75rem; }
+.toast p { margin: 2px 0 0; font-size: .92rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.toast-done { flex: none; border: 0; border-radius: 999px; padding: 8px 12px; background: var(--crimson); font-size: .85rem; font-weight: 600; }
+@keyframes toast-in { from { transform: translate(-50%, -140%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes toast-out { to { transform: translate(-50%, -140%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast, .toast.out { animation-duration: .01s; } }
+
+/* Alarm-style reminder pop-up */
+.alarm { width: min(92vw, 400px); padding: 28px 22px 22px; text-align: center; border: 1px solid var(--crimson);
+  background: radial-gradient(120% 70% at 50% 0%, #4a1226 0%, var(--bg) 70%); box-shadow: 0 0 40px rgba(200, 23, 58, .45); }
+.alarm[open] { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: alarm-in .3s cubic-bezier(.2, .9, .3, 1.2); }
+.alarm::backdrop { background: rgba(10, 3, 6, .78); backdrop-filter: blur(4px); }
+.alarm-pic { width: 136px; height: 136px; margin-bottom: 10px; box-shadow: 0 0 0 4px var(--crimson), 0 0 0 10px rgba(200, 23, 58, .25), 0 0 40px rgba(200, 23, 58, .6);
+  animation: alarm-pulse 1.6s ease-in-out infinite; }
+.alarm-name { font-family: Georgia, serif; color: var(--gold); font-size: 1.2rem; }
+.alarm-time { font-size: 2.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.alarm-title { color: var(--gold); font-weight: 600; }
+.alarm-text { margin: 6px 0 14px; line-height: 1.45; }
+.alarm-btn { width: 100%; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); font-size: 1.02rem; margin-top: 6px; }
+.alarm-btn.primary { background: var(--crimson); border-color: var(--crimson); font-weight: 600; }
+.alarm-btn.ghost { background: transparent; color: var(--muted); }
+@keyframes alarm-in { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes alarm-pulse { 50% { box-shadow: 0 0 0 4px var(--crimson), 0 0 0 16px rgba(200, 23, 58, .12), 0 0 56px rgba(200, 23, 58, .7); } }
+@media (prefers-reduced-motion: reduce) { .alarm[open], .alarm-pic { animation: none; } }
 </style>
 </head>
 <body>
+  <!-- Alarm-style reminder pop-up in the middle of the screen -->
+  <dialog id="alarm" class="alarm" aria-labelledby="alarm-title">
+    <img class="avatar alarm-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="">
+    <div class="alarm-name">Rias Gremory</div>
+    <div class="alarm-time" id="alarm-time"></div>
+    <div class="alarm-title" id="alarm-title"></div>
+    <p class="alarm-text" id="alarm-text"></p>
+    <button type="button" class="alarm-btn primary" id="alarm-done">Done ✓</button>
+    <button type="button" class="alarm-btn" id="alarm-snooze">Snooze 10 min</button>
+    <button type="button" class="alarm-btn ghost" id="alarm-dismiss">Dismiss</button>
+  </dialog>
+
+  <!-- Pop-up when Rias messages you while you're on another tab -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <img class="avatar toast-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="">
+    <div class="toast-body">
+      <div class="toast-head"><b>Rias Gremory</b><span>now</span></div>
+      <p id="toast-text"></p>
+    </div>
+    <button type="button" class="toast-done" id="toast-done" hidden>Done ✓</button>
+  </div>
+
   <div class="app">
     <header class="top">
       <img class="avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="">
@@ -393,6 +455,9 @@ textarea { font: inherit; }
 
           <h2>Notifications</h2>
           <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
+          <label class="switch"><input name="alarmPopup" type="checkbox"> Reminders pop up in the middle of the screen, like an alarm</label>
+          <p class="small voice-hint" id="fullscreen-hint" hidden></p>
+          <button type="button" id="fullscreen-btn" hidden>Allow pop-ups over the lock screen</button>
           <p class="muted small" id="notify-hint"></p>
           <div class="row">
             <button type="button" id="perm">Allow notifications</button>
@@ -2037,7 +2102,7 @@ Boundaries:
     messages: [],   // [{ id, from, text, ts, itemId? }]
     settings: {
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
-      commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false,
+      commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -2177,7 +2242,7 @@ Boundaries:
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
-    if (from === 'rias') { speak(text); Chat.noteRias(text); }
+    if (from === 'rias') { speak(text); Chat.noteRias(text); showToast(m); }
     return m;
   }
 
@@ -2275,6 +2340,58 @@ Boundaries:
   function fireItem(item) {
     const line = say(pick(R.due[item.category] || R.due.custom), item);
     riasSays(line, { itemId: item.id, title: item.title, time: item.time });
+    showAlarm(item, line);
+  }
+
+  // ---------- alarm-style reminder pop-up (app open) ----------
+  const alarmDlg = $('#alarm');
+  const alarmQueue = [];
+  let alarmItem = null;
+  const alarmOn = () => state.settings.alarmPopup !== false;
+  function showAlarm(item, text) {
+    if (!alarmOn() || document.hidden) return;
+    if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
+    alarmItem = item;
+    $('#alarm-time').textContent = fmtClock(Date.now());
+    $('#alarm-title').textContent = item.title;
+    $('#alarm-text').textContent = text;
+    alarmDlg.showModal();
+    const N = window.RiasNative;
+    if (N && N.buzz) { try { N.buzz(); } catch { /* older app */ } }
+    else if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
+  }
+  function closeAlarm() {
+    if (alarmDlg.open) alarmDlg.close();
+    alarmItem = null;
+    const next = alarmQueue.shift();
+    if (next) setTimeout(() => showAlarm(...next), 300);
+  }
+  $('#alarm-done').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it) resolve(it.id, 'done'); });
+  $('#alarm-snooze').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it) snooze(it.id); });
+  $('#alarm-dismiss').addEventListener('click', closeAlarm);
+  alarmDlg.addEventListener('cancel', (e) => { e.preventDefault(); closeAlarm(); });
+
+  // Done / Snooze tapped on the Android pop-up while the app was closed.
+  function applyNativeActions() {
+    const N = window.RiasNative;
+    if (!N || !N.takeActions || !state.profile) return;
+    let list = [];
+    try { list = JSON.parse(N.takeActions()); } catch { return; }
+    const today = dateKey();
+    for (const a of list) {
+      if (dateKey(new Date(a.at)) !== today) continue;
+      const it = findItem(a.itemId);
+      if (!it || statusOf(it.id)) continue;
+      (state.fired[today] ||= {})[it.id] = 'ping';
+      if (a.action === 'done') {
+        (state.log[today] ||= {})[it.id] = 'done';
+        state.snoozes = state.snoozes.filter((sn) => sn.id !== it.id);
+        addMessage('rias', say(`You marked “${it.title}” done from my pop-up. ${pick(praiseLines())}`));
+      } else if (a.action === 'snooze' && a.until > Date.now()) {
+        state.snoozes = state.snoozes.filter((sn) => sn.id !== it.id).concat({ id: it.id, at: a.until });
+      }
+    }
+    if (list.length) { updateSummary(); save(); renderToday(); renderStatus(); }
   }
 
   // ---------- actions on a task ----------
@@ -2525,7 +2642,50 @@ Boundaries:
   }
 
   // ---------- navigation ----------
+  // ---------- pop-up banner ----------
+  let currentView = 'chat';
+  let toastTimer = 0, toastMsg = null;
+  const toast = $('#toast');
+  function showToast(m) {
+    // Only when you'd otherwise miss it: app open, set up, and on a tab other than Chat.
+    if (currentView === 'chat' || document.hidden || !state.profile) return;
+    if (m.itemId && alarmOn()) return; // reminders get the big pop-up instead
+    toastMsg = m;
+    $('#toast-text').textContent = m.text;
+    $('#toast-done').hidden = !(m.itemId && !statusOf(m.itemId) && findItem(m.itemId));
+    toast.classList.remove('out');
+    toast.hidden = false;
+    // Restart the slide-in animation for back-to-back messages.
+    toast.style.animation = 'none'; void toast.offsetWidth; toast.style.animation = '';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, m.itemId ? 9000 : 6000);
+  }
+  function hideToast() {
+    clearTimeout(toastTimer);
+    if (toast.hidden) return;
+    toast.classList.add('out');
+    setTimeout(() => { toast.hidden = true; toast.classList.remove('out'); }, 250);
+  }
+  toast.addEventListener('click', (e) => {
+    if (e.target.closest('#toast-done')) {
+      if (toastMsg && toastMsg.itemId) resolve(toastMsg.itemId, 'done');
+      hideToast();
+      return;
+    }
+    hideToast();
+    show('chat');
+  });
+  // Swipe up to dismiss.
+  let touchY = null;
+  toast.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+  toast.addEventListener('touchend', (e) => {
+    if (touchY !== null && e.changedTouches[0].clientY - touchY < -25) { e.preventDefault(); hideToast(); }
+    touchY = null;
+  });
+
   function show(view) {
+    currentView = view;
+    if (view === 'chat') hideToast();
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
     if (view === 'today') renderToday();
@@ -2827,7 +2987,10 @@ Boundaries:
       for (const it of items) {
         const t = at(d, toMin(it.time));
         if (t <= now || log[it.id]) continue;
-        events.push({ at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${fmtTime(it.time)} · ${it.title}` });
+        events.push({
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmOn() ? '' : `\n${fmtTime(it.time)} · ${it.title}`}`,
+          itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmOn(),
+        });
       }
       if (state.settings.foodReminders) {
         const k = dateKey(d);
@@ -2848,7 +3011,7 @@ Boundaries:
     }
     for (const sn of state.snoozes) {
       const it = findItem(sn.id);
-      if (it && sn.at > now) events.push({ at: sn.at, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${it.title}` });
+      if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmOn() });
     }
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
     const last = new Date(); last.setDate(last.getDate() + days);
@@ -2888,6 +3051,8 @@ Boundaries:
     sf.elements.checkins.checked = state.settings.checkins;
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
+    sf.elements.alarmPopup.checked = alarmOn();
+    fullScreenHint();
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
     fillVoices();
@@ -2921,6 +3086,7 @@ Boundaries:
     Object.assign(state.settings, {
       phoneCalendar: sf.elements.phoneCalendar.checked,
       foodReminders: sf.elements.foodReminders.checked,
+      alarmPopup: sf.elements.alarmPopup.checked,
       waterGoal: Number(sf.elements.waterGoal.value),
     });
     Object.assign(state.ai, {
@@ -3002,6 +3168,16 @@ Boundaries:
     sf.elements.voiceRate.value = RIAS_RATE;
   });
 
+  // Android 14+ asks you to allow pop-ups over the lock screen once.
+  function fullScreenHint() {
+    const N = window.RiasNative;
+    const need = !!(N && N.canFullScreen && alarmOn() && !N.canFullScreen());
+    $('#fullscreen-hint').hidden = !need;
+    $('#fullscreen-btn').hidden = !need;
+    if (need) $('#fullscreen-hint').textContent = 'To pop up over your lock screen like an alarm, Android needs your OK. Tap below and turn on “Allow full screen notifications” for Rias.';
+  }
+  $('#fullscreen-btn').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openFullScreenSettings) N.openFullScreenSettings(); });
+
   $('#perm').addEventListener('click', async () => {
     if (Native) Native.openSettings();
     else if ('Notification' in window) await Notification.requestPermission();
@@ -3067,6 +3243,7 @@ Boundaries:
       addMessage('rias', say(pick(R.greet[period()])));
     }
     syncCalendar();
+    applyNativeActions();
     tick();
   }
   renderStatus();
@@ -3074,8 +3251,8 @@ Boundaries:
   setInterval(syncCalendar, 15 * 60000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
-    syncCalendar(); tick(); renderFeed(); renderToday();
-    if (state.profile && !$('#view-settings').hidden) notifyHint();
+    syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
+    if (state.profile && !$('#view-settings').hidden) { notifyHint(); fullScreenHint(); }
   });
 })();
 </script>

@@ -14,6 +14,28 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Alarm-style reminder pop-up in the middle of the screen -->
+  <dialog id="alarm" class="alarm" aria-labelledby="alarm-title">
+    <img class="avatar alarm-pic" src="icons/icon.svg" alt="">
+    <div class="alarm-name">Rias Gremory</div>
+    <div class="alarm-time" id="alarm-time"></div>
+    <div class="alarm-title" id="alarm-title"></div>
+    <p class="alarm-text" id="alarm-text"></p>
+    <button type="button" class="alarm-btn primary" id="alarm-done">Done ✓</button>
+    <button type="button" class="alarm-btn" id="alarm-snooze">Snooze 10 min</button>
+    <button type="button" class="alarm-btn ghost" id="alarm-dismiss">Dismiss</button>
+  </dialog>
+
+  <!-- Pop-up when Rias messages you while you're on another tab -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <img class="avatar toast-pic" src="icons/icon.svg" alt="">
+    <div class="toast-body">
+      <div class="toast-head"><b>Rias Gremory</b><span>now</span></div>
+      <p id="toast-text"></p>
+    </div>
+    <button type="button" class="toast-done" id="toast-done" hidden>Done ✓</button>
+  </div>
+
   <div class="app">
     <header class="top">
       <img class="avatar" src="icons/icon.svg" alt="">
@@ -214,6 +236,9 @@
 
           <h2>Notifications</h2>
           <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
+          <label class="switch"><input name="alarmPopup" type="checkbox"> Reminders pop up in the middle of the screen, like an alarm</label>
+          <p class="small voice-hint" id="fullscreen-hint" hidden></p>
+          <button type="button" id="fullscreen-btn" hidden>Allow pop-ups over the lock screen</button>
           <p class="muted small" id="notify-hint"></p>
           <div class="row">
             <button type="button" id="perm">Allow notifications</button>

@@ -59,7 +59,7 @@
     messages: [],   // [{ id, from, text, ts, itemId? }]
     settings: {
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
-      commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false,
+      commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
@@ -199,7 +199,7 @@
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
-    if (from === 'rias') { speak(text); Chat.noteRias(text); }
+    if (from === 'rias') { speak(text); Chat.noteRias(text); showToast(m); }
     return m;
   }
 
@@ -297,6 +297,58 @@
   function fireItem(item) {
     const line = say(pick(R.due[item.category] || R.due.custom), item);
     riasSays(line, { itemId: item.id, title: item.title, time: item.time });
+    showAlarm(item, line);
+  }
+
+  // ---------- alarm-style reminder pop-up (app open) ----------
+  const alarmDlg = $('#alarm');
+  const alarmQueue = [];
+  let alarmItem = null;
+  const alarmOn = () => state.settings.alarmPopup !== false;
+  function showAlarm(item, text) {
+    if (!alarmOn() || document.hidden) return;
+    if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
+    alarmItem = item;
+    $('#alarm-time').textContent = fmtClock(Date.now());
+    $('#alarm-title').textContent = item.title;
+    $('#alarm-text').textContent = text;
+    alarmDlg.showModal();
+    const N = window.RiasNative;
+    if (N && N.buzz) { try { N.buzz(); } catch { /* older app */ } }
+    else if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
+  }
+  function closeAlarm() {
+    if (alarmDlg.open) alarmDlg.close();
+    alarmItem = null;
+    const next = alarmQueue.shift();
+    if (next) setTimeout(() => showAlarm(...next), 300);
+  }
+  $('#alarm-done').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it) resolve(it.id, 'done'); });
+  $('#alarm-snooze').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it) snooze(it.id); });
+  $('#alarm-dismiss').addEventListener('click', closeAlarm);
+  alarmDlg.addEventListener('cancel', (e) => { e.preventDefault(); closeAlarm(); });
+
+  // Done / Snooze tapped on the Android pop-up while the app was closed.
+  function applyNativeActions() {
+    const N = window.RiasNative;
+    if (!N || !N.takeActions || !state.profile) return;
+    let list = [];
+    try { list = JSON.parse(N.takeActions()); } catch { return; }
+    const today = dateKey();
+    for (const a of list) {
+      if (dateKey(new Date(a.at)) !== today) continue;
+      const it = findItem(a.itemId);
+      if (!it || statusOf(it.id)) continue;
+      (state.fired[today] ||= {})[it.id] = 'ping';
+      if (a.action === 'done') {
+        (state.log[today] ||= {})[it.id] = 'done';
+        state.snoozes = state.snoozes.filter((sn) => sn.id !== it.id);
+        addMessage('rias', say(`You marked “${it.title}” done from my pop-up. ${pick(praiseLines())}`));
+      } else if (a.action === 'snooze' && a.until > Date.now()) {
+        state.snoozes = state.snoozes.filter((sn) => sn.id !== it.id).concat({ id: it.id, at: a.until });
+      }
+    }
+    if (list.length) { updateSummary(); save(); renderToday(); renderStatus(); }
   }
 
   // ---------- actions on a task ----------
@@ -547,7 +599,50 @@
   }
 
   // ---------- navigation ----------
+  // ---------- pop-up banner ----------
+  let currentView = 'chat';
+  let toastTimer = 0, toastMsg = null;
+  const toast = $('#toast');
+  function showToast(m) {
+    // Only when you'd otherwise miss it: app open, set up, and on a tab other than Chat.
+    if (currentView === 'chat' || document.hidden || !state.profile) return;
+    if (m.itemId && alarmOn()) return; // reminders get the big pop-up instead
+    toastMsg = m;
+    $('#toast-text').textContent = m.text;
+    $('#toast-done').hidden = !(m.itemId && !statusOf(m.itemId) && findItem(m.itemId));
+    toast.classList.remove('out');
+    toast.hidden = false;
+    // Restart the slide-in animation for back-to-back messages.
+    toast.style.animation = 'none'; void toast.offsetWidth; toast.style.animation = '';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, m.itemId ? 9000 : 6000);
+  }
+  function hideToast() {
+    clearTimeout(toastTimer);
+    if (toast.hidden) return;
+    toast.classList.add('out');
+    setTimeout(() => { toast.hidden = true; toast.classList.remove('out'); }, 250);
+  }
+  toast.addEventListener('click', (e) => {
+    if (e.target.closest('#toast-done')) {
+      if (toastMsg && toastMsg.itemId) resolve(toastMsg.itemId, 'done');
+      hideToast();
+      return;
+    }
+    hideToast();
+    show('chat');
+  });
+  // Swipe up to dismiss.
+  let touchY = null;
+  toast.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+  toast.addEventListener('touchend', (e) => {
+    if (touchY !== null && e.changedTouches[0].clientY - touchY < -25) { e.preventDefault(); hideToast(); }
+    touchY = null;
+  });
+
   function show(view) {
+    currentView = view;
+    if (view === 'chat') hideToast();
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
     if (view === 'today') renderToday();
@@ -849,7 +944,10 @@
       for (const it of items) {
         const t = at(d, toMin(it.time));
         if (t <= now || log[it.id]) continue;
-        events.push({ at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${fmtTime(it.time)} · ${it.title}` });
+        events.push({
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmOn() ? '' : `\n${fmtTime(it.time)} · ${it.title}`}`,
+          itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmOn(),
+        });
       }
       if (state.settings.foodReminders) {
         const k = dateKey(d);
@@ -870,7 +968,7 @@
     }
     for (const sn of state.snoozes) {
       const it = findItem(sn.id);
-      if (it && sn.at > now) events.push({ at: sn.at, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${it.title}` });
+      if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmOn() });
     }
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
     const last = new Date(); last.setDate(last.getDate() + days);
@@ -910,6 +1008,8 @@
     sf.elements.checkins.checked = state.settings.checkins;
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
+    sf.elements.alarmPopup.checked = alarmOn();
+    fullScreenHint();
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
     fillVoices();
@@ -943,6 +1043,7 @@
     Object.assign(state.settings, {
       phoneCalendar: sf.elements.phoneCalendar.checked,
       foodReminders: sf.elements.foodReminders.checked,
+      alarmPopup: sf.elements.alarmPopup.checked,
       waterGoal: Number(sf.elements.waterGoal.value),
     });
     Object.assign(state.ai, {
@@ -1024,6 +1125,16 @@
     sf.elements.voiceRate.value = RIAS_RATE;
   });
 
+  // Android 14+ asks you to allow pop-ups over the lock screen once.
+  function fullScreenHint() {
+    const N = window.RiasNative;
+    const need = !!(N && N.canFullScreen && alarmOn() && !N.canFullScreen());
+    $('#fullscreen-hint').hidden = !need;
+    $('#fullscreen-btn').hidden = !need;
+    if (need) $('#fullscreen-hint').textContent = 'To pop up over your lock screen like an alarm, Android needs your OK. Tap below and turn on “Allow full screen notifications” for Rias.';
+  }
+  $('#fullscreen-btn').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openFullScreenSettings) N.openFullScreenSettings(); });
+
   $('#perm').addEventListener('click', async () => {
     if (Native) Native.openSettings();
     else if ('Notification' in window) await Notification.requestPermission();
@@ -1089,6 +1200,7 @@
       addMessage('rias', say(pick(R.greet[period()])));
     }
     syncCalendar();
+    applyNativeActions();
     tick();
   }
   renderStatus();
@@ -1096,7 +1208,7 @@
   setInterval(syncCalendar, 15 * 60000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
-    syncCalendar(); tick(); renderFeed(); renderToday();
-    if (state.profile && !$('#view-settings').hidden) notifyHint();
+    syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
+    if (state.profile && !$('#view-settings').hidden) { notifyHint(); fullScreenHint(); }
   });
 })();

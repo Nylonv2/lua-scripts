@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Read-only access so events from Samsung/Google Calendar show up in Rias. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Reminder pop-ups over the lock screen, like an alarm app. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Rias's AI replies (only if you add an API key) talk to api.anthropic.com. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Exact reminder times: granted at install on Android 13+, user-grantable on 12. -->
@@ -44,6 +46,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.nylonv2.riascompanion.alarm"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
 
         <receiver android:name=".AlarmReceiver" android:exported="false" />
 

@@ -22,6 +22,9 @@ final class Scheduler {
     private static final String KEY_EVENTS = "events";
     private static final String KEY_LAST_FIRED = "lastFired";
     private static final String CHANNEL = "rias_reminders";
+    /** Reminders shown alarm-style (full screen over the lock screen, alarm sound). */
+    private static final String ALARM_CHANNEL = "rias_alarms";
+    private static final String KEY_ACTIONS = "actions";
     /** Reminders older than this when the alarm finally runs (phone was off, etc.) are dropped. */
     private static final long STALE_MS = 30 * 60 * 1000L;
 
@@ -89,7 +92,12 @@ final class Scheduler {
             if (o == null) continue;
             long at = o.optLong("at", 0);
             if (at > last && at <= now + 5000 && now - at <= STALE_MS) {
-                show(c, o.optString("text", "Rias is calling for you."), (int) (at / 1000), false);
+                String text = o.optString("text", "Rias is calling for you.");
+                if (o.optBoolean("alarm", false)) {
+                    showAlarm(c, text, o.optString("title", ""), o.optString("itemId", ""), at);
+                } else {
+                    show(c, text, (int) (at / 1000), false);
+                }
             }
         }
         p.edit().putLong(KEY_LAST_FIRED, now + 5000).apply();
@@ -107,11 +115,113 @@ final class Scheduler {
         nm.createNotificationChannel(ch);
     }
 
+    private static void ensureAlarmChannel(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null || nm.getNotificationChannel(ALARM_CHANNEL) != null) return;
+        NotificationChannel ch = new NotificationChannel(ALARM_CHANNEL, "Reminder pop-ups",
+                NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("Reminders that pop up in the middle of the screen, like an alarm");
+        ch.enableVibration(true);
+        ch.setVibrationPattern(new long[] {0, 400, 250, 400, 250, 400});
+        ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
+                new android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build());
+        ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        nm.createNotificationChannel(ch);
+    }
+
+    /** Android 14+ only lets apps pop up over the lock screen once you allow it in Settings. */
+    static boolean canFullScreen(Context c) {
+        if (Build.VERSION.SDK_INT < 34) return true;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        return nm != null && nm.canUseFullScreenIntent();
+    }
+
+    /** A reminder as an alarm: full-screen pop-up when locked, heads-up pop-up when in use. */
+    @SuppressWarnings("deprecation")
+    static void showAlarm(Context c, String text, String title, String itemId, long at) {
+        if (MainActivity.visible) return; // the app shows its own pop-up
+        ensureAlarmChannel(c);
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        int id = (int) (at / 1000);
+        Intent alarm = new Intent(c, AlarmActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION)
+                .putExtra(AlarmActivity.EXTRA_TEXT, text)
+                .putExtra(AlarmActivity.EXTRA_TITLE, title)
+                .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
+                .putExtra(AlarmActivity.EXTRA_AT, at)
+                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id);
+        PendingIntent pop = PendingIntent.getActivity(c, id, alarm,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        int icon = c.getResources().getIdentifier("ic_stat_rias", "drawable", c.getPackageName());
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26
+                ? new Notification.Builder(c, ALARM_CHANNEL)
+                : new Notification.Builder(c).setPriority(Notification.PRIORITY_MAX).setDefaults(Notification.DEFAULT_ALL);
+        b.setSmallIcon(icon != 0 ? icon : android.R.drawable.ic_popup_reminder)
+                .setContentTitle(title == null || title.isEmpty() ? "Rias" : "Rias · " + title)
+                .setContentText(text)
+                .setStyle(new Notification.BigTextStyle().bigText(text))
+                .setColor(0xFFC8173A)
+                .setCategory(Notification.CATEGORY_ALARM)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setAutoCancel(true)
+                .setShowWhen(true)
+                .setContentIntent(pop)
+                .setFullScreenIntent(pop, true);
+        android.graphics.Bitmap pic = picture(c);
+        if (pic != null) b.setLargeIcon(pic);
+        nm.notify(id, b.build());
+    }
+
+    /** Done / Snooze tapped on the pop-up while the app was closed; applied when it next opens. */
+    static void recordAction(Context c, String itemId, String action, long at, long until) {
+        try {
+            SharedPreferences p = prefs(c);
+            JSONArray arr = new JSONArray(p.getString(KEY_ACTIONS, "[]"));
+            JSONObject o = new JSONObject();
+            o.put("itemId", itemId);
+            o.put("action", action);
+            o.put("at", at);
+            o.put("until", until);
+            arr.put(o);
+            p.edit().putString(KEY_ACTIONS, arr.toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    static String takeActions(Context c) {
+        SharedPreferences p = prefs(c);
+        String s = p.getString(KEY_ACTIONS, "[]");
+        p.edit().remove(KEY_ACTIONS).apply();
+        return s;
+    }
+
+    /** Adds one alarm (a snooze) to the schedule and re-arms. */
+    static void addEvent(Context c, long at, String text, String itemId, String title) {
+        try {
+            JSONArray arr = events(c);
+            JSONObject o = new JSONObject();
+            o.put("at", at);
+            o.put("text", text);
+            o.put("itemId", itemId);
+            o.put("title", title);
+            o.put("alarm", true);
+            arr.put(o);
+            prefs(c).edit().putString(KEY_EVENTS, arr.toString()).apply();
+            scheduleNext(c);
+        } catch (Exception ignored) {
+        }
+    }
+
     static java.io.File pictureFile(Context c) {
         return new java.io.File(c.getFilesDir(), "rias-picture.jpg");
     }
 
-    private static android.graphics.Bitmap picture(Context c) {
+    static android.graphics.Bitmap picture(Context c) {
         java.io.File f = pictureFile(c);
         if (!f.exists()) return null;
         try {

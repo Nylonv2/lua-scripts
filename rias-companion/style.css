@@ -178,3 +178,43 @@ textarea { font: inherit; }
 .pic-preview { width: 84px; height: 84px; flex: none; object-fit: cover; }
 .grow { flex: 1; min-width: 0; }
 .avatar { object-fit: cover; }
+
+/* Pop-up banner */
+.toast {
+  position: fixed; z-index: 20; left: 50%; top: calc(env(safe-area-inset-top) + 10px);
+  width: min(calc(100% - 24px), 560px); transform: translate(-50%, 0);
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: rgba(48, 23, 35, .96); border: 1px solid var(--crimson); border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 24px rgba(200, 23, 58, .35);
+  backdrop-filter: blur(10px); cursor: pointer; touch-action: pan-x;
+  animation: toast-in .35s cubic-bezier(.2, .9, .3, 1.2);
+}
+.toast.out { animation: toast-out .25s ease-in forwards; }
+.toast-pic { width: 46px; height: 46px; flex: none; }
+.toast-body { flex: 1; min-width: 0; }
+.toast-head { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; }
+.toast-head b { font-family: Georgia, serif; font-weight: normal; color: var(--gold); }
+.toast-head span { color: var(--muted); font-size: .75rem; }
+.toast p { margin: 2px 0 0; font-size: .92rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.toast-done { flex: none; border: 0; border-radius: 999px; padding: 8px 12px; background: var(--crimson); font-size: .85rem; font-weight: 600; }
+@keyframes toast-in { from { transform: translate(-50%, -140%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes toast-out { to { transform: translate(-50%, -140%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast, .toast.out { animation-duration: .01s; } }
+
+/* Alarm-style reminder pop-up */
+.alarm { width: min(92vw, 400px); padding: 28px 22px 22px; text-align: center; border: 1px solid var(--crimson);
+  background: radial-gradient(120% 70% at 50% 0%, #4a1226 0%, var(--bg) 70%); box-shadow: 0 0 40px rgba(200, 23, 58, .45); }
+.alarm[open] { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: alarm-in .3s cubic-bezier(.2, .9, .3, 1.2); }
+.alarm::backdrop { background: rgba(10, 3, 6, .78); backdrop-filter: blur(4px); }
+.alarm-pic { width: 136px; height: 136px; margin-bottom: 10px; box-shadow: 0 0 0 4px var(--crimson), 0 0 0 10px rgba(200, 23, 58, .25), 0 0 40px rgba(200, 23, 58, .6);
+  animation: alarm-pulse 1.6s ease-in-out infinite; }
+.alarm-name { font-family: Georgia, serif; color: var(--gold); font-size: 1.2rem; }
+.alarm-time { font-size: 2.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.alarm-title { color: var(--gold); font-weight: 600; }
+.alarm-text { margin: 6px 0 14px; line-height: 1.45; }
+.alarm-btn { width: 100%; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); font-size: 1.02rem; margin-top: 6px; }
+.alarm-btn.primary { background: var(--crimson); border-color: var(--crimson); font-weight: 600; }
+.alarm-btn.ghost { background: transparent; color: var(--muted); }
+@keyframes alarm-in { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes alarm-pulse { 50% { box-shadow: 0 0 0 4px var(--crimson), 0 0 0 16px rgba(200, 23, 58, .12), 0 0 56px rgba(200, 23, 58, .7); } }
+@media (prefers-reduced-motion: reduce) { .alarm[open], .alarm-pic { animation: none; } }

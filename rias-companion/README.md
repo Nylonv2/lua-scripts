@@ -79,6 +79,18 @@ http://localhost:8000.
   "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
 - **Settings**: name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
 
+## Pop-ups
+
+- **Reminder pop-up (alarm style):** when a reminder is due, a card pops up in the middle of the screen with her
+  picture, the time, the reminder and *Done ✓ / Snooze 10 min / Dismiss*, with a buzz and chime. With the app
+  closed, the Android app uses full-screen alarm notifications: the screen turns on and the same card appears over
+  the lock screen (while you're using the phone, Android shows a pop-up notification instead; tap it for the card).
+  Buttons tapped there are applied the next time the app opens. On Android 14+, allow it once under
+  **Settings → Notifications → Allow pop-ups over the lock screen**. Turn it off with *Reminders pop up in the
+  middle of the screen*.
+- **Message banner:** other messages from Rias slide in at the top when you're on another tab. Tap to open the chat,
+  swipe up to dismiss.
+
 ## Rias's picture
 
 **Settings → Rias's picture → Choose from my photos** picks any image from your phone. It's cropped to a square,

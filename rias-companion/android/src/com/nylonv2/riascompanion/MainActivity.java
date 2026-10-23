@@ -374,6 +374,43 @@ public class MainActivity extends Activity {
             return out.toString();
         }
 
+        @JavascriptInterface
+        public String takeActions() {
+            return Scheduler.takeActions(ctx);
+        }
+
+        @JavascriptInterface
+        public boolean canFullScreen() {
+            return Scheduler.canFullScreen(ctx);
+        }
+
+        /** Android 14+: the switch that lets reminders pop up over the lock screen. */
+        @JavascriptInterface
+        public void openFullScreenSettings() {
+            Intent i = Build.VERSION.SDK_INT >= 34
+                    ? new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:" + ctx.getPackageName()))
+                    : new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.getPackageName()));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                ctx.startActivity(i);
+            } catch (Exception ignored) {
+            }
+        }
+
+        /** A short buzz + chime for the in-app reminder pop-up. */
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public void buzz() {
+            try {
+                android.os.Vibrator v = (android.os.Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);
+                if (v != null) v.vibrate(new long[] {0, 300, 200, 300}, -1);
+                android.media.Ringtone r = android.media.RingtoneManager.getRingtone(ctx,
+                        android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION));
+                if (r != null) r.play();
+            } catch (Exception ignored) {
+            }
+        }
+
         /** Saves Rias's picture (base64 JPEG, or "" for the default) for notifications. */
         @JavascriptInterface
         public void setPicture(String base64) {
