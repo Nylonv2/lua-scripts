@@ -55,7 +55,7 @@
     greeted: {},    // { date: true }
     snoozes: [],    // [{ id, at }]
     messages: [],   // [{ id, from, text, ts, itemId? }]
-    settings: { checkins: true, checkinEvery: 120, notify: true },
+    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral' },
     lastRias: 0,
   });
 
@@ -70,6 +70,13 @@
   const say = (line, extra = {}) => line
     .replaceAll('{name}', state.profile ? state.profile.name : 'you')
     .replaceAll('{title}', extra.title || '');
+
+  const praiseLines = (pool = R.praise) => pool[state.settings.praise] || pool.neutral;
+  // Half the time a finished task gets her "good boy / good girl" praise.
+  const doneLine = () => say(pick(Math.random() < 0.5 ? praiseLines() : R.done));
+  const doneToday = () => Object.values(state.log[dateKey()] || {}).includes('done');
+  // Once you've done something today, some check-ins turn into praise.
+  const checkinLine = (p, praiseOk) => say(pick(praiseOk && Math.random() < 0.4 ? praiseLines(R.praiseCheckin) : R.checkin[p]));
 
   // ---------- schedule ----------
   function appliesOn(item, d) {
@@ -164,7 +171,7 @@
     updateSummary();
     addMessage('me', status === 'done' ? `Done: ${item.title} ✓` : `Skipping ${item.title} today.`);
     setTimeout(() => {
-      addMessage('rias', say(pick(status === 'done' ? R.done : R.skip)));
+      addMessage('rias', status === 'done' ? doneLine() : say(pick(R.skip)));
       const list = todaysItems();
       if (status === 'done' && list.length && list.every((it) => statusOf(it.id) === 'done')) {
         setTimeout(() => addMessage('rias', say(pick(R.allDone))), 900);
@@ -227,7 +234,7 @@
     const quietFor = Date.now() - state.lastRias;
     if (state.settings.checkins && isAwake(nm) && quietFor > state.settings.checkinEvery * 60000) {
       const p = period(nm);
-      if (R.checkin[p]) riasSays(say(pick(R.checkin[p])));
+      if (R.checkin[p]) riasSays(checkinLine(p, doneToday()));
     }
 
     save();
@@ -261,7 +268,7 @@
     if (/^(done|did it|finished|i did it|complete|ok done)\b/.test(t) || has("i'm done", 'im done', 'all done')) {
       const p = pendingItem();
       if (p) { resolve(p.id, 'done'); return null; }
-      return say(pick(R.done));
+      return doneLine();
     }
     if (has('what now', 'what should i do', "what's next", 'whats next', 'next')) {
       const p = pendingItem();
@@ -271,6 +278,7 @@
       if (next) return say(`Next up at ${fmtTime(next.time)}: ${next.title}. Until then — drink some water and keep your posture nice, {name}.`);
       return say(isAwake() ? "Nothing left on today's list. Read something, relax, or tidy up a little." : pick(R.lateNight));
     }
+    if (has('good boy', 'good girl', 'praise me', 'am i good', 'proud of me', 'did good', 'did well', 'i did it')) return say(pick(praiseLines()));
     if (has('plan', 'schedule', 'today', 'agenda')) return planText();
     if (has('depress', 'sad', 'lonely', 'cry', 'upset', 'down', 'awful', 'terrible')) return say(pick(R.chat.sad));
     if (has('stress', 'anxious', 'anxiety', 'overwhelm', 'panic', 'too much')) return say(pick(R.chat.stressed));
@@ -507,8 +515,8 @@
         const t = at(d, m);
         if (t <= now) continue;
         if (items.some((it) => Math.abs(toMin(it.time) - (m % 1440)) < 25)) continue; // she's already pinging then
-        const lines = R.checkin[period(m % 1440)];
-        if (lines) events.push({ at: t, text: say(pick(lines)) });
+        const p = period(m % 1440);
+        if (R.checkin[p]) events.push({ at: t, text: checkinLine(p, i > 0 || doneToday()) });
       }
     }
     for (const sn of state.snoozes) {
@@ -553,12 +561,13 @@
     sf.elements.checkins.checked = state.settings.checkins;
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
+    sf.elements.praise.value = state.settings.praise || 'neutral';
     notifyHint();
   }
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
-    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked });
+    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value });
     save();
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
     show('chat');
@@ -597,6 +606,7 @@
     e.preventDefault();
     const f = e.target;
     state.profile = { name: f.elements.name.value.trim(), wake: f.elements.wake.value, sleep: f.elements.sleep.value };
+    state.settings.praise = f.elements.praise.value;
     state.items = defaultItems(state.profile.wake, state.profile.sleep);
     // Everything already in the past today is treated as handled so you aren't flooded on day one.
     const today = dateKey();

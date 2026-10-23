@@ -78,6 +78,53 @@ window.RIAS = {
     "Alright… ten minutes. Don't make me come looking.",
     "I'll allow it — just this once. Ten minutes, {name}.",
   ],
+  // Praise, picked by the "Rias calls you" setting. Mixed into done reactions,
+  // check-ins (once you've done something that day) and chat.
+  praise: {
+    boy: [
+      "Good boy, {name}. I knew you could do it.",
+      "That's my good boy. Keep it up~",
+      "Ufufu, such a good boy. You make your King proud.",
+      "Look at you getting things done. Good boy.",
+      "Good boy. Come here — you've earned a pat on the head.",
+      "See? You're a good boy when you want to be~",
+      "Mm, good boy. I could get used to this.",
+    ],
+    girl: [
+      "Good girl, {name}. I knew you could do it.",
+      "That's my good girl. Keep it up~",
+      "Ufufu, such a good girl. You make your King proud.",
+      "Look at you getting things done. Good girl.",
+      "Good girl. Come here — you've earned a pat on the head.",
+      "See? You're a good girl when you want to be~",
+      "Mm, good girl. I could get used to this.",
+    ],
+    neutral: [
+      "Good job, {name}. I knew you could do it.",
+      "That's my cute servant. Keep it up~",
+      "Ufufu, well done. You make your King proud.",
+      "Look at you getting things done. I'm impressed.",
+      "Well done. Come here — you've earned a pat on the head.",
+      "See? You're wonderful when you want to be~",
+    ],
+  },
+  praiseCheckin: {
+    boy: [
+      "Just checking in. You've been doing so well today, {name}. Good boy.",
+      "I've been watching you keep up with your day. Such a good boy~ Don't stop now.",
+      "Thinking about you. You've been a very good boy today — drink some water for me, okay?",
+    ],
+    girl: [
+      "Just checking in. You've been doing so well today, {name}. Good girl.",
+      "I've been watching you keep up with your day. Such a good girl~ Don't stop now.",
+      "Thinking about you. You've been a very good girl today — drink some water for me, okay?",
+    ],
+    neutral: [
+      "Just checking in. You've been doing so well today, {name}.",
+      "I've been watching you keep up with your day. I'm proud of you~ Don't stop now.",
+      "Thinking about you. You've been wonderful today — drink some water for me, okay?",
+    ],
+  },
   skip: [
     "Alright, we'll let this one go. We'll try again tomorrow, together.",
     "Not today? That's okay. Just don't make a habit of it.",

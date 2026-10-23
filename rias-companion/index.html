@@ -32,6 +32,7 @@
           <button type="button" data-say="What's my plan for today?">Today's plan</button>
           <button type="button" data-say="I'm tired">I'm tired</button>
           <button type="button" data-say="I'm bored">I'm bored</button>
+          <button type="button" data-say="Praise me">Praise me</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
           <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
@@ -66,6 +67,14 @@
             <label>Wake up <input name="wake" type="time" required></label>
             <label>Bedtime <input name="sleep" type="time" required></label>
           </div>
+
+          <label>Rias calls you…
+            <select name="praise">
+              <option value="boy">Good boy</option>
+              <option value="girl">Good girl</option>
+              <option value="neutral">Neither (good job)</option>
+            </select>
+          </label>
 
           <h2>Check-ins</h2>
           <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
@@ -170,6 +179,13 @@
         <label>You wake up at <input name="wake" type="time" value="07:00" required></label>
         <label>Bedtime <input name="sleep" type="time" value="23:00" required></label>
       </div>
+      <label>When you do well, Rias calls you…
+        <select name="praise">
+          <option value="boy">Good boy</option>
+          <option value="girl">Good girl</option>
+          <option value="neutral" selected>Neither (good job)</option>
+        </select>
+      </label>
       <button type="submit" class="primary">Join the Occult Research Club</button>
     </form>
   </div>

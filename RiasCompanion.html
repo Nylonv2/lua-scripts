@@ -162,6 +162,7 @@ dialog h2 { margin-top: 0 !important; }
           <button type="button" data-say="What's my plan for today?">Today's plan</button>
           <button type="button" data-say="I'm tired">I'm tired</button>
           <button type="button" data-say="I'm bored">I'm bored</button>
+          <button type="button" data-say="Praise me">Praise me</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
           <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
@@ -196,6 +197,14 @@ dialog h2 { margin-top: 0 !important; }
             <label>Wake up <input name="wake" type="time" required></label>
             <label>Bedtime <input name="sleep" type="time" required></label>
           </div>
+
+          <label>Rias calls you…
+            <select name="praise">
+              <option value="boy">Good boy</option>
+              <option value="girl">Good girl</option>
+              <option value="neutral">Neither (good job)</option>
+            </select>
+          </label>
 
           <h2>Check-ins</h2>
           <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
@@ -300,6 +309,13 @@ dialog h2 { margin-top: 0 !important; }
         <label>You wake up at <input name="wake" type="time" value="07:00" required></label>
         <label>Bedtime <input name="sleep" type="time" value="23:00" required></label>
       </div>
+      <label>When you do well, Rias calls you…
+        <select name="praise">
+          <option value="boy">Good boy</option>
+          <option value="girl">Good girl</option>
+          <option value="neutral" selected>Neither (good job)</option>
+        </select>
+      </label>
       <button type="submit" class="primary">Join the Occult Research Club</button>
     </form>
   </div>
@@ -385,6 +401,53 @@ window.RIAS = {
     "Alright… ten minutes. Don't make me come looking.",
     "I'll allow it — just this once. Ten minutes, {name}.",
   ],
+  // Praise, picked by the "Rias calls you" setting. Mixed into done reactions,
+  // check-ins (once you've done something that day) and chat.
+  praise: {
+    boy: [
+      "Good boy, {name}. I knew you could do it.",
+      "That's my good boy. Keep it up~",
+      "Ufufu, such a good boy. You make your King proud.",
+      "Look at you getting things done. Good boy.",
+      "Good boy. Come here — you've earned a pat on the head.",
+      "See? You're a good boy when you want to be~",
+      "Mm, good boy. I could get used to this.",
+    ],
+    girl: [
+      "Good girl, {name}. I knew you could do it.",
+      "That's my good girl. Keep it up~",
+      "Ufufu, such a good girl. You make your King proud.",
+      "Look at you getting things done. Good girl.",
+      "Good girl. Come here — you've earned a pat on the head.",
+      "See? You're a good girl when you want to be~",
+      "Mm, good girl. I could get used to this.",
+    ],
+    neutral: [
+      "Good job, {name}. I knew you could do it.",
+      "That's my cute servant. Keep it up~",
+      "Ufufu, well done. You make your King proud.",
+      "Look at you getting things done. I'm impressed.",
+      "Well done. Come here — you've earned a pat on the head.",
+      "See? You're wonderful when you want to be~",
+    ],
+  },
+  praiseCheckin: {
+    boy: [
+      "Just checking in. You've been doing so well today, {name}. Good boy.",
+      "I've been watching you keep up with your day. Such a good boy~ Don't stop now.",
+      "Thinking about you. You've been a very good boy today — drink some water for me, okay?",
+    ],
+    girl: [
+      "Just checking in. You've been doing so well today, {name}. Good girl.",
+      "I've been watching you keep up with your day. Such a good girl~ Don't stop now.",
+      "Thinking about you. You've been a very good girl today — drink some water for me, okay?",
+    ],
+    neutral: [
+      "Just checking in. You've been doing so well today, {name}.",
+      "I've been watching you keep up with your day. I'm proud of you~ Don't stop now.",
+      "Thinking about you. You've been wonderful today — drink some water for me, okay?",
+    ],
+  },
   skip: [
     "Alright, we'll let this one go. We'll try again tomorrow, together.",
     "Not today? That's okay. Just don't make a habit of it.",
@@ -546,7 +609,7 @@ window.RIAS = {
     greeted: {},    // { date: true }
     snoozes: [],    // [{ id, at }]
     messages: [],   // [{ id, from, text, ts, itemId? }]
-    settings: { checkins: true, checkinEvery: 120, notify: true },
+    settings: { checkins: true, checkinEvery: 120, notify: true, praise: 'neutral' },
     lastRias: 0,
   });
 
@@ -561,6 +624,13 @@ window.RIAS = {
   const say = (line, extra = {}) => line
     .replaceAll('{name}', state.profile ? state.profile.name : 'you')
     .replaceAll('{title}', extra.title || '');
+
+  const praiseLines = (pool = R.praise) => pool[state.settings.praise] || pool.neutral;
+  // Half the time a finished task gets her "good boy / good girl" praise.
+  const doneLine = () => say(pick(Math.random() < 0.5 ? praiseLines() : R.done));
+  const doneToday = () => Object.values(state.log[dateKey()] || {}).includes('done');
+  // Once you've done something today, some check-ins turn into praise.
+  const checkinLine = (p, praiseOk) => say(pick(praiseOk && Math.random() < 0.4 ? praiseLines(R.praiseCheckin) : R.checkin[p]));
 
   // ---------- schedule ----------
   function appliesOn(item, d) {
@@ -655,7 +725,7 @@ window.RIAS = {
     updateSummary();
     addMessage('me', status === 'done' ? `Done: ${item.title} ✓` : `Skipping ${item.title} today.`);
     setTimeout(() => {
-      addMessage('rias', say(pick(status === 'done' ? R.done : R.skip)));
+      addMessage('rias', status === 'done' ? doneLine() : say(pick(R.skip)));
       const list = todaysItems();
       if (status === 'done' && list.length && list.every((it) => statusOf(it.id) === 'done')) {
         setTimeout(() => addMessage('rias', say(pick(R.allDone))), 900);
@@ -718,7 +788,7 @@ window.RIAS = {
     const quietFor = Date.now() - state.lastRias;
     if (state.settings.checkins && isAwake(nm) && quietFor > state.settings.checkinEvery * 60000) {
       const p = period(nm);
-      if (R.checkin[p]) riasSays(say(pick(R.checkin[p])));
+      if (R.checkin[p]) riasSays(checkinLine(p, doneToday()));
     }
 
     save();
@@ -752,7 +822,7 @@ window.RIAS = {
     if (/^(done|did it|finished|i did it|complete|ok done)\b/.test(t) || has("i'm done", 'im done', 'all done')) {
       const p = pendingItem();
       if (p) { resolve(p.id, 'done'); return null; }
-      return say(pick(R.done));
+      return doneLine();
     }
     if (has('what now', 'what should i do', "what's next", 'whats next', 'next')) {
       const p = pendingItem();
@@ -762,6 +832,7 @@ window.RIAS = {
       if (next) return say(`Next up at ${fmtTime(next.time)}: ${next.title}. Until then — drink some water and keep your posture nice, {name}.`);
       return say(isAwake() ? "Nothing left on today's list. Read something, relax, or tidy up a little." : pick(R.lateNight));
     }
+    if (has('good boy', 'good girl', 'praise me', 'am i good', 'proud of me', 'did good', 'did well', 'i did it')) return say(pick(praiseLines()));
     if (has('plan', 'schedule', 'today', 'agenda')) return planText();
     if (has('depress', 'sad', 'lonely', 'cry', 'upset', 'down', 'awful', 'terrible')) return say(pick(R.chat.sad));
     if (has('stress', 'anxious', 'anxiety', 'overwhelm', 'panic', 'too much')) return say(pick(R.chat.stressed));
@@ -998,8 +1069,8 @@ window.RIAS = {
         const t = at(d, m);
         if (t <= now) continue;
         if (items.some((it) => Math.abs(toMin(it.time) - (m % 1440)) < 25)) continue; // she's already pinging then
-        const lines = R.checkin[period(m % 1440)];
-        if (lines) events.push({ at: t, text: say(pick(lines)) });
+        const p = period(m % 1440);
+        if (R.checkin[p]) events.push({ at: t, text: checkinLine(p, i > 0 || doneToday()) });
       }
     }
     for (const sn of state.snoozes) {
@@ -1044,12 +1115,13 @@ window.RIAS = {
     sf.elements.checkins.checked = state.settings.checkins;
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
+    sf.elements.praise.value = state.settings.praise || 'neutral';
     notifyHint();
   }
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
-    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked });
+    Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value });
     save();
     addMessage('rias', say('Settings updated. I\'ll keep that in mind, {name}.'));
     show('chat');
@@ -1088,6 +1160,7 @@ window.RIAS = {
     e.preventDefault();
     const f = e.target;
     state.profile = { name: f.elements.name.value.trim(), wake: f.elements.wake.value, sleep: f.elements.sleep.value };
+    state.settings.praise = f.elements.praise.value;
     state.items = defaultItems(state.profile.wake, state.profile.sleep);
     // Everything already in the past today is treated as handled so you aren't flooded on day one.
     const today = dateKey();
