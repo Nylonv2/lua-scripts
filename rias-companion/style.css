@@ -319,3 +319,25 @@ textarea { font: inherit; }
 .quick-actions button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 16px;
   border: 1px solid var(--line); background: var(--panel); font-size: .8rem; }
 .quick-actions span { font-size: 1.3rem; }
+
+/* Week planner */
+.plan-week { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin-bottom: 14px; padding: 14px 16px;
+  border: 0; border-radius: var(--radius); background: linear-gradient(135deg, var(--crimson), #8e0f2a); font-size: 1.05rem; font-weight: 600; text-align: left; }
+.plan-week small { font-weight: normal; font-size: .82rem; color: #f3c4cf; }
+.planner { width: min(96vw, 480px); max-height: 92dvh; overflow-y: auto; overflow-x: hidden; padding: 16px 12px; }
+.pl-fill { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: var(--muted); }
+.pl-fill .row button { flex: 0 0 auto; }
+.pl-days { display: flex; flex-direction: column; gap: 6px; }
+.pl-day { display: grid; grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
+.pl-day .pl-toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 46px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-weight: 600; font-size: .9rem; line-height: 1.1; padding: 0; }
+.pl-day .pl-toggle small { font-weight: normal; font-size: .7rem; }
+.pl-day.on .pl-toggle { background: var(--crimson); border-color: var(--crimson); color: var(--text); }
+.pl-day.today .pl-toggle { box-shadow: 0 0 0 2px var(--gold); }
+.pl-day input[type=time] { min-width: 0; width: 100%; padding: 9px 4px; font-size: 15px; }
+.pl-day:not(.on) input[type=time] { opacity: .35; }
+.pl-day .pl-off { grid-column: 2 / 4; color: var(--muted); font-size: .9rem; padding-left: 6px; }
+.pl-day .pl-same { padding: 0; height: 46px; border-radius: 12px; }
+.pl-paste summary { cursor: pointer; color: var(--gold); padding: 6px 0; }
+.pl-paste textarea { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); font-size: 16px; margin: 6px 0; }
+.pl-day input[type=time]::-webkit-calendar-picker-indicator { display: none; }

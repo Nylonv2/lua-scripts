@@ -129,6 +129,7 @@
 
       <!-- Work schedule -->
       <section class="view pad" id="view-work" hidden>
+        <button type="button" class="plan-week" id="plan-week">🗓️ Plan my week<small>Set every day at once, paste a schedule, or copy last week</small></button>
         <div class="card">
           <b>Next 7 days</b>
           <div class="week" id="week"></div>
@@ -359,6 +360,44 @@
         <button type="button" id="edit-delete" class="danger">Delete</button>
         <button type="button" id="edit-cancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Week planner -->
+  <dialog id="planner" class="planner">
+    <form method="dialog" id="planner-form" class="stack">
+      <div class="daynav">
+        <button type="button" id="pl-prev" aria-label="Previous week">‹</button>
+        <b id="pl-week"></b>
+        <button type="button" id="pl-next" aria-label="Next week">›</button>
+      </div>
+      <label>Job or place <input name="label" maxlength="40" placeholder="Work"></label>
+      <div class="pl-fill">
+        <span>Fill ticked days with</span>
+        <div class="row">
+          <input type="time" name="fillStart" value="09:00" aria-label="Start time">
+          <input type="time" name="fillEnd" value="17:00" aria-label="End time">
+          <button type="button" id="pl-fill">Apply</button>
+        </div>
+      </div>
+      <p class="muted small">Tap a day to switch it between work and off.</p>
+      <div class="pl-days" id="pl-days"></div>
+      <details class="pl-paste">
+        <summary>✍️ Paste or type your schedule</summary>
+        <textarea name="paste" rows="4" placeholder="Mon 9-5&#10;Tue off&#10;Wed 12-8&#10;Thu-Fri 7am-3:30pm"></textarea>
+        <button type="button" id="pl-parse">Fill the week from this</button>
+        <p class="muted small" id="pl-parse-hint">One day per line or separated by commas. “off” for days off. AM/PM is guessed when you leave it out.</p>
+      </details>
+      <div class="row">
+        <button type="button" id="pl-copy">Copy last week</button>
+        <button type="button" id="pl-clear">Clear week</button>
+      </div>
+      <label class="switch"><input type="checkbox" name="repeat"> Repeat this every week</label>
+      <p class="muted small" id="pl-total"></p>
+      <div class="row">
+        <button type="button" id="pl-cancel">Cancel</button>
+        <button type="submit" class="primary">Save week</button>
       </div>
     </form>
   </dialog>

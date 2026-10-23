@@ -89,6 +89,11 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   dinner isn't logged, and at 3 PM if you're behind on water.
 - **Work**: weekly or one-off shifts (overnight shifts work too), a 7-day overview with total hours, and a
   "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
+  **🗓️ Plan my week** sets a whole week on one screen: tap days on/off, fill all ticked days with the same hours,
+  ↺ to copy the day before, *Copy last week*, ‹ › to plan ahead, and *Repeat this every week* (starts from that week;
+  earlier weeks keep their plan). Or paste/type your schedule: "Mon 9-5", "Tue off", "Wed-Fri 12-8",
+  "Thu 7am-3:30pm" (AM/PM is guessed when left out: starts from 1 to 5 are afternoon, and the end comes after the start).
+  Changing one week of a repeating schedule only changes that week.
 - **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
 
 ## Pop-ups

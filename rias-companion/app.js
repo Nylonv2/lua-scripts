@@ -114,7 +114,12 @@
   // Work shifts and phone-calendar events show up as read-only items on their day.
   function shiftsOn(d) {
     const day = d.getDay(), k = dateKey(d);
-    return state.shifts.filter((sh) => (sh.date ? sh.date === k : (sh.days || []).includes(day)));
+    // A one-off shift replaces the same job's weekly shift that day, and weekly shifts
+    // can be skipped on single dates (both come from the week planner).
+    const oneOffs = state.shifts.filter((sh) => sh.date === k);
+    const job = (sh) => sh.label || 'Work';
+    return oneOffs.concat(state.shifts.filter((sh) => !sh.date && (sh.days || []).includes(day) && !(sh.from && k < sh.from) && !(sh.until && k > sh.until)
+      && !(sh.skip || []).includes(k) && !oneOffs.some((o) => job(o) === job(sh))));
   }
   const overnight = (sh) => toMin(sh.end) <= toMin(sh.start);
   function virtualItems(d) {
@@ -191,6 +196,8 @@
     const today = dateKey();
     state.items = state.items.filter((it) => it.repeat !== 'once' || it.date >= today || !it.date);
     state.shifts = state.shifts.filter((sh) => !sh.date || sh.date >= today);
+    state.shifts = state.shifts.filter((sh) => !sh.until || sh.until >= today);
+    for (const sh of state.shifts) if (sh.skip) sh.skip = sh.skip.filter((k) => k >= today);
   }
 
   // ---------- messages ----------

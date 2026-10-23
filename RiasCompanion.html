@@ -331,6 +331,28 @@ textarea { font: inherit; }
 .quick-actions button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 16px;
   border: 1px solid var(--line); background: var(--panel); font-size: .8rem; }
 .quick-actions span { font-size: 1.3rem; }
+
+/* Week planner */
+.plan-week { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin-bottom: 14px; padding: 14px 16px;
+  border: 0; border-radius: var(--radius); background: linear-gradient(135deg, var(--crimson), #8e0f2a); font-size: 1.05rem; font-weight: 600; text-align: left; }
+.plan-week small { font-weight: normal; font-size: .82rem; color: #f3c4cf; }
+.planner { width: min(96vw, 480px); max-height: 92dvh; overflow-y: auto; overflow-x: hidden; padding: 16px 12px; }
+.pl-fill { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; color: var(--muted); }
+.pl-fill .row button { flex: 0 0 auto; }
+.pl-days { display: flex; flex-direction: column; gap: 6px; }
+.pl-day { display: grid; grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
+.pl-day .pl-toggle { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 46px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-weight: 600; font-size: .9rem; line-height: 1.1; padding: 0; }
+.pl-day .pl-toggle small { font-weight: normal; font-size: .7rem; }
+.pl-day.on .pl-toggle { background: var(--crimson); border-color: var(--crimson); color: var(--text); }
+.pl-day.today .pl-toggle { box-shadow: 0 0 0 2px var(--gold); }
+.pl-day input[type=time] { min-width: 0; width: 100%; padding: 9px 4px; font-size: 15px; }
+.pl-day:not(.on) input[type=time] { opacity: .35; }
+.pl-day .pl-off { grid-column: 2 / 4; color: var(--muted); font-size: .9rem; padding-left: 6px; }
+.pl-day .pl-same { padding: 0; height: 46px; border-radius: 12px; }
+.pl-paste summary { cursor: pointer; color: var(--gold); padding: 6px 0; }
+.pl-paste textarea { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); font-size: 16px; margin: 6px 0; }
+.pl-day input[type=time]::-webkit-calendar-picker-indicator { display: none; }
 </style>
 </head>
 <body>
@@ -449,6 +471,7 @@ textarea { font: inherit; }
 
       <!-- Work schedule -->
       <section class="view pad" id="view-work" hidden>
+        <button type="button" class="plan-week" id="plan-week">🗓️ Plan my week<small>Set every day at once, paste a schedule, or copy last week</small></button>
         <div class="card">
           <b>Next 7 days</b>
           <div class="week" id="week"></div>
@@ -679,6 +702,44 @@ textarea { font: inherit; }
         <button type="button" id="edit-delete" class="danger">Delete</button>
         <button type="button" id="edit-cancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Week planner -->
+  <dialog id="planner" class="planner">
+    <form method="dialog" id="planner-form" class="stack">
+      <div class="daynav">
+        <button type="button" id="pl-prev" aria-label="Previous week">‹</button>
+        <b id="pl-week"></b>
+        <button type="button" id="pl-next" aria-label="Next week">›</button>
+      </div>
+      <label>Job or place <input name="label" maxlength="40" placeholder="Work"></label>
+      <div class="pl-fill">
+        <span>Fill ticked days with</span>
+        <div class="row">
+          <input type="time" name="fillStart" value="09:00" aria-label="Start time">
+          <input type="time" name="fillEnd" value="17:00" aria-label="End time">
+          <button type="button" id="pl-fill">Apply</button>
+        </div>
+      </div>
+      <p class="muted small">Tap a day to switch it between work and off.</p>
+      <div class="pl-days" id="pl-days"></div>
+      <details class="pl-paste">
+        <summary>✍️ Paste or type your schedule</summary>
+        <textarea name="paste" rows="4" placeholder="Mon 9-5&#10;Tue off&#10;Wed 12-8&#10;Thu-Fri 7am-3:30pm"></textarea>
+        <button type="button" id="pl-parse">Fill the week from this</button>
+        <p class="muted small" id="pl-parse-hint">One day per line or separated by commas. “off” for days off. AM/PM is guessed when you leave it out.</p>
+      </details>
+      <div class="row">
+        <button type="button" id="pl-copy">Copy last week</button>
+        <button type="button" id="pl-clear">Clear week</button>
+      </div>
+      <label class="switch"><input type="checkbox" name="repeat"> Repeat this every week</label>
+      <p class="muted small" id="pl-total"></p>
+      <div class="row">
+        <button type="button" id="pl-cancel">Cancel</button>
+        <button type="submit" class="primary">Save week</button>
       </div>
     </form>
   </dialog>
@@ -1702,7 +1763,9 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       li.dataset.id = sh.id;
       li.innerHTML = '<span class="what"><span></span><br><span class="tag"></span></span><span class="t"></span>';
       li.querySelector('.what span').textContent = sh.label || 'Work';
-      li.querySelector('.tag').textContent = `${when(sh)}${sh.date ? '' : ' · weekly'}`;
+      const short = (k) => new Date(`${k}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const range = `${sh.from && sh.from > dateKey() ? ` · from ${short(sh.from)}` : ''}${sh.until ? ` · until ${short(sh.until)}` : ''}`;
+      li.querySelector('.tag').textContent = `${when(sh)}${sh.date ? '' : ' · weekly'}${range}`;
       li.querySelector('.t').textContent = `${fmtTime(sh.start)} – ${fmtTime(sh.end)}`;
       ul.append(li);
     }
@@ -1797,7 +1860,217 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     return lines.length ? lines.join('; ') : 'no shifts in the next 7 days';
   }
 
-  return { render, addShift, summary };
+  // ---------- Week planner: a whole week on one screen ----------
+  const pl = $('#planner');
+  const pf = $('#planner-form');
+  const DAY_RE = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  let weekStart = null; // Sunday of the week being planned
+
+  const startOfWeek = (d) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - x.getDay()); return x; };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const rows = () => [...$('#pl-days').children];
+  const hhmm = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+  function setRow(row, on, start, end) {
+    row.classList.toggle('on', on);
+    row.querySelector('.pl-on').checked = on;
+    if (start) row.querySelector('.pl-start').value = start;
+    if (end) row.querySelector('.pl-end').value = end;
+    row.querySelector('.pl-off').hidden = on;
+    for (const i of row.querySelectorAll('input[type=time]')) i.hidden = !on;
+    updateTotal();
+  }
+
+  function updateTotal() {
+    let n = 0, h = 0;
+    for (const r of rows()) {
+      if (!r.classList.contains('on')) continue;
+      n++;
+      h += hours({ start: r.querySelector('.pl-start').value, end: r.querySelector('.pl-end').value });
+    }
+    $('#pl-total').textContent = n ? `${n} shift${n === 1 ? '' : 's'} · ${Math.round(h * 10) / 10} hours this week` : 'No shifts this week yet.';
+  }
+
+  function renderPlanner() {
+    const end = addDays(weekStart, 6);
+    const fmt = (d) => d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const thisWeek = startOfWeek(new Date()).getTime() === weekStart.getTime();
+    const nextWeek = startOfWeek(addDays(new Date(), 7)).getTime() === weekStart.getTime();
+    $('#pl-week').textContent = `${thisWeek ? 'This week' : nextWeek ? 'Next week' : 'Week'} · ${fmt(weekStart)} – ${fmt(end)}`;
+    const box = $('#pl-days');
+    box.textContent = '';
+    const today = dateKey();
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(weekStart, i);
+      const row = document.createElement('div');
+      row.className = `pl-day${dateKey(d) === today ? ' today' : ''}`;
+      row.dataset.date = dateKey(d);
+      row.innerHTML = '<button type="button" class="pl-toggle"><span></span><small></small></button>'
+        + '<input type="checkbox" class="pl-on" hidden>'
+        + '<input type="time" class="pl-start" aria-label="Start"><input type="time" class="pl-end" aria-label="End">'
+        + '<span class="pl-off">Off</span>'
+        + '<button type="button" class="pl-same" title="Same as the day before" aria-label="Same as the day before">↺</button>';
+      row.querySelector('.pl-toggle span').textContent = DAYS[d.getDay()];
+      row.querySelector('.pl-toggle small').textContent = d.getDate();
+      row.querySelector('.pl-same').hidden = i === 0;
+      box.append(row);
+      const sh = ctx.shiftsOn(d)[0];
+      setRow(row, !!sh, sh ? sh.start : pf.elements.fillStart.value, sh ? sh.end : pf.elements.fillEnd.value);
+    }
+  }
+
+  function openPlanner() {
+    // Late in the week, start on next week; otherwise this week.
+    const now = new Date();
+    weekStart = startOfWeek(now.getDay() >= 5 ? addDays(now, 7) : now);
+    const last = state.shifts[state.shifts.length - 1];
+    pf.elements.label.value = (last && last.label) || 'Work';
+    if (last) { pf.elements.fillStart.value = last.start; pf.elements.fillEnd.value = last.end; }
+    pf.elements.repeat.checked = false;
+    pf.elements.paste.value = '';
+    renderPlanner();
+    pl.showModal();
+  }
+
+  $('#pl-days').addEventListener('click', (e) => {
+    const row = e.target.closest('.pl-day');
+    if (!row) return;
+    if (e.target.closest('.pl-toggle') || e.target.closest('.pl-off')) {
+      setRow(row, !row.classList.contains('on'));
+    } else if (e.target.closest('.pl-same')) {
+      const prev = row.previousElementSibling;
+      if (prev) setRow(row, prev.classList.contains('on'), prev.querySelector('.pl-start').value, prev.querySelector('.pl-end').value);
+    }
+  });
+  $('#pl-days').addEventListener('change', updateTotal);
+  $('#pl-fill').addEventListener('click', () => {
+    const on = rows().filter((r) => r.classList.contains('on'));
+    // Nothing ticked yet? Fill Monday–Friday.
+    const targets = on.length ? on : rows().slice(1, 6);
+    for (const r of targets) setRow(r, true, pf.elements.fillStart.value, pf.elements.fillEnd.value);
+  });
+  $('#pl-copy').addEventListener('click', () => {
+    for (const r of rows()) {
+      const d = addDays(new Date(`${r.dataset.date}T12:00`), -7);
+      const sh = ctx.shiftsOn(d)[0];
+      setRow(r, !!sh, sh && sh.start, sh && sh.end);
+    }
+  });
+  $('#pl-clear').addEventListener('click', () => { for (const r of rows()) setRow(r, false); });
+  $('#pl-prev').addEventListener('click', () => { weekStart = addDays(weekStart, -7); renderPlanner(); });
+  $('#pl-next').addEventListener('click', () => { weekStart = addDays(weekStart, 7); renderPlanner(); });
+  $('#pl-cancel').addEventListener('click', () => pl.close());
+
+  // "Mon 9-5", "tue off", "Wed-Fri 12:30pm-9", "thursday 7a-3:30p" → day rows.
+  function parseTime(h, m, ap) {
+    let hh = Number(h) % 24;
+    if (ap) { ap = ap[0]; if (ap === 'p' && hh < 12) hh += 12; if (ap === 'a' && hh === 12) hh = 0; }
+    return hh * 60 + Number(m || 0);
+  }
+  function parseRange(text) {
+    const m = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am?|pm?)?\s*(?:-|–|—|to|until|till)\s*(\d{1,2})(?::(\d{2}))?\s*(am?|pm?)?/i);
+    if (!m) return null;
+    let [, sh, sm, sap, eh, em, eap] = m;
+    sap = sap && sap.toLowerCase(); eap = eap && eap.toLowerCase();
+    let start = parseTime(sh, sm, sap);
+    let end = parseTime(eh, em, eap);
+    if (!sap && !eap) {
+      // No AM/PM at all: shifts starting 1–5 are afternoon ("2-10"), and the end comes after the start ("9-5", "6:30-3").
+      if (Number(sh) >= 1 && Number(sh) <= 5) start += 12 * 60;
+      if (end <= start && end + 12 * 60 > start && Number(eh) < 12) end += 12 * 60;
+    } else if (!sap && eap) {
+      // "1-9pm" → afternoon start; "11-7pm" → morning start.
+      if (eap[0] === 'p' && Number(sh) < 12 && Number(sh) < Number(eh)) start += 12 * 60;
+    } else if (sap && !eap) {
+      if (end <= start && Number(eh) < 12) end += 12 * 60;
+    }
+    return { start: hhmm(start % 1440), end: hhmm(end % 1440) };
+  }
+  function parseSchedule(text) {
+    const found = new Map(); // day of week → { on, start, end }
+    const parts = text.toLowerCase().split(/[\n;,]+/).map((x) => x.trim()).filter(Boolean);
+    const dayAt = (str) => { const k = str.slice(0, 3); return k in DAY_RE ? DAY_RE[k] : null; };
+    for (const part of parts) {
+      const dm = part.match(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?(?:\s*(?:-|–|to|through|thru)\s*(sun|mon|tue|wed|thu|fri|sat)[a-z]*)?/);
+      if (!dm) continue;
+      const a = dayAt(dm[1]);
+      const b = dm[2] ? dayAt(dm[2]) : a;
+      const days = [];
+      for (let d = a; ; d = (d + 1) % 7) { days.push(d); if (d === b) break; }
+      const rest = part.slice(dm.index + dm[0].length);
+      const off = /\boff\b|\bfree\b|\bnone\b|\bno work\b|\brest\b/.test(rest) || !/\d/.test(rest);
+      const range = off ? null : parseRange(rest);
+      for (const d of days) found.set(d, range ? { on: true, ...range } : { on: false });
+    }
+    return found;
+  }
+  $('#pl-parse').addEventListener('click', () => {
+    const found = parseSchedule(pf.elements.paste.value);
+    if (!found.size) { $('#pl-parse-hint').textContent = 'I couldn’t find any days in that. Try lines like “Mon 9-5” or “Tue off”.'; return; }
+    for (const r of rows()) {
+      const dow = new Date(`${r.dataset.date}T12:00`).getDay();
+      if (found.has(dow)) { const f = found.get(dow); setRow(r, f.on, f.start, f.end); }
+    }
+    $('#pl-parse-hint').textContent = `Filled ${found.size} day${found.size === 1 ? '' : 's'}. Check the times, then tap Save week.`;
+  });
+
+  pf.addEventListener('submit', () => {
+    const label = pf.elements.label.value.trim() || 'Work';
+    const plan = rows().map((r) => ({
+      date: r.dataset.date,
+      dow: new Date(`${r.dataset.date}T12:00`).getDay(),
+      on: r.classList.contains('on'),
+      start: r.querySelector('.pl-start').value,
+      end: r.querySelector('.pl-end').value,
+    })).filter((p) => !p.on || (p.start && p.end));
+    const dates = new Set(plan.map((p) => p.date));
+    // One-off shifts on these dates are replaced by the plan.
+    state.shifts = state.shifts.filter((sh) => !(sh.date && dates.has(sh.date)));
+    if (pf.elements.repeat.checked) {
+      // Weekly from this week on: this job's older weekly shifts stop the day before,
+      // and any that would only have started later are replaced.
+      const startKey = dateKey(weekStart);
+      const sameJob = (sh) => !sh.date && (sh.label || 'Work') === label;
+      state.shifts = state.shifts.filter((sh) => !(sameJob(sh) && sh.from && sh.from >= startKey));
+      for (const sh of state.shifts) {
+        if (sameJob(sh) && (!sh.until || sh.until >= startKey)) sh.until = dateKey(addDays(weekStart, -1));
+      }
+      const groups = new Map();
+      for (const p of plan.filter((x) => x.on)) {
+        const k = `${p.start}|${p.end}`;
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(p.dow);
+      }
+      for (const [k, days] of groups) {
+        const [start, end] = k.split('|');
+        // Repeats from the week being planned onward; earlier weeks keep what they had.
+        state.shifts.push({ id: uid(), label, days: days.sort(), date: null, start, end, from: dateKey(weekStart) });
+      }
+    } else {
+      for (const p of plan) {
+        // Weekly shifts that day: keep if they match, otherwise skip them for just this date.
+        let covered = false;
+        for (const sh of state.shifts.filter((x) => !x.date && (x.days || []).includes(p.dow) && !(x.skip || []).includes(p.date))) {
+          if (p.on && !covered && sh.start === p.start && sh.end === p.end && (sh.label || 'Work') === label) covered = true;
+          else sh.skip = [...(sh.skip || []), p.date];
+        }
+        if (p.on && !covered) state.shifts.push({ id: uid(), label, date: p.date, days: null, start: p.start, end: p.end });
+      }
+    }
+    ctx.silencePast();
+    save();
+    render();
+    ctx.refresh();
+    const on = plan.filter((p) => p.on);
+    const total = on.reduce((h, p) => h + hours(p), 0);
+    ctx.riasLine(on.length
+      ? [`Got it — ${on.length} shift${on.length === 1 ? '' : 's'}, ${Math.round(total * 10) / 10} hours. I'll make sure you leave on time, {name}.`]
+      : ['A whole week off? Then rest properly — that\'s an order.']);
+  });
+
+  $('#plan-week').addEventListener('click', openPlanner);
+
+  return { render, addShift, summary, openPlanner, parseSchedule };
 };
 </script>
   <script>
@@ -2504,7 +2777,12 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   // Work shifts and phone-calendar events show up as read-only items on their day.
   function shiftsOn(d) {
     const day = d.getDay(), k = dateKey(d);
-    return state.shifts.filter((sh) => (sh.date ? sh.date === k : (sh.days || []).includes(day)));
+    // A one-off shift replaces the same job's weekly shift that day, and weekly shifts
+    // can be skipped on single dates (both come from the week planner).
+    const oneOffs = state.shifts.filter((sh) => sh.date === k);
+    const job = (sh) => sh.label || 'Work';
+    return oneOffs.concat(state.shifts.filter((sh) => !sh.date && (sh.days || []).includes(day) && !(sh.from && k < sh.from) && !(sh.until && k > sh.until)
+      && !(sh.skip || []).includes(k) && !oneOffs.some((o) => job(o) === job(sh))));
   }
   const overnight = (sh) => toMin(sh.end) <= toMin(sh.start);
   function virtualItems(d) {
@@ -2581,6 +2859,8 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const today = dateKey();
     state.items = state.items.filter((it) => it.repeat !== 'once' || it.date >= today || !it.date);
     state.shifts = state.shifts.filter((sh) => !sh.date || sh.date >= today);
+    state.shifts = state.shifts.filter((sh) => !sh.until || sh.until >= today);
+    for (const sh of state.shifts) if (sh.skip) sh.skip = sh.skip.filter((k) => k >= today);
   }
 
   // ---------- messages ----------
