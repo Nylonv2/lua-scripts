@@ -62,7 +62,10 @@
   let state;
   try { state = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY)) || {}); }
   catch { state = blank(); }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full / private mode */ } };
+  const save = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full / private mode */ }
+    syncNative();
+  };
 
   const say = (line, extra = {}) => line
     .replaceAll('{name}', state.profile ? state.profile.name : 'you')
@@ -467,10 +470,70 @@
     return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'yes'), { once: true }));
   }
 
+  // ---------- Android app: hand reminders to the phone's alarm system ----------
+  // window.RiasNative only exists inside the Android app. There, every reminder and
+  // check-in for the next week is scheduled natively, so they fire with the app closed.
+  const Native = window.RiasNative;
+  let lastSync = '';
+  function syncNative() {
+    if (!Native || !state.profile) return;
+    const today = dateKey();
+    // Only reschedule when something that affects the schedule changed.
+    const sig = JSON.stringify([state.items, state.settings, state.profile, state.log[today], state.snoozes, today]);
+    if (sig === lastSync) return;
+    lastSync = sig;
+    try { Native.schedule(JSON.stringify(upcomingEvents())); } catch { /* bridge unavailable */ }
+  }
+
+  function upcomingEvents(days = 7) {
+    if (!state.settings.notify) return [];
+    const events = [];
+    const now = Date.now();
+    const at = (d, m) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, m).getTime();
+    const w = toMin(state.profile.wake), s = toMin(state.profile.sleep);
+    const awakeEnd = s > w ? s : s + 1440;
+    for (let i = 0; i < days; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      const log = state.log[dateKey(d)] || {};
+      const items = state.items.filter((it) => appliesOn(it, d));
+      for (const it of items) {
+        const t = at(d, toMin(it.time));
+        if (t <= now || log[it.id]) continue;
+        events.push({ at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${fmtTime(it.time)} · ${it.title}` });
+      }
+      if (!state.settings.checkins) continue;
+      const every = state.settings.checkinEvery;
+      for (let m = w + every; m < awakeEnd - 30; m += every) {
+        const t = at(d, m);
+        if (t <= now) continue;
+        if (items.some((it) => Math.abs(toMin(it.time) - (m % 1440)) < 25)) continue; // she's already pinging then
+        const lines = R.checkin[period(m % 1440)];
+        if (lines) events.push({ at: t, text: say(pick(lines)) });
+      }
+    }
+    for (const sn of state.snoozes) {
+      const it = state.items.find((x) => x.id === sn.id);
+      if (it && sn.at > now) events.push({ at: sn.at, text: `${say(pick(R.due[it.category] || R.due.custom), it)}\n${it.title}` });
+    }
+    // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
+    const last = new Date(); last.setDate(last.getDate() + days);
+    events.push({ at: at(last, w + 60), text: say("I haven't seen you in days, {name}. Open the app so I can keep planning your days.") });
+    return events.sort((a, b) => a.at - b.at);
+  }
+
   // ---------- settings ----------
   const sf = $('#settings');
   function notifyHint() {
     const hint = $('#notify-hint');
+    if (Native) {
+      const on = Native.notificationsEnabled();
+      $('#perm').hidden = false;
+      $('#perm').textContent = 'Notification settings';
+      hint.textContent = on
+        ? 'Notifications are on. Rias will remind you even when the app is closed.'
+        : 'Notifications are off for this app. Tap “Notification settings” and turn them on.';
+      return;
+    }
     if (!('Notification' in window)) {
       hint.textContent = 'This browser doesn’t support notifications. On iPhone, add the app to your Home Screen first (Share → Add to Home Screen).';
       $('#perm').hidden = true;
@@ -501,10 +564,12 @@
     show('chat');
   });
   $('#perm').addEventListener('click', async () => {
-    if ('Notification' in window) await Notification.requestPermission();
+    if (Native) Native.openSettings();
+    else if ('Notification' in window) await Notification.requestPermission();
     notifyHint();
   });
   $('#test').addEventListener('click', () => {
+    if (Native) { Native.test(say("This is how I'll call for you, {name}. Don't ignore me~")); return; }
     if (!('Notification' in window) || Notification.permission !== 'granted') { notifyHint(); return; }
     notify(say("This is how I'll call for you, {name}. Don't ignore me~"), 'test');
   });
@@ -563,5 +628,5 @@
   }
   renderStatus();
   setInterval(tick, 20000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); renderFeed(); renderToday(); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); renderFeed(); renderToday(); if (state.profile && !$('#view-settings').hidden) notifyHint(); } });
 })();

@@ -22,6 +22,24 @@ step. You install it from your phone's browser.
 - **Private.** Everything is stored on your phone (localStorage). There's no server
   and no account.
 
+## Android app (recommended)
+
+Download **`RiasCompanion.apk`** from the top of the repo and open it on your phone.
+Android will ask you to allow installing apps from your browser or Files app; allow it
+once, then tap **Install**. Play Protect may warn that the app is unknown or built for an
+older Android version. That's because it's a personal app that isn't from the Play
+Store. Tap **Install anyway**.
+
+In the app, every reminder and check-in for the next 7 days is handed to Android's alarm
+system, so Rias pings you even when the app is closed or the phone has restarted. Open
+the app at least once a week so she can plan the next week.
+
+If notifications stop arriving, open **Settings → Apps → Rias → Battery** and choose
+**Unrestricted**. Samsung, Xiaomi, OnePlus and some other phones put unused apps to
+sleep unless you do this.
+
+To rebuild the APK after changing the app, run `android/build_apk.sh` (needs Java 17+).
+
 ## Quickest way to open it
 
 Download **`RiasCompanion.html`** from the top of the repo and open it in Chrome, Safari or Edge. It's the whole app in

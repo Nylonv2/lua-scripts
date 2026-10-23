@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Builds RiasCompanion.apk (repo root) from the web app plus the small Java shell in src/.
+# Needs Java 17+ and network access to GitHub releases and Maven Central for the tools.
+set -euo pipefail
+cd "$(dirname "$0")"
+HERE=$PWD
+TOOLS=$HERE/.tools
+WORK=$HERE/.build
+OUT=$HERE/../../RiasCompanion.apk
+
+fetch() { [ -s "$2" ] || { mkdir -p "$(dirname "$2")"; curl -sSfL --retry 4 -o "$2" "$1"; }; }
+fetch https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar "$TOOLS/apktool/apktool.jar"
+fetch https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar "$TOOLS/signer/uber-apk-signer.jar"
+fetch https://repo1.maven.org/maven2/com/jakewharton/android/repackaged/dalvik-dx/16.0.1/dalvik-dx-16.0.1.jar "$TOOLS/dx/dx.jar"
+# Android 10 (API 29) framework classes to compile against.
+fetch https://repo1.maven.org/maven2/org/robolectric/android-all/10-robolectric-5803371/android-all-10-robolectric-5803371.jar "$TOOLS/android/android-all-29.jar"
+
+rm -rf "$WORK" && mkdir -p "$WORK/classes" "$WORK/app/assets/www"
+
+echo "Compiling Java…"
+javac -nowarn --release 8 -encoding UTF-8 \
+  -cp "$TOOLS/android/android-all-29.jar" \
+  -d "$WORK/classes" $(find src -name '*.java')
+
+echo "Converting to dex…"
+java -cp "$TOOLS/dx/dx.jar" com.android.dx.command.Main --dex --min-sdk-version=24 \
+  --output="$WORK/app/classes.dex" "$WORK/classes"
+
+echo "Packaging…"
+cp AndroidManifest.xml apktool.yml "$WORK/app/"
+cp -r res "$WORK/app/res"
+(cd .. && cp -r index.html style.css app.js dialogue.js manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
+java -jar "$TOOLS/apktool/apktool.jar" b "$WORK/app" -o "$WORK/unsigned.apk"
+
+echo "Signing…"
+java -jar "$TOOLS/signer/uber-apk-signer.jar" --apks "$WORK/unsigned.apk" --out "$WORK/signed" >/dev/null
+cp "$WORK"/signed/*.apk "$OUT"
+echo "Built $(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
