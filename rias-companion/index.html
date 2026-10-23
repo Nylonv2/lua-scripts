@@ -390,15 +390,8 @@
         <button type="button" id="pl-next" aria-label="Next week">›</button>
       </div>
       <label>Job or place <input name="label" maxlength="40" placeholder="Work"></label>
-      <div class="pl-fill">
-        <span>Hours for the days you tap</span>
-        <div class="row">
-          <input type="time" name="fillStart" value="09:00" aria-label="Start time">
-          <input type="time" name="fillEnd" value="17:00" aria-label="End time">
-          <button type="button" id="pl-fill">Apply to all</button>
-        </div>
-      </div>
-      <p class="muted small">Tap a day to switch it between work and off. You can also change any day's own times.</p>
+      <p class="muted small">Type a start and end time on each day you work. Leave days off blank. ↺ copies the day above, ✕ clears a day.</p>
+      <div class="pl-head"><span></span><span>Start</span><span>End</span><span></span></div>
       <div class="pl-days" id="pl-days"></div>
       <details class="pl-paste">
         <summary>✍️ Paste or type your schedule</summary>

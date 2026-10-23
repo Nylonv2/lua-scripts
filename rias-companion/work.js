@@ -157,17 +157,23 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
   const rows = () => [...$('#pl-days').children];
   const hhmm = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-  // A row either has its own hours (typed, pasted, copied or an existing shift) or
-  // follows the "Hours for the days you tap" boxes at the top.
+  // Each day is just its own start and end time: both filled = a work day, empty = off.
   function setRow(row, on, start, end) {
+    row.querySelector('.pl-start').value = on ? start || '' : '';
+    row.querySelector('.pl-end').value = on ? end || '' : '';
+    syncRow(row);
+  }
+  function syncRow(row) {
+    const st = row.querySelector('.pl-start').value, en = row.querySelector('.pl-end').value;
+    const on = !!(st && en);
     row.classList.toggle('on', on);
-    row.querySelector('.pl-on').checked = on;
-    if (start && end) row.dataset.own = '1';
-    if (on && !row.dataset.own) { start = pf.elements.fillStart.value; end = pf.elements.fillEnd.value; }
-    if (start) row.querySelector('.pl-start').value = start;
-    if (end) row.querySelector('.pl-end').value = end;
-    row.querySelector('.pl-off').hidden = on;
-    for (const i of row.querySelectorAll('input[type=time]')) i.hidden = !on;
+    row.querySelector('.pl-state').textContent = on ? `${Math.round(hours({ start: st, end: en }) * 10) / 10} h` : 'Off';
+    // ✕ clears a work day; on an empty day ↺ copies the day above.
+    const btn = row.querySelector('.pl-act');
+    const prev = row.previousElementSibling;
+    if (on || st || en) { btn.textContent = '✕'; btn.title = 'Clear this day (day off)'; btn.hidden = false; }
+    else { btn.textContent = '↺'; btn.title = 'Same as the day before'; btn.hidden = !(prev && prev.classList.contains('on')); }
+    btn.setAttribute('aria-label', btn.title);
     updateTotal();
   }
 
@@ -178,7 +184,7 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       n++;
       h += hours({ start: r.querySelector('.pl-start').value, end: r.querySelector('.pl-end').value });
     }
-    $('#pl-total').textContent = n ? `${n} shift${n === 1 ? '' : 's'} · ${Math.round(h * 10) / 10} hours this week` : 'No shifts this week yet.';
+    $('#pl-total').textContent = n ? `${n} shift${n === 1 ? '' : 's'} · ${Math.round(h * 10) / 10} hours this week` : 'No shifts this week yet. Type a start and end time on any day.';
   }
 
   function renderPlanner() {
@@ -195,19 +201,19 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       const row = document.createElement('div');
       row.className = `pl-day${dateKey(d) === today ? ' today' : ''}`;
       row.dataset.date = dateKey(d);
-      row.innerHTML = '<button type="button" class="pl-toggle"><span></span><small></small></button>'
-        + '<input type="checkbox" class="pl-on" hidden>'
-        + '<input type="time" class="pl-start" aria-label="Start"><input type="time" class="pl-end" aria-label="End">'
-        + '<span class="pl-off">Off</span>'
-        + '<button type="button" class="pl-same" title="Same as the day before" aria-label="Same as the day before">↺</button>';
-      row.querySelector('.pl-toggle span').textContent = DAYS[d.getDay()];
-      row.querySelector('.pl-toggle small').textContent = d.getDate();
-      row.querySelector('.pl-same').hidden = i === 0;
+      row.innerHTML = '<div class="pl-label"><b></b><small></small><span class="pl-state"></span></div>'
+        + '<input type="time" class="pl-start"><input type="time" class="pl-end">'
+        + '<button type="button" class="pl-act"></button>';
+      const name = d.toLocaleDateString([], { weekday: 'long' });
+      row.querySelector('.pl-label b').textContent = DAYS[d.getDay()];
+      row.querySelector('.pl-label small').textContent = d.getDate();
+      row.querySelector('.pl-start').setAttribute('aria-label', `${name} start`);
+      row.querySelector('.pl-end').setAttribute('aria-label', `${name} end`);
       box.append(row);
       const sh = ctx.shiftsOn(d)[0];
-      if (sh) setRow(row, true, sh.start, sh.end);
-      else setRow(row, false);
+      setRow(row, !!sh, sh && sh.start, sh && sh.end);
     }
+    for (const r of rows()) syncRow(r); // ↺ depends on the day above
   }
 
   function openPlanner() {
@@ -216,7 +222,6 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     weekStart = startOfWeek(now.getDay() >= 5 ? addDays(now, 7) : now);
     const last = state.shifts[state.shifts.length - 1];
     pf.elements.label.value = (last && last.label) || 'Work';
-    if (last) { pf.elements.fillStart.value = last.start; pf.elements.fillEnd.value = last.end; }
     pf.elements.repeat.checked = false;
     pf.elements.paste.value = '';
     renderPlanner();
@@ -224,46 +229,37 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
   }
 
   $('#pl-days').addEventListener('click', (e) => {
+    const btn = e.target.closest('.pl-act');
+    if (!btn) return;
+    const row = btn.closest('.pl-day');
+    const prev = row.previousElementSibling;
+    if (btn.textContent === '✕') setRow(row, false);
+    else if (prev) setRow(row, true, prev.querySelector('.pl-start').value, prev.querySelector('.pl-end').value);
+    const next = row.nextElementSibling;
+    if (next) syncRow(next);
+  });
+  const edited = (e) => {
     const row = e.target.closest('.pl-day');
-    if (!row) return;
-    if (e.target.closest('.pl-toggle') || e.target.closest('.pl-off')) {
-      setRow(row, !row.classList.contains('on'));
-    } else if (e.target.closest('.pl-same')) {
-      const prev = row.previousElementSibling;
-      if (prev && prev.classList.contains('on')) setRow(row, true, prev.querySelector('.pl-start').value, prev.querySelector('.pl-end').value);
-      else if (prev) setRow(row, false);
+    if (!row || !e.target.matches('input[type=time]')) return;
+    // Typing a start on an empty day fills an 8-hour end you can change.
+    const st = row.querySelector('.pl-start'), en = row.querySelector('.pl-end');
+    if (e.type === 'change' && e.target === st && st.value && !en.value) {
+      const [h, m] = st.value.split(':').map(Number);
+      en.value = hhmm((h * 60 + m + 8 * 60) % 1440);
     }
-  });
-  const ownTimes = (e) => {
-    const row = e.target.closest('.pl-day');
-    if (row && e.target.matches('input[type=time]')) row.dataset.own = '1';
-    updateTotal();
+    syncRow(row);
+    if (row.nextElementSibling) syncRow(row.nextElementSibling);
   };
-  $('#pl-days').addEventListener('input', ownTimes);
-  $('#pl-days').addEventListener('change', ownTimes);
-  // Changing the top hours updates the ticked days that follow them.
-  const followFill = () => {
-    for (const r of rows()) if (r.classList.contains('on') && !r.dataset.own) setRow(r, true);
-  };
-  pf.elements.fillStart.addEventListener('input', followFill);
-  pf.elements.fillEnd.addEventListener('input', followFill);
-  pf.elements.fillStart.addEventListener('change', followFill);
-  pf.elements.fillEnd.addEventListener('change', followFill);
-  $('#pl-fill').addEventListener('click', () => {
-    const on = rows().filter((r) => r.classList.contains('on'));
-    // Nothing ticked yet? Fill Monday–Friday.
-    const targets = on.length ? on : rows().slice(1, 6);
-    for (const r of targets) { delete r.dataset.own; setRow(r, true); }
-  });
+  $('#pl-days').addEventListener('input', edited);
+  $('#pl-days').addEventListener('change', edited);
   $('#pl-copy').addEventListener('click', () => {
     for (const r of rows()) {
-      const d = addDays(new Date(`${r.dataset.date}T12:00`), -7);
-      const sh = ctx.shiftsOn(d)[0];
-      delete r.dataset.own;
-      if (sh) setRow(r, true, sh.start, sh.end); else setRow(r, false);
+      const sh = ctx.shiftsOn(addDays(new Date(`${r.dataset.date}T12:00`), -7))[0];
+      setRow(r, !!sh, sh && sh.start, sh && sh.end);
     }
+    for (const r of rows()) syncRow(r);
   });
-  $('#pl-clear').addEventListener('click', () => { for (const r of rows()) { delete r.dataset.own; setRow(r, false); } });
+  $('#pl-clear').addEventListener('click', () => { for (const r of rows()) setRow(r, false); for (const r of rows()) syncRow(r); });
   $('#pl-prev').addEventListener('click', () => { weekStart = addDays(weekStart, -7); renderPlanner(); });
   $('#pl-next').addEventListener('click', () => { weekStart = addDays(weekStart, 7); renderPlanner(); });
   $('#pl-cancel').addEventListener('click', () => pl.close());
@@ -316,8 +312,9 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     if (!found.size) { $('#pl-parse-hint').textContent = 'I couldn’t find any days in that. Try lines like “Mon 9-5” or “Tue off”.'; return; }
     for (const r of rows()) {
       const dow = new Date(`${r.dataset.date}T12:00`).getDay();
-      if (found.has(dow)) { const f = found.get(dow); if (f.on) setRow(r, true, f.start, f.end); else { delete r.dataset.own; setRow(r, false); } }
+      if (found.has(dow)) { const f = found.get(dow); setRow(r, f.on, f.start, f.end); }
     }
+    for (const r of rows()) syncRow(r);
     $('#pl-parse-hint').textContent = `Filled ${found.size} day${found.size === 1 ? '' : 's'}. Check the times, then tap Save week.`;
   });
 
