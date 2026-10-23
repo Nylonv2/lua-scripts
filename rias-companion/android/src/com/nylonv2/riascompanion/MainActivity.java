@@ -3,9 +3,13 @@ package com.nylonv2.riascompanion;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
@@ -21,6 +25,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 /** Hosts the web app (assets/www) full screen and exposes a small bridge as window.RiasNative. */
 public class MainActivity extends Activity {
@@ -29,6 +34,10 @@ public class MainActivity extends Activity {
     private WebView web;
     private TextToSpeech tts;
     private volatile boolean ttsReady;
+    /** starting | ready | failed | no-language | error — shown in Settings when she's silent. */
+    private volatile String ttsStatus = "starting";
+    private boolean ttsRetried;
+    private String pendingSpeech;
     // Voice settings from the web app; applied once the speech engine is ready.
     private String voiceName = "";
     private float pitch = 0.95f, rate = 0.9f;
@@ -59,15 +68,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        // Anonymous classes rather than lambdas: dx can't convert lambdas.
-        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if (status != TextToSpeech.SUCCESS) return;
-                ttsReady = true;
-                applyVoice();
-            }
-        });
+        startTts();
         web.addJavascriptInterface(new Bridge(this), "RiasNative");
         setContentView(web);
         web.loadUrl("file:///android_asset/www/index.html");
@@ -83,7 +84,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         visible = false;
-        if (tts != null) tts.stop();
+        if (ttsReady) tts.stop();
         web.onPause();
         super.onPause();
     }
@@ -103,6 +104,70 @@ public class MainActivity extends Activity {
         ArrayList<String> heard = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
         if (heard == null || heard.isEmpty()) return;
         web.evaluateJavascript("window.riasHeard && window.riasHeard(" + JSONObject.quote(heard.get(0)) + ")", null);
+    }
+
+    // Anonymous classes rather than lambdas: dx can't convert lambdas.
+    private void startTts() {
+        ttsStatus = "starting";
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        onTtsInit(status);
+                    }
+                });
+            }
+        });
+    }
+
+    private void onTtsInit(int status) {
+        if (status != TextToSpeech.SUCCESS) {
+            // Some engines fail the first bind right after install; try once more.
+            if (!ttsRetried) {
+                ttsRetried = true;
+                if (tts != null) tts.shutdown();
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        startTts();
+                    }
+                }, 1500);
+            } else {
+                ttsStatus = "failed";
+            }
+            return;
+        }
+        tts.setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build());
+        int lang = tts.setLanguage(Locale.getDefault());
+        if (lang < 0) lang = tts.setLanguage(Locale.US);
+        ttsStatus = lang < 0 ? "no-language" : "ready";
+        ttsReady = true;
+        applyVoice();
+        if (pendingSpeech != null) {
+            speakNow(pendingSpeech);
+            pendingSpeech = null;
+        }
+    }
+
+    private int utterance;
+
+    private void speakNow(String text) {
+        if (!ttsReady) {
+            pendingSpeech = text; // spoken as soon as the engine is up
+            return;
+        }
+        int r = tts.speak(text, TextToSpeech.QUEUE_ADD, null, "rias" + (utterance++));
+        if (r == TextToSpeech.ERROR) {
+            // The chosen voice may be missing; fall back to the phone's default once.
+            tts.setLanguage(Locale.getDefault());
+            r = tts.speak(text, TextToSpeech.QUEUE_ADD, null, "rias" + (utterance++));
+            if (r == TextToSpeech.ERROR) ttsStatus = "error";
+        }
     }
 
     private synchronized void applyVoice() {
@@ -130,17 +195,51 @@ public class MainActivity extends Activity {
     static final class Bridge {
         private final MainActivity activity;
         private final Context ctx;
-        private int utterance;
-
         Bridge(MainActivity activity) {
             this.activity = activity;
             this.ctx = activity.getApplicationContext();
         }
 
         @JavascriptInterface
-        public void speak(String text) {
-            if (activity.ttsReady) {
-                activity.tts.speak(text, TextToSpeech.QUEUE_ADD, null, "rias" + (utterance++));
+        public void speak(final String text) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.speakNow(text);
+                }
+            });
+        }
+
+        /** {status, volume, maxVolume} so the app can say why she's silent. */
+        @JavascriptInterface
+        public String voiceStatus() {
+            JSONObject o = new JSONObject();
+            try {
+                AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+                o.put("status", activity.ttsStatus);
+                o.put("volume", am == null ? -1 : am.getStreamVolume(AudioManager.STREAM_MUSIC));
+                o.put("maxVolume", am == null ? -1 : am.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+            } catch (Exception ignored) {
+            }
+            return o.toString();
+        }
+
+        /** Opens the phone's text-to-speech settings (or the Play Store page for Google's engine). */
+        @JavascriptInterface
+        public void openTtsSettings() {
+            Intent[] tries = {
+                    new Intent("com.android.settings.TTS_SETTINGS"),
+                    new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA),
+                    new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.tts")),
+                    new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.tts")),
+            };
+            for (Intent i : tries) {
+                try {
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ctx.startActivity(i);
+                    return;
+                } catch (Exception ignored) {
+                }
             }
         }
 

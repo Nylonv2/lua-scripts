@@ -642,6 +642,7 @@
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
     fillVoices();
+    voiceHint();
     const o = voiceOpts();
     sf.elements.voicePitch.value = o.pitch;
     sf.elements.voiceRate.value = o.rate;
@@ -674,7 +675,33 @@
     applyNativeVoice();
     speak(say(pick(praiseLines())), true);
     state.settings = saved;
+    setTimeout(voiceHint, 1200);
   });
+  // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
+  function voiceHint() {
+    const hint = $('#voice-hint'), btn = $('#tts-settings');
+    const N = window.RiasNative;
+    let msg = '', needsSettings = false;
+    if (N && N.voiceStatus) {
+      let st = {};
+      try { st = JSON.parse(N.voiceStatus()); } catch { /* older app */ }
+      if (st.status === 'starting') msg = 'Her voice is still loading. Try again in a few seconds.';
+      else if (st.status === 'failed') { msg = 'Your phone has no working text-to-speech engine. Tap below and install or enable “Speech Services by Google”.'; needsSettings = true; }
+      else if (st.status === 'no-language') { msg = 'Your phone is missing voice data for your language. Tap below and download an English voice.'; needsSettings = true; }
+      else if (st.status === 'error') { msg = 'That voice couldn’t play. Pick “Automatic” or another voice, or check your phone’s voice settings.'; needsSettings = true; }
+      else if (st.volume === 0) msg = 'Your media volume is at zero. Press volume up while the app is open.';
+    } else if (!('speechSynthesis' in window) || !speechSynthesis.getVoices().length) {
+      msg = 'This browser can’t speak. Use the Android app, or open the page in Chrome.';
+    }
+    hint.textContent = msg;
+    hint.hidden = !msg;
+    btn.hidden = !needsSettings && !(N && N.openTtsSettings && msg);
+  }
+  $('#tts-settings').addEventListener('click', () => {
+    const N = window.RiasNative;
+    if (N && N.openTtsSettings) N.openTtsSettings();
+  });
+
   $('#voice-reset').addEventListener('click', () => {
     sf.elements.voicePitch.value = RIAS_PITCH;
     sf.elements.voiceRate.value = RIAS_RATE;
