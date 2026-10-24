@@ -1360,3 +1360,75 @@ dialog.tr-live::backdrop { background: var(--d3); }
 .tr-mid button { width: 40px; height: 40px; padding: 0; border-radius: 50%; flex: none; }
 #tr-status { flex: 1; text-align: center; font-size: .85rem; color: var(--muted); }
 #tr-status.warn { color: #e8b26a; }
+
+/* =================== Discreet mode (Settings → Look & pictures) ===================
+   A plain assistant app: neutral slate and blue, no character art, ordinary chat bubbles. */
+html[data-plain="1"], html[data-plain="1"][data-theme] {
+  --a1: 59, 130, 246; --a2: 96, 165, 250; --a3: 37, 99, 235; --g1: #3b82f6; --g2: #2563eb; --crimson: #3b82f6; --crimson-2: #60a5fa;
+  --accent-soft: rgba(96, 165, 250, .16); --gold: #93a4bd; --d1: #111827; --d2: #0d1320; --d3: #0b0f19; --art1: #334155; --art2: #1e293b;
+  --glass: 22, 28, 40; --glass2: 34, 42, 58; --panel-solid: #161c28; --muted: #94a3b8; --text: #e5e9f0;
+}
+html[data-plain="1"] .app-bg, html[data-plain="1"] .app[data-period] .app-bg { background: var(--d3); }
+html[data-plain="1"] .app-bg i, html[data-plain="1"] .scene-bg i, html[data-plain="1"] .stage, html[data-plain="1"] .stage-pic,
+html[data-plain="1"] .scene-rias > :not(.scene-think), html[data-plain="1"] .feed-fx { display: none !important; }
+html[data-plain="1"] .scene-bg, html[data-plain="1"] .chat-view[data-period] .scene-bg { background: var(--d3); }
+html[data-plain="1"] .holo::after, html[data-plain="1"] .card::before, html[data-plain="1"] .list-card::before, html[data-plain="1"] .set-group::before,
+html[data-plain="1"] .tile::before, html[data-plain="1"] .summary::before, html[data-plain="1"] .sched-card::before, html[data-plain="1"] .update-card::before {
+  background: rgba(255, 255, 255, .07); }
+html[data-plain="1"] .holo::after { display: none; }
+html[data-plain="1"] .set-tile::before { background: rgba(255, 255, 255, .07); }
+html[data-plain="1"] .top, html[data-plain="1"] .tabs { background: rgba(11, 15, 25, .85); border-color: rgba(255, 255, 255, .07); }
+html[data-plain="1"] .top .avatar { box-shadow: none; }
+html[data-plain="1"] .top .name, html[data-plain="1"] .chat-who b, html[data-plain="1"] .page-title, html[data-plain="1"] .home-greet h1,
+html[data-plain="1"] .stack h2 { font-family: inherit; font-weight: 600; text-shadow: none; }
+html[data-plain="1"] .tabs button.active { color: #fff; }
+html[data-plain="1"] .tabs button.active .tab-ic { background: rgba(96, 165, 250, .2); box-shadow: none; }
+html[data-plain="1"] :is(.eyebrow, .section-title, .meal-head h3, .group-title, .set-group h2, .tile-label, .next-card .next-label, .ns-label, .field-label, .test-label) {
+  font-family: inherit !important; font-style: normal; font-weight: 600 !important; letter-spacing: .06em !important; color: var(--muted) !important; text-shadow: none; }
+html[data-plain="1"] .next-shift .ns-label { color: #bfdbfe !important; }
+html[data-plain="1"] :is(.btn-primary, button.primary, .stack button.primary, .fab, .plan-week, .tile-btn) { box-shadow: none; }
+html[data-plain="1"] .stack button:not(.primary):not(.danger):not(.btn-primary):not(.mem-del), html[data-plain="1"] .segmented,
+html[data-plain="1"] .quick-actions button { background: rgba(255, 255, 255, .05); }
+html[data-plain="1"] .quick-actions .qa-ic, html[data-plain="1"] .chip input:checked + span { background: rgba(96, 165, 250, .2); box-shadow: none; border-color: rgba(96, 165, 250, .5); }
+html[data-plain="1"] input:not([type=checkbox]):not([type=radio]):not([type=range]), html[data-plain="1"] select, html[data-plain="1"] textarea { background: rgba(255, 255, 255, .04); }
+html[data-plain="1"] dialog:not(.alarm) { background: #141a26; border-color: rgba(255, 255, 255, .1); box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+html[data-plain="1"] .sheet-actions { background: #141a26; }
+html[data-plain="1"] .save-bar { background: linear-gradient(180deg, transparent, rgba(11, 15, 25, .92) 40%); }
+html[data-plain="1"] .swipe .row-item.done { background: #121722; }
+/* Home: her stage is gone; her line becomes a simple card */
+html[data-plain="1"] .bubble { margin: 6px auto 16px; border-color: rgba(255, 255, 255, .08); background: var(--panel); text-align: left; }
+html[data-plain="1"] .bubble::after { display: none; }
+html[data-plain="1"] .home-greet { margin-top: 0; }
+/* Chat: ordinary message bubbles */
+html[data-plain="1"] .scene-rias { position: static; height: 0; -webkit-mask-image: none; mask-image: none; }
+html[data-plain="1"] .scene-think { top: auto; bottom: 88px; left: 20px; }
+html[data-plain="1"] .chat-head { border-bottom: 1px solid rgba(255, 255, 255, .07); padding-bottom: 10px; }
+html[data-plain="1"] .chat-who b, html[data-plain="1"] .chat-who span { text-shadow: none; font-style: normal; }
+html[data-plain="1"] .chat-view .feed { margin-top: 0; padding: 16px; -webkit-mask-image: none; mask-image: none; }
+html[data-plain="1"] .chat-view .msg { padding: 9px 13px; border-radius: 16px; text-shadow: none; }
+html[data-plain="1"] .chat-view .msg.rias { font-size: 15.5px; background: var(--panel-2); border: 1px solid rgba(255, 255, 255, .06); border-bottom-left-radius: 6px; color: var(--text); }
+html[data-plain="1"] .chat-view .msg.rias.first::before { content: var(--plain-name, "Assistant"); font-family: inherit; font-style: normal; letter-spacing: .04em; text-transform: none;
+  font-weight: 600; color: var(--muted); text-shadow: none; }
+html[data-plain="1"] .chat-view .msg.me { background: var(--g2); color: #fff; border: 0; padding-right: 13px; text-align: left; border-bottom-right-radius: 6px; }
+html[data-plain="1"] .chat-view .msg .w { opacity: 1; animation: none; }
+html[data-plain="1"] .chat-view .msg .task { background: rgba(255, 255, 255, .05); }
+html[data-plain="1"] .chat-view .day-sep::before, html[data-plain="1"] .chat-view .day-sep::after { background: rgba(255, 255, 255, .1); }
+html[data-plain="1"] .chat-view .day-sep span { font-family: inherit; font-style: normal; color: var(--muted); }
+/* In-app alarm card: a plain reminder card */
+html[data-plain="1"] :is(.ac-back, .ac-subject, .ac-front, .ac-holo, .ac-glare, .ac-motes, .ac-room, .ac-bg-pic, .ac-type) { display: none !important; }
+html[data-plain="1"] .ac-scene { background: var(--d3); }
+html[data-plain="1"] .ac-calling { font-family: inherit; font-style: normal; color: var(--muted); }
+html[data-plain="1"] .ac-big-time { text-shadow: none; }
+html[data-plain="1"] .ac-card-wrap { margin-top: 2dvh; }
+html[data-plain="1"] .ac-card { aspect-ratio: auto; container-type: normal; transform: none; border-radius: 22px; background: #161c28; border: 1px solid rgba(255, 255, 255, .09);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .5); padding: 18px 20px 14px; }
+html[data-plain="1"] .ac-card.enter { animation: ac-fade .3s ease-out; }
+html[data-plain="1"] .ac-card::after { display: none; }
+html[data-plain="1"] .ac-head, html[data-plain="1"] .ac-info { position: static; transform: none; padding: 0; background: none; }
+html[data-plain="1"] .ac-name { font-family: inherit; font-weight: 600; font-size: .82rem; color: var(--muted); text-shadow: none; }
+html[data-plain="1"] .ac-title { margin-top: 8px; font-size: 1.35rem; white-space: normal; text-shadow: none; color: var(--text); }
+html[data-plain="1"] .ac-text { font-size: .98rem; font-style: normal; color: var(--muted); }
+html[data-plain="1"] .ac-foot { display: none; }
+html[data-plain="1"] .ac-done { animation: none; box-shadow: none; }
+html[data-plain="1"] .ac-snooze button { background: rgba(255, 255, 255, .05); }
+html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"], [data-say*="peerage"], [data-say^="Play chess"]) { display: none; }

@@ -86,6 +86,17 @@
     @keyframes as-out { to { transform: translate(-50%, -50%) scale(.3); opacity: 0; } }
     @keyframes as-breathe { 50% { transform: scale(1.15); } }
 
+    /* Discreet mode: a plain assistant bubble, no portrait, no magic circle */
+    html[data-plain="1"] .as-ring, html[data-plain="1"] .as-sparks, html[data-plain="1"] .as-sheet::before { display: none; }
+    html[data-plain="1"] .as-face, html[data-plain="1"] body.quiet .as-face { background: url(icons/plain.svg) center / cover; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+    html[data-plain="1"] .as-portrait.speaking .as-face { animation: none; }
+    html[data-plain="1"] .as-sheet { background: #141a26; }
+    html[data-plain="1"] .as-name { font-family: inherit; font-weight: 600; font-size: 1.2rem; color: var(--text); text-shadow: none; }
+    html[data-plain="1"] .as-status { font-family: inherit; font-style: normal; }
+    html[data-plain="1"] .as-her { border-color: rgba(255, 255, 255, .08); }
+    html[data-plain="1"] .as-chips button { border-color: rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .05); color: var(--text); }
+    html[data-plain="1"] .as-dots b { background: var(--muted); }
+
     @keyframes as-up { from { transform: translateY(100%); } }
     @keyframes as-fade { from { opacity: 0; } }
     @keyframes as-spin { to { transform: rotate(360deg); } }
@@ -137,9 +148,17 @@
       const quiet = d.style !== 'full';
       document.body.classList.toggle('quiet', quiet);
 
+      if (d.plain) {
+        document.documentElement.dataset.plain = '1';
+        document.title = d.name || 'Assistant';
+        document.querySelector('.as-name').textContent = d.name || 'Assistant';
+        $('status').textContent = 'Listening…';
+      }
       // Her picture, or the animated Rias (same choice as Home).
       let avatar = null;
-      if (d.pic && d.homeChar === 'picture') {
+      if (d.plain) {
+        /* the plain icon is drawn by CSS */
+      } else if (d.pic && d.homeChar === 'picture') {
         const img = document.createElement('img');
         img.src = d.pic; img.alt = '';
         $('face').append(img);

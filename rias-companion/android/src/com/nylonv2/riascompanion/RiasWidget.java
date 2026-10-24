@@ -50,7 +50,7 @@ public class RiasWidget extends AppWidgetProvider {
 
             JSONObject data = new JSONObject(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, "{}"));
             long now = System.currentTimeMillis();
-            String nextText = null, labelText = "Rias · Up next";
+            String nextText = null, labelText = Scheduler.name(c) + " · Up next";
             JSONArray items = data.optJSONArray("next");
             if (items != null) {
                 for (int i = 0; i < items.length(); i++) {
@@ -60,7 +60,7 @@ public class RiasWidget extends AppWidgetProvider {
                     when.setTimeInMillis(o.optLong("at"));
                     Calendar today = Calendar.getInstance();
                     String time = DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(o.optLong("at")));
-                    if (when.get(Calendar.DAY_OF_YEAR) != today.get(Calendar.DAY_OF_YEAR)) labelText = "Rias · Tomorrow";
+                    if (when.get(Calendar.DAY_OF_YEAR) != today.get(Calendar.DAY_OF_YEAR)) labelText = Scheduler.name(c) + " · Tomorrow";
                     nextText = time + " · " + o.optString("title");
                     break;
                 }
@@ -80,6 +80,8 @@ public class RiasWidget extends AppWidgetProvider {
             Bitmap pic = Scheduler.picture(c);
             if (pic != null) {
                 v.setImageViewBitmap(r.getIdentifier("widget_pic", "id", pkg), Bitmap.createScaledBitmap(pic, 160, 160, true));
+            } else {
+                v.setImageViewResource(r.getIdentifier("widget_pic", "id", pkg), r.getIdentifier(Scheduler.plain(c) ? "ic_plain" : "ic_launcher", "mipmap", pkg));
             }
             Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             v.setOnClickPendingIntent(r.getIdentifier("widget_root", "id", pkg),

@@ -32,6 +32,7 @@ public class RiasChatWidget extends AppWidgetProvider {
             v.setTextViewText(r.getIdentifier("chat_last", "id", pkg), ChatLog.last(c));
             Bitmap pic = Scheduler.picture(c);
             if (pic != null) v.setImageViewBitmap(r.getIdentifier("chat_pic", "id", pkg), Bitmap.createScaledBitmap(pic, 120, 120, true));
+            else v.setImageViewResource(r.getIdentifier("chat_pic", "id", pkg), r.getIdentifier(Scheduler.plain(c) ? "ic_plain" : "ic_launcher", "mipmap", pkg));
             int imm = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
             Intent box = new Intent(c, QuickChatActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             v.setOnClickPendingIntent(r.getIdentifier("chat_input", "id", pkg), PendingIntent.getActivity(c, 8001, box, imm));

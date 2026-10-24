@@ -136,10 +136,10 @@ public class RiasReplyService extends Service {
         Bitmap pic = Scheduler.picture(c);
         if (Build.VERSION.SDK_INT >= 28) {
             Person me = new Person.Builder().setName("You").build();
-            Person.Builder rb = new Person.Builder().setName("Rias");
+            Person.Builder rb = new Person.Builder().setName(Scheduler.name(c));
             if (pic != null) rb.setIcon(Icon.createWithBitmap(pic));
             Person rias = rb.build();
-            Notification.MessagingStyle st = new Notification.MessagingStyle(me).setConversationTitle("Rias");
+            Notification.MessagingStyle st = new Notification.MessagingStyle(me).setConversationTitle(Scheduler.name(c));
             for (int i = Math.max(0, log.length() - 8); i < log.length(); i++) {
                 JSONObject o = log.optJSONObject(i);
                 if (o == null) continue;
@@ -150,7 +150,7 @@ public class RiasReplyService extends Service {
         } else {
             JSONObject lastO = log.length() > 0 ? log.optJSONObject(log.length() - 1) : null;
             String last = typing ? "Rias is typing…" : lastO != null ? lastO.optString("text") : "";
-            b.setContentTitle("Rias").setContentText(last).setStyle(new Notification.BigTextStyle().bigText(last));
+            b.setContentTitle(Scheduler.name(c)).setContentText(last).setStyle(new Notification.BigTextStyle().bigText(last));
             if (pic != null) b.setLargeIcon(pic);
         }
         return b.build();

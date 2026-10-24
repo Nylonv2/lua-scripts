@@ -143,6 +143,8 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                     j.put("theme", p.getString("theme", "crimson"));
                     j.put("outfit", p.getString("outfit", ""));
                     j.put("style", quiet ? "quiet" : "full");
+                    j.put("plain", Scheduler.plain(AssistActivity.this));
+                    j.put("name", Scheduler.name(AssistActivity.this));
                     // Settings → Assistant → Pop-up look: same as Home, animated, her picture, or one just for here.
                     String mode = p.getString("assistChar", "same");
                     String mine = AlarmActivity.dataUrl(Scheduler.pictureFile(AssistActivity.this));
@@ -310,7 +312,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         bg.setCornerRadii(new float[] {dp(28), dp(28), dp(28), dp(28), 0, 0, 0, 0});
         card.setBackground(bg);
         TextView name = new TextView(this);
-        name.setText("Rias Gremory");
+        name.setText(Scheduler.plain(this) ? Scheduler.name(this) : "Rias Gremory");
         name.setTextColor(0xFFE3B866);
         name.setTypeface(Typeface.SERIF);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
@@ -383,7 +385,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                     .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName()));
             listening = true;
-            update(o("state", "listening", "status", "I'm listening~"));
+            update(o("state", "listening", "status", Scheduler.plain(this) ? "Listening…" : "I'm listening~"));
         } catch (Exception e) {
             listening = false;
             update(o("state", "idle", "status", "Couldn't listen just now. Tap the mic to try again."));

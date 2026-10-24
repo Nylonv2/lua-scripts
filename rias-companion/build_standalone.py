@@ -24,6 +24,7 @@ for js in ('food.js', 'work.js', 'vendor/anthropic-sdk.js', 'ai.js', 'rias-avata
 html = html.replace('<script src="app.js"></script>', f"<script>\n{read('app.js')}</script>")
 html = re.sub(r'\s*<link rel="(manifest|apple-touch-icon)"[^>]*>', '', html)
 html = html.replace('icons/icon.svg', icon)
+html = html.replace('icons/plain.svg', 'data:image/svg+xml;base64,' + base64.b64encode((here / 'icons/plain.svg').read_bytes()).decode())
 # The alarm sounds ride along as data URIs (they're small).
 sounds = {p.stem.replace('alarm_', ''): 'data:audio/ogg;base64,' + base64.b64encode(p.read_bytes()).decode()
           for p in sorted((here / 'sounds').glob('alarm_*.ogg'))}

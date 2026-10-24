@@ -118,7 +118,7 @@
           <button type="button" data-say="Play chess with me">Play chess</button>
           <button type="button" data-say="I need motivation">Motivate me</button>
           <button type="button" data-say="I'm tired">I'm tired</button>
-          <button type="button" data-say="Goodnight, Rias">Goodnight 🌙</button>
+          <button type="button" data-say="Goodnight">Goodnight 🌙</button>
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
@@ -365,6 +365,16 @@
           <p class="small voice-hint" id="voice-hint" hidden></p>
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
+          </section>
+          <section class="set-group" data-cat="look">
+          <h2>Discreet mode</h2>
+          <label class="switch"><input name="plain" type="checkbox"> Make it look like a normal app</label>
+          <p class="muted small">No character on screen, a plain modern look, a neutral name in the app, notifications and pop-ups, and her AI talks like a regular assistant. Everything works the same. Turn it off any time to bring Rias back.</p>
+          <div id="plain-opts" hidden>
+            <label>Name it <input name="plainName" maxlength="24" placeholder="Assistant"></label>
+            <label class="switch"><input name="plainIcon" type="checkbox"> Also change the app's icon and name on my home screen (to “Assistant”)</label>
+            <p class="muted small">Android may take a few seconds to swap the icon, and you might need to add it to your home screen again from the app drawer.</p>
+          </div>
           </section>
           <section class="set-group" data-cat="look">
           <h2>Theme &amp; outfit</h2>

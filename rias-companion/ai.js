@@ -38,6 +38,28 @@ Boundaries:
 - If the user mentions self-harm or suicide, drop the teasing. Respond with care, encourage them to reach out to someone they trust, and give the 988 Suicide & Crisis Lifeline (call or text 988 in the US) or findahelpline.com for other countries.
 - Stay in character. But if the user sincerely asks whether they're talking to a real person or an AI, tell them honestly, in a kind in-character way, that you're an AI playing Rias.`;
 
+  // Discreet mode: the same assistant without the character (no roleplay, pet names or show references).
+  const usageRules = () => PERSONA.slice(PERSONA.indexOf('Using the app:'), PERSONA.indexOf('Boundaries:')).trim();
+  const plainPersona = (name) => `You are ${name}, a friendly, capable personal assistant inside a phone app. You look after the user's daily life: routine, reminders, meals, water, sleep and work shifts, and you help with whatever they ask.
+
+How you talk:
+- Warm, natural and to the point, like a helpful friend who's good at organizing. Encouraging, never preachy.
+- No roleplay, no character, no anime or fiction references, no pet names, no flirting, no catchphrases.
+- Refer to yourself as ${name} only if it comes up.
+
+Texting style:
+- Short, natural sentences. 1 to 3 short messages separated by a blank line, usually under 60 words in total.
+- No markdown, no lists, no headings, no actions in asterisks.
+- Use the app context (time of day, schedule, shifts, food, water) when it's relevant. Don't recite it.
+
+${usageRules().replace(/in character/g, 'naturally')}
+
+Boundaries:
+- You aren't a doctor. For health problems, gently suggest seeing one.
+- If the user mentions self-harm or suicide, respond with care, encourage them to reach out to someone they trust, and give the 988 Suicide & Crisis Lifeline (call or text 988 in the US) or findahelpline.com for other countries.
+- If asked, say honestly that you're an AI assistant.`;
+  const persona = () => (ctx.state.settings.plain ? plainPersona(ctx.state.settings.plainName || 'Assistant') : PERSONA);
+
   const nullable = (schema) => ({ ...schema, type: [schema.type, 'null'] });
   // Estimated nutrition for the whole portion eaten.
   const NUTRITION_PROPS = {
@@ -355,7 +377,7 @@ Boundaries:
       model,
       max_tokens: image ? 8000 : 2000,
       // Breakpoint on the persona caches tools + persona together (tools render first).
-      system: [{ type: 'text', text: PERSONA, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: persona(), cache_control: { type: 'ephemeral' } }],
       // Web search runs on Anthropic's side (billed per search); a few per message is plenty.
       tools: TOOLS.concat({ type: model === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: 3 }),
       output_config: { effort: image ? 'medium' : 'low' }, // chat: quick replies; reading a photo needs more care
@@ -442,7 +464,7 @@ Boundaries:
     try {
       const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
       const res = await api.messages.create({
-        model, max_tokens: 200, system: PERSONA, output_config: { effort: 'low' },
+        model, max_tokens: 200, system: persona(), output_config: { effort: 'low' },
         messages: [{ role: 'user', content: 'Say hi to me in one short sentence.' }],
       });
       const t = res.content.filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
@@ -531,7 +553,7 @@ Boundaries:
       const model = await geminiModel();
       for (let step = 0; step < 8; step++) {
         const data = await gemini(`models/${model}:generateContent`, {
-          systemInstruction: { parts: [{ text: `${PERSONA}\n\n${ctx.contextText()}` }] },
+          systemInstruction: { parts: [{ text: `${persona()}\n\n${ctx.contextText()}` }] },
           contents,
           tools: GEMINI_TOOLS,
           generationConfig: { maxOutputTokens: image ? 8192 : 2048 },
@@ -574,7 +596,7 @@ Boundaries:
       ctx.state.ai.geminiModel = '';
       const model = await geminiModel();
       const data = await gemini(`models/${model}:generateContent`, {
-        systemInstruction: { parts: [{ text: PERSONA }] },
+        systemInstruction: { parts: [{ text: persona() }] },
         contents: [{ role: 'user', parts: [{ text: 'Say hi to me in one short sentence.' }] }],
         generationConfig: { maxOutputTokens: 512 },
       });

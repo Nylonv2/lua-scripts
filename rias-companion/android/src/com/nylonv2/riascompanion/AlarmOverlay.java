@@ -110,7 +110,7 @@ final class AlarmOverlay {
         picLp.bottomMargin = dp(c, 10);
         card.addView(pic, picLp);
 
-        TextView name = label(c, "Rias Gremory · " + DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(at)), 15, GOLD);
+        TextView name = label(c, (Scheduler.plain(c) ? Scheduler.name(c) : "Rias Gremory") + " · " + DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(at)), 15, GOLD);
         name.setTypeface(Typeface.SERIF);
         card.addView(name);
         if (title != null && !title.isEmpty()) {

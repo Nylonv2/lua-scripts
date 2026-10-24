@@ -18,7 +18,8 @@
       let d = {};
       try { d = JSON.parse(N.data()); } catch { /* opened without the app */ }
       document.documentElement.dataset.theme = d.theme || 'crimson';
-      const animated = d.art === 'animated' || !d.pic;
+      if (d.plain) document.documentElement.dataset.plain = '1';
+      const animated = !d.plain && (d.art === 'animated' || !d.pic);
       let avatar = null;
       if (animated && window.createRiasAvatar) {
         const stage = document.createElement('div');
@@ -29,7 +30,8 @@
       if (avatar) avatar.setMood('happy');
       window.AlarmCard.fill({
         time: new Date(d.at || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-        title: d.title, text: d.text, icon: d.icon, pic: d.pic || '', cut: d.cut || '', bg: d.pic || d.bg || '', animated, hasItem: !!d.itemId,
+        title: d.title, text: d.text, icon: d.icon, pic: d.plain ? '' : d.pic || '', cut: d.plain ? '' : d.cut || '', bg: d.plain ? '' : d.pic || d.bg || '', animated, hasItem: !!d.itemId,
+        plain: !!d.plain, name: d.name,
       });
       if (avatar) setTimeout(() => avatar.talk((d.text || '').length * 60), 1200);
       document.getElementById('alarm-done').onclick = () => N.done();

@@ -12,7 +12,14 @@
 
   // ---------- helpers ----------
   const $ = (s, el = document) => el.querySelector(s);
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  // Discreet mode skips her character lines (show references, pet names) when a plain one exists.
+  const CHARACTER = /ufu|servant|household|peerage|club room|occult|kuoh|devil|underworld|akeno|koneko|kiba|asia|xenovia|gasper|issei|sirzechs|grayfia|gremory|rating game|power of destruction|\bchess|\bqueen\b|bishop|knight|\brook\b|\bpawn|dxd|demonic|crimson[- ]haired|come here|\blap\b|cuddl|kiss|darling|beside me|next to me|\bhug/i;
+  const plainOn = () => typeof state !== 'undefined' && state && state.settings && state.settings.plain;
+  const pick = (arr) => {
+    const pool = plainOn() ? arr.filter((l) => typeof l !== 'string' || !CHARACTER.test(l)) : arr;
+    const from = pool.length ? pool : arr;
+    return from[Math.floor(Math.random() * from.length)];
+  };
   const uid = () => Math.random().toString(36).slice(2, 10);
   const pad = (n) => String(n).padStart(2, '0');
   const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -113,11 +120,17 @@
     syncNative();
   };
 
-  const say = (line, extra = {}) => line
+  const say = (line, extra = {}) => plainText(line
     .replaceAll('{name}', state.profile ? state.profile.name : 'you')
     .replaceAll('{praise}', praiseWord())
     .replaceAll('{count}', String(extra.count ?? ''))
-    .replaceAll('{title}', extra.title || '');
+    .replaceAll('{title}', extra.title || ''));
+  // Discreet mode: scrub what's left of the character from a line.
+  function plainText(t) {
+    if (!plainOn()) return t;
+    return t.replace(/\bufu(fu)+\b[~!.,]*\s*/gi, '').replace(/,?\s*my (cute|dear|adorable) servant/gi, '')
+      .replace(/Welcome to my household/gi, 'Welcome').replace(/Occult Research Club/gi, 'here').replace(/~/g, '.').replace(/\.\./g, '.').replace(/^\s*[.,]\s*/, '').trim();
+  }
 
   const praiseLines = (pool = R.praise) => pool[state.settings.praise] || pool.neutral;
   // Half the time a finished task gets her "good boy / good girl" praise.
@@ -258,6 +271,55 @@
     if (N && N.setTheme) { try { N.setTheme(state.settings.theme || 'crimson'); } catch { /* older app */ } }
   }
   applyTheme();
+  // ---------- Discreet mode: a plain assistant app, same features ----------
+  const plainName = () => (state.settings.plainName || '').trim() || 'Assistant';
+  function applyPlain() {
+    const on = !!state.settings.plain;
+    const root = document.documentElement;
+    if (on) root.dataset.plain = '1'; else delete root.dataset.plain;
+    const name = on ? plainName() : 'Rias Gremory';
+    renameStatic(on ? plainName() : null);
+    root.style.setProperty('--plain-name', JSON.stringify(on ? plainName() : 'Rias'));
+    const top = document.querySelector('.top .name');
+    if (top) top.textContent = name;
+    const chatWho = document.querySelector('.chat-who b');
+    if (chatWho) chatWho.lastChild.textContent = name;
+    for (const img of document.querySelectorAll('.top .avatar')) img.src = on ? 'icons/plain.svg' : (loadPictureSafe() || 'icons/icon.svg');
+    const gn = document.getElementById('home-goodnight');
+    if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
+    document.title = on ? plainName() : 'Rias';
+    const say = document.getElementById('say');
+    if (say) say.placeholder = on ? 'Type a message…' : 'Say something to her…';
+    const N = window.RiasNative;
+    if (N && N.setPref && !HEADLESS) {
+      try { N.setPref('plain', on ? '1' : ''); N.setPref('displayName', on ? plainName() : 'Rias'); } catch { /* older app */ }
+    }
+  }
+  // The fixed labels around the app ("Ask Rias to estimate…", "What should Rias remind you about?") use the plain name.
+  const renamed = new Map();
+  function renameStatic(name) {
+    for (const [node, [orig, now, attr]] of renamed) {
+      const cur = attr ? node.getAttribute(attr) : node.nodeValue;
+      if (cur === now) { if (attr) node.setAttribute(attr, orig); else node.nodeValue = orig; }
+    }
+    renamed.clear();
+    if (!name) return;
+    const swap = (t) => t.replace(/\bRias Gremory\b/g, name).replace(/\bRias's\b/g, `${name}'s`).replace(/\bRias\b/g, name);
+    const skip = (el) => el.closest('script, style, .feed, #alarm');
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!/Rias/.test(n.nodeValue) || skip(n.parentElement)) continue;
+      const orig = n.nodeValue; n.nodeValue = swap(orig); renamed.set(n, [orig, n.nodeValue]);
+    }
+    for (const attr of ['placeholder', 'title', 'aria-label']) {
+      for (const el of document.querySelectorAll(`[${attr}*="Rias"]`)) {
+        if (skip(el)) continue;
+        const orig = el.getAttribute(attr); el.setAttribute(attr, swap(orig)); renamed.set(el, [orig, el.getAttribute(attr), attr]);
+      }
+    }
+  }
+  function loadPictureSafe() { try { return localStorage.getItem('rias-companion-picture') || ''; } catch { return ''; } }
+  applyPlain();
   // A light tick on every button; a firmer one for the main actions.
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button, .chip, .row-item');
@@ -501,13 +563,14 @@
   function showAlarmCard(item, text) {
     if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
     alarmItem = item;
-    const art = alarmArt();
+    const art = plainOn() ? 'plain' : alarmArt();
     const pic = art === 'photo' ? loadAlarmPicture() : art === 'mine' ? loadPicture() : '';
     // The animated Rias steps into the card's art window while it's up.
     if (art === 'animated') { $('.ac-stage').append($('#stage')); $('#stage').hidden = false; Avatar.setMood('happy'); }
     window.AlarmCard.fill({
       time: fmtClock(Date.now()), title: item.title, text, icon: CATEGORY_ICON[item.category] || '⏰',
-      pic, cut: loadCutout(art), bg: pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+      pic, cut: loadCutout(art), bg: art === 'plain' ? '' : pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+      plain: art === 'plain', name: plainName(),
     });
     alarmDlg.showModal();
     if (art === 'animated') setTimeout(() => Avatar.talk(text.length * 55), 700);
@@ -959,7 +1022,7 @@
     return list[seed % list.length];
   }
   function renderChatHead() {
-    const act = riasActivity();
+    const act = plainOn() ? 'Online' : riasActivity();
     $('#chat-activity').textContent = act;
     $('.chat-head').classList.toggle('asleep', /asleep/i.test(act));
     // The room's light follows the time of day.
@@ -1006,11 +1069,12 @@
         img.alt = 'Photo you sent';
         el.append(img);
       }
-      if (m.from === 'rias' && el.classList.contains('fresh') && skipAnimNext) { skipAnimNext = false; el.append(m.text); } // already seen while streaming
+      const text = m.from === 'rias' ? plainText(m.text) : m.text; // Discreet mode tones down older lines too
+      if (m.from === 'rias' && el.classList.contains('fresh') && skipAnimNext) { skipAnimNext = false; el.append(text); } // already seen while streaming
       else if (m.from === 'rias' && el.classList.contains('fresh')) {
         // Her newest words drift in one at a time, as if she's saying them.
         let n = 0;
-        for (const w of m.text.split(/(\s+)/)) {
+        for (const w of text.split(/(\s+)/)) {
           if (!w.trim()) { el.append(w); continue; }
           const span = document.createElement('span');
           span.className = 'w';
@@ -1018,7 +1082,7 @@
           span.style.animationDelay = `${Math.min(n++ * 55, 3000)}ms`;
           el.append(span);
         }
-      } else el.append(m.text);
+      } else el.append(text);
       if (m.itemId) {
         const task = document.createElement('div');
         task.className = 'task';
@@ -1081,7 +1145,7 @@
   // Little moments: hearts when she praises you, a crimson flash for the Power of Destruction.
   function chatEffects(text) {
     const fx = $('#feed-fx');
-    if (!fx || currentView !== 'chat') return;
+    if (!fx || currentView !== 'chat' || plainOn()) return;
     if (Living && !$('#stage-pic').hidden) Living.talk(text.length * 55);
     if (Avatar) {
       Avatar.talk(text.length * 55);
@@ -1137,7 +1201,7 @@
     const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
     $('#status').textContent = p ? `Waiting on you: ${p.title}`
       : next ? `Next: ${next.title} · ${fmtTime(next.time)}`
-      : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
+      : plainOn() ? (isAwake() ? 'Online' : 'Quiet hours') : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
     if (currentView === 'home') renderHome();
     if (currentView === 'chat') renderChatHead();
   }
@@ -2056,7 +2120,7 @@
     } else {
       info.querySelector('.next-label').textContent = 'All caught up';
       info.querySelector('.next-title').textContent = todaysItems().length ? 'Nothing left on today\'s list 🎉' : 'Nothing scheduled today';
-      info.querySelector('.next-time').textContent = 'Tap Rias to chat, or add a reminder below.';
+      info.querySelector('.next-time').textContent = plainOn() ? 'Open Chat to talk, or add a reminder below.' : 'Tap Rias to chat, or add a reminder below.';
       card.append(info);
     }
 
@@ -2451,7 +2515,7 @@
   const DEFAULT_PIC = 'icons/icon.svg';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && img.closest('.top') ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -2718,6 +2782,10 @@
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     sf.elements.riasOutfit.value = state.settings.riasOutfit || 'auto';
     sf.elements.theme.value = state.settings.theme || 'crimson';
+    sf.elements.plain.checked = !!state.settings.plain;
+    sf.elements.plainName.value = state.settings.plainName || '';
+    sf.elements.plainIcon.checked = !!state.settings.plainIcon;
+    $('#plain-opts').hidden = !state.settings.plain;
     sf.elements.haptics.checked = state.settings.haptics !== false;
     popupCheck();
     const list = $('#alarm-cat-list');
@@ -3004,6 +3072,9 @@
       homeChar: sf.elements.homeChar.value,
       riasOutfit: sf.elements.riasOutfit.value,
       theme: sf.elements.theme.value,
+      plain: sf.elements.plain.checked,
+      plainName: sf.elements.plainName.value.trim(),
+      plainIcon: sf.elements.plain.checked && sf.elements.plainIcon.checked,
       haptics: sf.elements.haptics.checked,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
@@ -3015,6 +3086,11 @@
       aiLimit: Number(sf.elements.aiLimit.value) || 0,
     });
     applyTheme();
+    applyPlain();
+    renderStatus();
+    // Home-screen icon: only touch it when the choice changed (Android re-shuffles the launcher).
+    { const N = window.RiasNative; const want = !!state.settings.plainIcon;
+      if (N && N.setLauncher && want !== !!state.settings.launcherPlain) { try { N.setLauncher(want); state.settings.launcherPlain = want; } catch { /* older app */ } } }
     pushLook();
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
@@ -3073,6 +3149,7 @@
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  sf.elements.plain.addEventListener('change', () => { $('#plain-opts').hidden = !sf.elements.plain.checked; });
   initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });
@@ -3484,7 +3561,7 @@
   // The voice engine connects a moment after start.
   setTimeout(tuneForEngine, 2500);
   setTimeout(tuneForEngine, 8000);
-  $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
+  $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays(plainOn() ? 'Goodnight 🌙' : 'Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     // You talked to her from the widget while the app was in the background: show that conversation.

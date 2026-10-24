@@ -102,7 +102,7 @@ window.AlarmCard = (() => {
 
   /**
    * opts: { time, title, text, icon, animated, pic (full photo, data URL), cut (the subject cut out, data URL),
-   *         bg (picture for the blurred room behind), hasItem }
+   *         bg (picture for the blurred room behind), hasItem, plain + name (Discreet mode: a plain card) }
    * With `cut`, the photo fills the card and the cut-out subject steps out over the top edge.
    * Without it, the photo fills the card as a living photo. `animated` puts the animated Rias in front.
    * Call each time the alarm shows; it replays the card's entrance.
@@ -111,6 +111,8 @@ window.AlarmCard = (() => {
     if (!root) return;
     const q = (s) => root.querySelector(s);
     q('#alarm-time').textContent = opts.time || '';
+    q('.ac-calling').textContent = opts.plain ? 'Reminder' : 'Rias is calling you';
+    q('.ac-name').textContent = opts.plain ? (opts.name || 'Assistant') : 'Rias Gremory';
     q('#alarm-title').textContent = opts.title || 'Reminder';
     q('#alarm-text').textContent = opts.text || '';
     q('.ac-type').textContent = opts.icon || '⏰';

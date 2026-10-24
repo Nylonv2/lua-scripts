@@ -104,6 +104,19 @@ just show the text). "Translator" in the chat opens it.
 5. **Track:** filter clients by New, Emailed, Replied, Booked or Not interested, add notes, add clients yourself, and see
    your totals at the top. Saying "find me some clients" in the chat opens the search.
 
+### Discreet mode
+Settings → Look & pictures → **Discreet mode** makes it look like an ordinary assistant app, for opening in public. Every
+feature stays the same; only the look changes:
+- A plain slate-and-blue design: no character, no magic circle, ordinary chat bubbles.
+- Give it any name (it's "Assistant" until you change it). The header, chat, notifications, widgets, the alarm screen and
+  the home-button pop-up all use that name and a plain icon.
+- With her AI on, she answers as a friendly, neutral assistant. Without AI, the written lines skip show references and
+  pet names.
+- Optional: also change the **home-screen icon and name** to "Assistant". Your launcher may take a moment to update, and
+  you may need to add the icon to your home screen again.
+
+Turn it off any time to bring Rias back.
+
 ### Widgets
 Long-press your home screen → Widgets → Rias:
 - **Rias** shows what's next and a line from her.
@@ -134,7 +147,7 @@ say), finds the address in your contacts, signs it (*Sign my emails as* under Yo
 |---|---|
 | **You** | Your name, wake-up and bedtime, what she calls you, how your emails are signed |
 | **Her voice** | Speaking out loud, phone voice or natural AI voice, pitch and speed |
-| **Look & pictures** | Theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
+| **Look & pictures** | Discreet mode, theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
 | **Reminders & alarms** | Check-ins, notifications, the pop-up check, which reminders pop up, alarm sound, test buttons |
 | **Your day** | Briefing, weather city, recap, wind-down, phone calendar, food & water goals |
 | **Rias's mind** | AI on/off and service, monthly cost (Claude), what she remembers |

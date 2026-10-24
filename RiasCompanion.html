@@ -1372,6 +1372,78 @@ dialog.tr-live::backdrop { background: var(--d3); }
 .tr-mid button { width: 40px; height: 40px; padding: 0; border-radius: 50%; flex: none; }
 #tr-status { flex: 1; text-align: center; font-size: .85rem; color: var(--muted); }
 #tr-status.warn { color: #e8b26a; }
+
+/* =================== Discreet mode (Settings → Look & pictures) ===================
+   A plain assistant app: neutral slate and blue, no character art, ordinary chat bubbles. */
+html[data-plain="1"], html[data-plain="1"][data-theme] {
+  --a1: 59, 130, 246; --a2: 96, 165, 250; --a3: 37, 99, 235; --g1: #3b82f6; --g2: #2563eb; --crimson: #3b82f6; --crimson-2: #60a5fa;
+  --accent-soft: rgba(96, 165, 250, .16); --gold: #93a4bd; --d1: #111827; --d2: #0d1320; --d3: #0b0f19; --art1: #334155; --art2: #1e293b;
+  --glass: 22, 28, 40; --glass2: 34, 42, 58; --panel-solid: #161c28; --muted: #94a3b8; --text: #e5e9f0;
+}
+html[data-plain="1"] .app-bg, html[data-plain="1"] .app[data-period] .app-bg { background: var(--d3); }
+html[data-plain="1"] .app-bg i, html[data-plain="1"] .scene-bg i, html[data-plain="1"] .stage, html[data-plain="1"] .stage-pic,
+html[data-plain="1"] .scene-rias > :not(.scene-think), html[data-plain="1"] .feed-fx { display: none !important; }
+html[data-plain="1"] .scene-bg, html[data-plain="1"] .chat-view[data-period] .scene-bg { background: var(--d3); }
+html[data-plain="1"] .holo::after, html[data-plain="1"] .card::before, html[data-plain="1"] .list-card::before, html[data-plain="1"] .set-group::before,
+html[data-plain="1"] .tile::before, html[data-plain="1"] .summary::before, html[data-plain="1"] .sched-card::before, html[data-plain="1"] .update-card::before {
+  background: rgba(255, 255, 255, .07); }
+html[data-plain="1"] .holo::after { display: none; }
+html[data-plain="1"] .set-tile::before { background: rgba(255, 255, 255, .07); }
+html[data-plain="1"] .top, html[data-plain="1"] .tabs { background: rgba(11, 15, 25, .85); border-color: rgba(255, 255, 255, .07); }
+html[data-plain="1"] .top .avatar { box-shadow: none; }
+html[data-plain="1"] .top .name, html[data-plain="1"] .chat-who b, html[data-plain="1"] .page-title, html[data-plain="1"] .home-greet h1,
+html[data-plain="1"] .stack h2 { font-family: inherit; font-weight: 600; text-shadow: none; }
+html[data-plain="1"] .tabs button.active { color: #fff; }
+html[data-plain="1"] .tabs button.active .tab-ic { background: rgba(96, 165, 250, .2); box-shadow: none; }
+html[data-plain="1"] :is(.eyebrow, .section-title, .meal-head h3, .group-title, .set-group h2, .tile-label, .next-card .next-label, .ns-label, .field-label, .test-label) {
+  font-family: inherit !important; font-style: normal; font-weight: 600 !important; letter-spacing: .06em !important; color: var(--muted) !important; text-shadow: none; }
+html[data-plain="1"] .next-shift .ns-label { color: #bfdbfe !important; }
+html[data-plain="1"] :is(.btn-primary, button.primary, .stack button.primary, .fab, .plan-week, .tile-btn) { box-shadow: none; }
+html[data-plain="1"] .stack button:not(.primary):not(.danger):not(.btn-primary):not(.mem-del), html[data-plain="1"] .segmented,
+html[data-plain="1"] .quick-actions button { background: rgba(255, 255, 255, .05); }
+html[data-plain="1"] .quick-actions .qa-ic, html[data-plain="1"] .chip input:checked + span { background: rgba(96, 165, 250, .2); box-shadow: none; border-color: rgba(96, 165, 250, .5); }
+html[data-plain="1"] input:not([type=checkbox]):not([type=radio]):not([type=range]), html[data-plain="1"] select, html[data-plain="1"] textarea { background: rgba(255, 255, 255, .04); }
+html[data-plain="1"] dialog:not(.alarm) { background: #141a26; border-color: rgba(255, 255, 255, .1); box-shadow: 0 24px 70px rgba(0, 0, 0, .6); }
+html[data-plain="1"] .sheet-actions { background: #141a26; }
+html[data-plain="1"] .save-bar { background: linear-gradient(180deg, transparent, rgba(11, 15, 25, .92) 40%); }
+html[data-plain="1"] .swipe .row-item.done { background: #121722; }
+/* Home: her stage is gone; her line becomes a simple card */
+html[data-plain="1"] .bubble { margin: 6px auto 16px; border-color: rgba(255, 255, 255, .08); background: var(--panel); text-align: left; }
+html[data-plain="1"] .bubble::after { display: none; }
+html[data-plain="1"] .home-greet { margin-top: 0; }
+/* Chat: ordinary message bubbles */
+html[data-plain="1"] .scene-rias { position: static; height: 0; -webkit-mask-image: none; mask-image: none; }
+html[data-plain="1"] .scene-think { top: auto; bottom: 88px; left: 20px; }
+html[data-plain="1"] .chat-head { border-bottom: 1px solid rgba(255, 255, 255, .07); padding-bottom: 10px; }
+html[data-plain="1"] .chat-who b, html[data-plain="1"] .chat-who span { text-shadow: none; font-style: normal; }
+html[data-plain="1"] .chat-view .feed { margin-top: 0; padding: 16px; -webkit-mask-image: none; mask-image: none; }
+html[data-plain="1"] .chat-view .msg { padding: 9px 13px; border-radius: 16px; text-shadow: none; }
+html[data-plain="1"] .chat-view .msg.rias { font-size: 15.5px; background: var(--panel-2); border: 1px solid rgba(255, 255, 255, .06); border-bottom-left-radius: 6px; color: var(--text); }
+html[data-plain="1"] .chat-view .msg.rias.first::before { content: var(--plain-name, "Assistant"); font-family: inherit; font-style: normal; letter-spacing: .04em; text-transform: none;
+  font-weight: 600; color: var(--muted); text-shadow: none; }
+html[data-plain="1"] .chat-view .msg.me { background: var(--g2); color: #fff; border: 0; padding-right: 13px; text-align: left; border-bottom-right-radius: 6px; }
+html[data-plain="1"] .chat-view .msg .w { opacity: 1; animation: none; }
+html[data-plain="1"] .chat-view .msg .task { background: rgba(255, 255, 255, .05); }
+html[data-plain="1"] .chat-view .day-sep::before, html[data-plain="1"] .chat-view .day-sep::after { background: rgba(255, 255, 255, .1); }
+html[data-plain="1"] .chat-view .day-sep span { font-family: inherit; font-style: normal; color: var(--muted); }
+/* In-app alarm card: a plain reminder card */
+html[data-plain="1"] :is(.ac-back, .ac-subject, .ac-front, .ac-holo, .ac-glare, .ac-motes, .ac-room, .ac-bg-pic, .ac-type) { display: none !important; }
+html[data-plain="1"] .ac-scene { background: var(--d3); }
+html[data-plain="1"] .ac-calling { font-family: inherit; font-style: normal; color: var(--muted); }
+html[data-plain="1"] .ac-big-time { text-shadow: none; }
+html[data-plain="1"] .ac-card-wrap { margin-top: 2dvh; }
+html[data-plain="1"] .ac-card { aspect-ratio: auto; container-type: normal; transform: none; border-radius: 22px; background: #161c28; border: 1px solid rgba(255, 255, 255, .09);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .5); padding: 18px 20px 14px; }
+html[data-plain="1"] .ac-card.enter { animation: ac-fade .3s ease-out; }
+html[data-plain="1"] .ac-card::after { display: none; }
+html[data-plain="1"] .ac-head, html[data-plain="1"] .ac-info { position: static; transform: none; padding: 0; background: none; }
+html[data-plain="1"] .ac-name { font-family: inherit; font-weight: 600; font-size: .82rem; color: var(--muted); text-shadow: none; }
+html[data-plain="1"] .ac-title { margin-top: 8px; font-size: 1.35rem; white-space: normal; text-shadow: none; color: var(--text); }
+html[data-plain="1"] .ac-text { font-size: .98rem; font-style: normal; color: var(--muted); }
+html[data-plain="1"] .ac-foot { display: none; }
+html[data-plain="1"] .ac-done { animation: none; box-shadow: none; }
+html[data-plain="1"] .ac-snooze button { background: rgba(255, 255, 255, .05); }
+html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"], [data-say*="peerage"], [data-say^="Play chess"]) { display: none; }
 </style>
 </head>
 <body>
@@ -1479,7 +1551,7 @@ dialog.tr-live::backdrop { background: var(--d3); }
           <button type="button" data-say="Play chess with me">Play chess</button>
           <button type="button" data-say="I need motivation">Motivate me</button>
           <button type="button" data-say="I'm tired">I'm tired</button>
-          <button type="button" data-say="Goodnight, Rias">Goodnight 🌙</button>
+          <button type="button" data-say="Goodnight">Goodnight 🌙</button>
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
@@ -1726,6 +1798,16 @@ dialog.tr-live::backdrop { background: var(--d3); }
           <p class="small voice-hint" id="voice-hint" hidden></p>
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
+          </section>
+          <section class="set-group" data-cat="look">
+          <h2>Discreet mode</h2>
+          <label class="switch"><input name="plain" type="checkbox"> Make it look like a normal app</label>
+          <p class="muted small">No character on screen, a plain modern look, a neutral name in the app, notifications and pop-ups, and her AI talks like a regular assistant. Everything works the same. Turn it off any time to bring Rias back.</p>
+          <div id="plain-opts" hidden>
+            <label>Name it <input name="plainName" maxlength="24" placeholder="Assistant"></label>
+            <label class="switch"><input name="plainIcon" type="checkbox"> Also change the app's icon and name on my home screen (to “Assistant”)</label>
+            <p class="muted small">Android may take a few seconds to swap the icon, and you might need to add it to your home screen again from the app drawer.</p>
+          </div>
           </section>
           <section class="set-group" data-cat="look">
           <h2>Theme &amp; outfit</h2>
@@ -3999,6 +4081,28 @@ Boundaries:
 - If the user mentions self-harm or suicide, drop the teasing. Respond with care, encourage them to reach out to someone they trust, and give the 988 Suicide & Crisis Lifeline (call or text 988 in the US) or findahelpline.com for other countries.
 - Stay in character. But if the user sincerely asks whether they're talking to a real person or an AI, tell them honestly, in a kind in-character way, that you're an AI playing Rias.`;
 
+  // Discreet mode: the same assistant without the character (no roleplay, pet names or show references).
+  const usageRules = () => PERSONA.slice(PERSONA.indexOf('Using the app:'), PERSONA.indexOf('Boundaries:')).trim();
+  const plainPersona = (name) => `You are ${name}, a friendly, capable personal assistant inside a phone app. You look after the user's daily life: routine, reminders, meals, water, sleep and work shifts, and you help with whatever they ask.
+
+How you talk:
+- Warm, natural and to the point, like a helpful friend who's good at organizing. Encouraging, never preachy.
+- No roleplay, no character, no anime or fiction references, no pet names, no flirting, no catchphrases.
+- Refer to yourself as ${name} only if it comes up.
+
+Texting style:
+- Short, natural sentences. 1 to 3 short messages separated by a blank line, usually under 60 words in total.
+- No markdown, no lists, no headings, no actions in asterisks.
+- Use the app context (time of day, schedule, shifts, food, water) when it's relevant. Don't recite it.
+
+${usageRules().replace(/in character/g, 'naturally')}
+
+Boundaries:
+- You aren't a doctor. For health problems, gently suggest seeing one.
+- If the user mentions self-harm or suicide, respond with care, encourage them to reach out to someone they trust, and give the 988 Suicide & Crisis Lifeline (call or text 988 in the US) or findahelpline.com for other countries.
+- If asked, say honestly that you're an AI assistant.`;
+  const persona = () => (ctx.state.settings.plain ? plainPersona(ctx.state.settings.plainName || 'Assistant') : PERSONA);
+
   const nullable = (schema) => ({ ...schema, type: [schema.type, 'null'] });
   // Estimated nutrition for the whole portion eaten.
   const NUTRITION_PROPS = {
@@ -4316,7 +4420,7 @@ Boundaries:
       model,
       max_tokens: image ? 8000 : 2000,
       // Breakpoint on the persona caches tools + persona together (tools render first).
-      system: [{ type: 'text', text: PERSONA, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: persona(), cache_control: { type: 'ephemeral' } }],
       // Web search runs on Anthropic's side (billed per search); a few per message is plenty.
       tools: TOOLS.concat({ type: model === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: 3 }),
       output_config: { effort: image ? 'medium' : 'low' }, // chat: quick replies; reading a photo needs more care
@@ -4403,7 +4507,7 @@ Boundaries:
     try {
       const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
       const res = await api.messages.create({
-        model, max_tokens: 200, system: PERSONA, output_config: { effort: 'low' },
+        model, max_tokens: 200, system: persona(), output_config: { effort: 'low' },
         messages: [{ role: 'user', content: 'Say hi to me in one short sentence.' }],
       });
       const t = res.content.filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
@@ -4492,7 +4596,7 @@ Boundaries:
       const model = await geminiModel();
       for (let step = 0; step < 8; step++) {
         const data = await gemini(`models/${model}:generateContent`, {
-          systemInstruction: { parts: [{ text: `${PERSONA}\n\n${ctx.contextText()}` }] },
+          systemInstruction: { parts: [{ text: `${persona()}\n\n${ctx.contextText()}` }] },
           contents,
           tools: GEMINI_TOOLS,
           generationConfig: { maxOutputTokens: image ? 8192 : 2048 },
@@ -4535,7 +4639,7 @@ Boundaries:
       ctx.state.ai.geminiModel = '';
       const model = await geminiModel();
       const data = await gemini(`models/${model}:generateContent`, {
-        systemInstruction: { parts: [{ text: PERSONA }] },
+        systemInstruction: { parts: [{ text: persona() }] },
         contents: [{ role: 'user', parts: [{ text: 'Say hi to me in one short sentence.' }] }],
         generationConfig: { maxOutputTokens: 512 },
       });
@@ -5309,7 +5413,7 @@ window.AlarmCard = (() => {
 
   /**
    * opts: { time, title, text, icon, animated, pic (full photo, data URL), cut (the subject cut out, data URL),
-   *         bg (picture for the blurred room behind), hasItem }
+   *         bg (picture for the blurred room behind), hasItem, plain + name (Discreet mode: a plain card) }
    * With `cut`, the photo fills the card and the cut-out subject steps out over the top edge.
    * Without it, the photo fills the card as a living photo. `animated` puts the animated Rias in front.
    * Call each time the alarm shows; it replays the card's entrance.
@@ -5318,6 +5422,8 @@ window.AlarmCard = (() => {
     if (!root) return;
     const q = (s) => root.querySelector(s);
     q('#alarm-time').textContent = opts.time || '';
+    q('.ac-calling').textContent = opts.plain ? 'Reminder' : 'Rias is calling you';
+    q('.ac-name').textContent = opts.plain ? (opts.name || 'Assistant') : 'Rias Gremory';
     q('#alarm-title').textContent = opts.title || 'Reminder';
     q('#alarm-text').textContent = opts.text || '';
     q('.ac-type').textContent = opts.icon || '⏰';
@@ -6571,7 +6677,14 @@ window.createTranslator = function createTranslator(ctx) {
 
   // ---------- helpers ----------
   const $ = (s, el = document) => el.querySelector(s);
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  // Discreet mode skips her character lines (show references, pet names) when a plain one exists.
+  const CHARACTER = /ufu|servant|household|peerage|club room|occult|kuoh|devil|underworld|akeno|koneko|kiba|asia|xenovia|gasper|issei|sirzechs|grayfia|gremory|rating game|power of destruction|\bchess|\bqueen\b|bishop|knight|\brook\b|\bpawn|dxd|demonic|crimson[- ]haired|come here|\blap\b|cuddl|kiss|darling|beside me|next to me|\bhug/i;
+  const plainOn = () => typeof state !== 'undefined' && state && state.settings && state.settings.plain;
+  const pick = (arr) => {
+    const pool = plainOn() ? arr.filter((l) => typeof l !== 'string' || !CHARACTER.test(l)) : arr;
+    const from = pool.length ? pool : arr;
+    return from[Math.floor(Math.random() * from.length)];
+  };
   const uid = () => Math.random().toString(36).slice(2, 10);
   const pad = (n) => String(n).padStart(2, '0');
   const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -6672,11 +6785,17 @@ window.createTranslator = function createTranslator(ctx) {
     syncNative();
   };
 
-  const say = (line, extra = {}) => line
+  const say = (line, extra = {}) => plainText(line
     .replaceAll('{name}', state.profile ? state.profile.name : 'you')
     .replaceAll('{praise}', praiseWord())
     .replaceAll('{count}', String(extra.count ?? ''))
-    .replaceAll('{title}', extra.title || '');
+    .replaceAll('{title}', extra.title || ''));
+  // Discreet mode: scrub what's left of the character from a line.
+  function plainText(t) {
+    if (!plainOn()) return t;
+    return t.replace(/\bufu(fu)+\b[~!.,]*\s*/gi, '').replace(/,?\s*my (cute|dear|adorable) servant/gi, '')
+      .replace(/Welcome to my household/gi, 'Welcome').replace(/Occult Research Club/gi, 'here').replace(/~/g, '.').replace(/\.\./g, '.').replace(/^\s*[.,]\s*/, '').trim();
+  }
 
   const praiseLines = (pool = R.praise) => pool[state.settings.praise] || pool.neutral;
   // Half the time a finished task gets her "good boy / good girl" praise.
@@ -6817,6 +6936,55 @@ window.createTranslator = function createTranslator(ctx) {
     if (N && N.setTheme) { try { N.setTheme(state.settings.theme || 'crimson'); } catch { /* older app */ } }
   }
   applyTheme();
+  // ---------- Discreet mode: a plain assistant app, same features ----------
+  const plainName = () => (state.settings.plainName || '').trim() || 'Assistant';
+  function applyPlain() {
+    const on = !!state.settings.plain;
+    const root = document.documentElement;
+    if (on) root.dataset.plain = '1'; else delete root.dataset.plain;
+    const name = on ? plainName() : 'Rias Gremory';
+    renameStatic(on ? plainName() : null);
+    root.style.setProperty('--plain-name', JSON.stringify(on ? plainName() : 'Rias'));
+    const top = document.querySelector('.top .name');
+    if (top) top.textContent = name;
+    const chatWho = document.querySelector('.chat-who b');
+    if (chatWho) chatWho.lastChild.textContent = name;
+    for (const img of document.querySelectorAll('.top .avatar')) img.src = on ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : (loadPictureSafe() || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K');
+    const gn = document.getElementById('home-goodnight');
+    if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
+    document.title = on ? plainName() : 'Rias';
+    const say = document.getElementById('say');
+    if (say) say.placeholder = on ? 'Type a message…' : 'Say something to her…';
+    const N = window.RiasNative;
+    if (N && N.setPref && !HEADLESS) {
+      try { N.setPref('plain', on ? '1' : ''); N.setPref('displayName', on ? plainName() : 'Rias'); } catch { /* older app */ }
+    }
+  }
+  // The fixed labels around the app ("Ask Rias to estimate…", "What should Rias remind you about?") use the plain name.
+  const renamed = new Map();
+  function renameStatic(name) {
+    for (const [node, [orig, now, attr]] of renamed) {
+      const cur = attr ? node.getAttribute(attr) : node.nodeValue;
+      if (cur === now) { if (attr) node.setAttribute(attr, orig); else node.nodeValue = orig; }
+    }
+    renamed.clear();
+    if (!name) return;
+    const swap = (t) => t.replace(/\bRias Gremory\b/g, name).replace(/\bRias's\b/g, `${name}'s`).replace(/\bRias\b/g, name);
+    const skip = (el) => el.closest('script, style, .feed, #alarm');
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!/Rias/.test(n.nodeValue) || skip(n.parentElement)) continue;
+      const orig = n.nodeValue; n.nodeValue = swap(orig); renamed.set(n, [orig, n.nodeValue]);
+    }
+    for (const attr of ['placeholder', 'title', 'aria-label']) {
+      for (const el of document.querySelectorAll(`[${attr}*="Rias"]`)) {
+        if (skip(el)) continue;
+        const orig = el.getAttribute(attr); el.setAttribute(attr, swap(orig)); renamed.set(el, [orig, el.getAttribute(attr), attr]);
+      }
+    }
+  }
+  function loadPictureSafe() { try { return localStorage.getItem('rias-companion-picture') || ''; } catch { return ''; } }
+  applyPlain();
   // A light tick on every button; a firmer one for the main actions.
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button, .chip, .row-item');
@@ -7060,13 +7228,14 @@ window.createTranslator = function createTranslator(ctx) {
   function showAlarmCard(item, text) {
     if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
     alarmItem = item;
-    const art = alarmArt();
+    const art = plainOn() ? 'plain' : alarmArt();
     const pic = art === 'photo' ? loadAlarmPicture() : art === 'mine' ? loadPicture() : '';
     // The animated Rias steps into the card's art window while it's up.
     if (art === 'animated') { $('.ac-stage').append($('#stage')); $('#stage').hidden = false; Avatar.setMood('happy'); }
     window.AlarmCard.fill({
       time: fmtClock(Date.now()), title: item.title, text, icon: CATEGORY_ICON[item.category] || '⏰',
-      pic, cut: loadCutout(art), bg: pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+      pic, cut: loadCutout(art), bg: art === 'plain' ? '' : pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+      plain: art === 'plain', name: plainName(),
     });
     alarmDlg.showModal();
     if (art === 'animated') setTimeout(() => Avatar.talk(text.length * 55), 700);
@@ -7518,7 +7687,7 @@ window.createTranslator = function createTranslator(ctx) {
     return list[seed % list.length];
   }
   function renderChatHead() {
-    const act = riasActivity();
+    const act = plainOn() ? 'Online' : riasActivity();
     $('#chat-activity').textContent = act;
     $('.chat-head').classList.toggle('asleep', /asleep/i.test(act));
     // The room's light follows the time of day.
@@ -7565,11 +7734,12 @@ window.createTranslator = function createTranslator(ctx) {
         img.alt = 'Photo you sent';
         el.append(img);
       }
-      if (m.from === 'rias' && el.classList.contains('fresh') && skipAnimNext) { skipAnimNext = false; el.append(m.text); } // already seen while streaming
+      const text = m.from === 'rias' ? plainText(m.text) : m.text; // Discreet mode tones down older lines too
+      if (m.from === 'rias' && el.classList.contains('fresh') && skipAnimNext) { skipAnimNext = false; el.append(text); } // already seen while streaming
       else if (m.from === 'rias' && el.classList.contains('fresh')) {
         // Her newest words drift in one at a time, as if she's saying them.
         let n = 0;
-        for (const w of m.text.split(/(\s+)/)) {
+        for (const w of text.split(/(\s+)/)) {
           if (!w.trim()) { el.append(w); continue; }
           const span = document.createElement('span');
           span.className = 'w';
@@ -7577,7 +7747,7 @@ window.createTranslator = function createTranslator(ctx) {
           span.style.animationDelay = `${Math.min(n++ * 55, 3000)}ms`;
           el.append(span);
         }
-      } else el.append(m.text);
+      } else el.append(text);
       if (m.itemId) {
         const task = document.createElement('div');
         task.className = 'task';
@@ -7640,7 +7810,7 @@ window.createTranslator = function createTranslator(ctx) {
   // Little moments: hearts when she praises you, a crimson flash for the Power of Destruction.
   function chatEffects(text) {
     const fx = $('#feed-fx');
-    if (!fx || currentView !== 'chat') return;
+    if (!fx || currentView !== 'chat' || plainOn()) return;
     if (Living && !$('#stage-pic').hidden) Living.talk(text.length * 55);
     if (Avatar) {
       Avatar.talk(text.length * 55);
@@ -7696,7 +7866,7 @@ window.createTranslator = function createTranslator(ctx) {
     const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
     $('#status').textContent = p ? `Waiting on you: ${p.title}`
       : next ? `Next: ${next.title} · ${fmtTime(next.time)}`
-      : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
+      : plainOn() ? (isAwake() ? 'Online' : 'Quiet hours') : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
     if (currentView === 'home') renderHome();
     if (currentView === 'chat') renderChatHead();
   }
@@ -8615,7 +8785,7 @@ window.createTranslator = function createTranslator(ctx) {
     } else {
       info.querySelector('.next-label').textContent = 'All caught up';
       info.querySelector('.next-title').textContent = todaysItems().length ? 'Nothing left on today\'s list 🎉' : 'Nothing scheduled today';
-      info.querySelector('.next-time').textContent = 'Tap Rias to chat, or add a reminder below.';
+      info.querySelector('.next-time').textContent = plainOn() ? 'Open Chat to talk, or add a reminder below.' : 'Tap Rias to chat, or add a reminder below.';
       card.append(info);
     }
 
@@ -9010,7 +9180,7 @@ window.createTranslator = function createTranslator(ctx) {
   const DEFAULT_PIC = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && img.closest('.top') ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -9277,6 +9447,10 @@ window.createTranslator = function createTranslator(ctx) {
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     sf.elements.riasOutfit.value = state.settings.riasOutfit || 'auto';
     sf.elements.theme.value = state.settings.theme || 'crimson';
+    sf.elements.plain.checked = !!state.settings.plain;
+    sf.elements.plainName.value = state.settings.plainName || '';
+    sf.elements.plainIcon.checked = !!state.settings.plainIcon;
+    $('#plain-opts').hidden = !state.settings.plain;
     sf.elements.haptics.checked = state.settings.haptics !== false;
     popupCheck();
     const list = $('#alarm-cat-list');
@@ -9563,6 +9737,9 @@ window.createTranslator = function createTranslator(ctx) {
       homeChar: sf.elements.homeChar.value,
       riasOutfit: sf.elements.riasOutfit.value,
       theme: sf.elements.theme.value,
+      plain: sf.elements.plain.checked,
+      plainName: sf.elements.plainName.value.trim(),
+      plainIcon: sf.elements.plain.checked && sf.elements.plainIcon.checked,
       haptics: sf.elements.haptics.checked,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
@@ -9574,6 +9751,11 @@ window.createTranslator = function createTranslator(ctx) {
       aiLimit: Number(sf.elements.aiLimit.value) || 0,
     });
     applyTheme();
+    applyPlain();
+    renderStatus();
+    // Home-screen icon: only touch it when the choice changed (Android re-shuffles the launcher).
+    { const N = window.RiasNative; const want = !!state.settings.plainIcon;
+      if (N && N.setLauncher && want !== !!state.settings.launcherPlain) { try { N.setLauncher(want); state.settings.launcherPlain = want; } catch { /* older app */ } } }
     pushLook();
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
@@ -9632,6 +9814,7 @@ window.createTranslator = function createTranslator(ctx) {
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  sf.elements.plain.addEventListener('change', () => { $('#plain-opts').hidden = !sf.elements.plain.checked; });
   initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });
@@ -10043,7 +10226,7 @@ window.createTranslator = function createTranslator(ctx) {
   // The voice engine connects a moment after start.
   setTimeout(tuneForEngine, 2500);
   setTimeout(tuneForEngine, 8000);
-  $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
+  $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays(plainOn() ? 'Goodnight 🌙' : 'Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     // You talked to her from the widget while the app was in the background: show that conversation.

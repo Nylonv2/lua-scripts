@@ -666,7 +666,8 @@ public class MainActivity extends Activity {
         /** Look settings the assistant sheet uses: homeChar (animated / picture), outfit. */
         @JavascriptInterface
         public void setPref(String key, String value) {
-            if (!"homeChar".equals(key) && !"outfit".equals(key) && !"assistChar".equals(key) && !"assistStyle".equals(key)) return;
+            if (!"homeChar".equals(key) && !"outfit".equals(key) && !"assistChar".equals(key) && !"assistStyle".equals(key)
+                    && !"plain".equals(key) && !"displayName".equals(key)) return;
             ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString(key, value == null ? "" : value).apply();
         }
 
@@ -825,7 +826,21 @@ public class MainActivity extends Activity {
             }
         }
 
-        /** Settings → Assistant → a picture just for the pop-up. */
+        /** Discreet mode: show "Assistant" with a plain icon on the home screen instead of Rias (or back). */
+        @JavascriptInterface
+        public void setLauncher(boolean plainIcon) {
+            PackageManager pm = ctx.getPackageManager();
+            String pkg = ctx.getPackageName();
+            try {
+                pm.setComponentEnabledSetting(new android.content.ComponentName(pkg, pkg + ".LauncherPlain"),
+                        plainIcon ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+                pm.setComponentEnabledSetting(new android.content.ComponentName(pkg, pkg + ".LauncherRias"),
+                        plainIcon ? PackageManager.COMPONENT_ENABLED_STATE_DISABLED : PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+            } catch (Exception ignored) {
+            }
+        }
+
+        /** Settings → Look & pictures → a picture just for the pop-up. */
         @JavascriptInterface
         public void setAssistPicture(String base64) {
             java.io.File f = AssistActivity.pictureFile(ctx);

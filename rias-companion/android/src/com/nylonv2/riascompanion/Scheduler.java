@@ -268,7 +268,7 @@ final class Scheduler {
                     .setSound(soundUri(c, key), android.media.AudioManager.STREAM_ALARM);
         }
         b.setSmallIcon(smallIcon != 0 ? smallIcon : android.R.drawable.ic_popup_reminder)
-                .setContentTitle(title == null || title.isEmpty() ? "Rias" : "Rias · " + title)
+                .setContentTitle(title == null || title.isEmpty() ? name(c) : name(c) + " · " + title)
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setColor(0xFFC8173A)
@@ -409,7 +409,19 @@ final class Scheduler {
         return new java.io.File(c.getFilesDir(), "rias-picture.jpg");
     }
 
+    /** Discreet mode (Settings → Look & pictures): a plain assistant, no picture of her. */
+    static boolean plain(Context c) {
+        return "1".equals(c.getSharedPreferences("rias", Context.MODE_PRIVATE).getString("plain", ""));
+    }
+
+    /** The name shown in notifications: "Rias", or the Discreet mode name. */
+    static String name(Context c) {
+        String n = c.getSharedPreferences("rias", Context.MODE_PRIVATE).getString("displayName", "Rias");
+        return n == null || n.trim().isEmpty() ? "Rias" : n.trim();
+    }
+
     static android.graphics.Bitmap picture(Context c) {
+        if (plain(c)) return null;
         java.io.File f = pictureFile(c);
         if (!f.exists()) return null;
         try {
@@ -453,7 +465,7 @@ final class Scheduler {
                 : new Notification.Builder(c).setPriority(Notification.PRIORITY_HIGH)
                         .setDefaults(Notification.DEFAULT_ALL);
         b.setSmallIcon(icon != 0 ? icon : android.R.drawable.ic_popup_reminder)
-                .setContentTitle("Rias")
+                .setContentTitle(name(c))
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
                 .setColor(0xFFC8173A)

@@ -121,6 +121,8 @@ public class AlarmActivity extends Activity {
                     }
                     o.put("bg", mine);
                     o.put("theme", getSharedPreferences("rias", MODE_PRIVATE).getString("theme", "crimson"));
+                    o.put("plain", Scheduler.plain(self));
+                    o.put("name", Scheduler.name(self));
                 } catch (Exception ignored) {
                 }
                 return o.toString();
@@ -214,7 +216,7 @@ public class AlarmActivity extends Activity {
         picLp.bottomMargin = dp(18);
         root.addView(pic, picLp);
 
-        TextView name = label("Rias Gremory", 24, GOLD);
+        TextView name = label(Scheduler.plain(this) ? Scheduler.name(this) : "Rias Gremory", 24, GOLD);
         name.setTypeface(Typeface.SERIF);
         root.addView(name);
 

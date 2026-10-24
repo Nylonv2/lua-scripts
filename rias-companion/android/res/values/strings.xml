@@ -6,4 +6,5 @@
     <string name="widget_desc">What\'s next, and a word from Rias</string>
     <string name="chat_widget_desc">Talk to Rias from your home screen; she answers in a notification</string>
     <string name="chat_widget_label">Rias · Chat</string>
+    <string name="plain_name">Assistant</string>
 </resources>

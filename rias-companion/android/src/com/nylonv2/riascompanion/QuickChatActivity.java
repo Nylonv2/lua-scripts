@@ -69,7 +69,7 @@ public class QuickChatActivity extends Activity {
         who.setOrientation(LinearLayout.VERTICAL);
         who.setPadding(dp(12), 0, 0, 0);
         TextView name = new TextView(this);
-        name.setText("Rias Gremory");
+        name.setText(Scheduler.plain(this) ? Scheduler.name(this) : "Rias Gremory");
         name.setTextColor(0xFFE3B866);
         name.setTypeface(Typeface.SERIF);
         name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
