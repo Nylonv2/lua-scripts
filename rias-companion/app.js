@@ -1362,6 +1362,7 @@
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
     if (view === 'work') Work.render();
+    if (view === 'biz' && Biz) Biz.render();
     if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
@@ -1587,6 +1588,7 @@
       allDay.length ? `All-day calendar events today: ${allDay.join(', ')}.` : '',
       `Work shifts, next 7 days: ${Work.summary()}.`,
       `Food diary today: ${Food.summary()}`,
+      Biz && Biz.summary() ? Biz.summary() : '',
       likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
       state.memory.length ? `Things you remember about the user (saved earlier; bring them up naturally, never recite the list): ${state.memory.map((m) => m.text).join('; ')}.` : '',
       state.sleep[dateKey()] ? `They went to sleep last night at ${fmtClock(state.sleep[dateKey()].at)}${state.sleep[dateKey()].quality ? ` and slept ${state.sleep[dateKey()].quality}` : ''}.` : '',
@@ -1634,11 +1636,18 @@
 
   // ---------- assistant (Alexa-style commands: timers, calls, phone controls…) ----------
   const PAGES = [[/^(chat|messages?)$/, 'chat'], [/^(reminders?|today|to ?do( list)?|tasks?|calendar)$/, 'today'], [/^(food|diary|food diary|meals?)$/, 'food'],
-    [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home']];
+    [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home'],
+    [/^(assistant|clients|my clients|business|leads)$/, 'biz']];
   const Assistant = window.createAssistant({
     get state() { return state; },
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     aiOn: () => AI.enabled(),
+    // "Find me clients": open the Assistant tab's search.
+    findClients() {
+      if (HEADLESS || !Biz) return null;
+      setTimeout(() => { show('biz'); Biz.openFind(); }, 500);
+      return say('Let\'s find you some clients. Pick who I should look for~');
+    },
     addItem(it) {
       const item = { id: uid(), enabled: true, ...it };
       state.items.push(item);
@@ -1703,6 +1712,12 @@
         return { ok: true, completed: it.title };
       },
     },
+  });
+  // The Assistant tab: find clients and write to them (after AI and the assistant, which it uses).
+  const Biz = HEADLESS ? null : window.createBizAssistant({
+    ...modCtx, ai: AI,
+    say: (text) => addMessage('rias', say(text)),
+    sendEmail: (opts) => Assistant.email(opts),
   });
 
   // Phone calendar (Android app only): events from Samsung/Google Calendar.
@@ -2306,7 +2321,7 @@
     $('#pic-hint').textContent = 'Back to the default picture.';
   });
 
-  // Settings → Assistant → Pop-up look: how she appears when you long-press home.
+  // Settings → Look & pictures → Pictures: how she appears when you long-press home.
   const ASSIST_PIC_KEY = 'rias-assist-picture';
   function refreshPicPreviews() {
     const own = (() => { try { return localStorage.getItem(ASSIST_PIC_KEY) || ''; } catch { return ''; } })();
@@ -2456,7 +2471,7 @@
     { k: 'alerts', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
     { k: 'day', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
-    { k: 'assist', icon: '🎙', title: 'Assistant', sub: 'Home-button pop-up, phone controls, “Hey Rias”' },
+    { k: 'assist', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, “Hey Rias”' },
     { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
   ];
   let setCat = null;

@@ -73,6 +73,21 @@ A **morning briefing** (shifts, reminders, calendar, weather, how you slept), ch
 at bedtime, "goodnight" to log your sleep, and a **weekly recap** on Sunday evening. Connect your **phone calendar** to see
 its events and be reminded of them. **Share → Rias** from any app turns a note or screenshot into a reminder.
 
+### Assistant (find clients and email them)
+Rias as a small office manager for your videography business:
+1. **My business:** fill in once what you shoot, the clients you want, your area, portfolio, prices and how your emails
+   should sound.
+2. **Find clients:** pick who to look for (suggested from what you shoot, or describe them), where, and how many. She
+   searches the web, checks their websites for a **publicly listed** contact email, and saves each one with *why they
+   could use video*. It takes a minute or two; you can leave the screen. Needs her AI: Claude finds the most (about 10–50
+   cents per search with Opus, less with Sonnet); a free Gemini key works too.
+3. **Write email:** she writes a short, personal cold email in your voice, with a specific hook, your portfolio, one easy
+   ask, an opt-out line and your signature. Tap *Shorter*, *More casual*, *More professional* or *New angle* to rework it,
+   or edit it yourself, then **Open in email app** and tap Send. The client is marked *Emailed*.
+4. **Follow up:** after 4 days with no reply she flags the client and writes a short nudge (up to two follow-ups).
+5. **Track:** filter clients by New, Emailed, Replied, Booked or Not interested, add notes, add clients yourself, and see
+   your totals at the top. Saying "find me some clients" in the chat opens the search.
+
 ### Widgets
 Long-press your home screen → Widgets → Rias:
 - **Rias** shows what's next and a line from her.
@@ -80,7 +95,7 @@ Long-press your home screen → Widgets → Rias:
   as a notification you can **Reply** to. Her regular notifications have Reply too.
 
 ### Phone assistant
-Make Rias your phone's assistant (Settings → Assistant → *Set up* → *Digital assistant app* → Rias). Then long-press
+Make Rias your phone's assistant (Settings → Phone assistant → *Set up* → *Digital assistant app* → Rias). Then long-press
 home and a small Rias bubble appears: talk, she answers out loud, and it disappears. Tap the bubble to stop early or
 hush her. Prefer to see the words? Switch the pop-up to *Full panel*.
 
@@ -107,7 +122,7 @@ say), finds the address in your contacts, signs it (*Sign my emails as* under Yo
 | **Reminders & alarms** | Check-ins, notifications, the pop-up check, which reminders pop up, alarm sound, test buttons |
 | **Your day** | Briefing, weather city, recap, wind-down, phone calendar, food & water goals |
 | **Rias's mind** | AI on/off and service, monthly cost (Claude), what she remembers |
-| **Assistant** | Phone assistant setup, pop-up style, permissions, "Hey Rias" |
+| **Phone assistant** | Home-button setup, pop-up style, permissions, "Hey Rias" |
 | **Backup & data** | Save / restore a backup, weekly auto backup, updates, reset |
 
 ---
@@ -154,7 +169,8 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 | `index.html`, `style.css`, `app.js` | The app: screens, state (localStorage), reminders, settings |
 | `dialogue.js`, `talk.js`, `chat.js` | Her written lines and the matching for chat without AI |
 | `ai.js` | Claude (bundled SDK, streaming, tools, web search) and Gemini |
-| `assistant.js` | Voice-assistant commands (timers, calls, phone controls…) |
+| `assistant.js` | Voice-assistant commands (timers, calls, emails, phone controls…) |
+| `biz.js` | The Assistant tab: business profile, client finder, outreach emails, follow-ups |
 | `natural-voice.js` | Gemini text-to-speech |
 | `food.js`, `work.js` | Food diary, work schedule |
 | `rias-avatar.js`, `living-photo.js`, `alarm-card.js`, `photo-cutout.js` | Animated Rias, living photo, alarm card, on-device cutout |

@@ -534,5 +534,174 @@ Boundaries:
     }
   }
 
-  return { enabled, reply, test, provider, estimate };
+  // ---------- Business assistant: finding clients and writing outreach emails ----------
+  const profileText = (pr) => [
+    `Videographer: ${pr.name || 'the user'}${pr.business ? ` (${pr.business})` : ''}`,
+    pr.services && pr.services.length ? `Shoots: ${pr.services.join(', ')}` : '',
+    pr.clients ? `Ideal clients: ${pr.clients}` : '',
+    pr.area ? `Area: ${pr.area}` : '',
+    pr.portfolio ? `Portfolio: ${pr.portfolio}` : '',
+    pr.prices ? `Prices: ${pr.prices}` : '',
+    pr.pitch ? `What makes them different / notes: ${pr.pitch}` : '',
+  ].filter(Boolean).join('\n');
+
+  const CLIENT_PROPS = {
+    name: { type: 'string', description: 'Business name' },
+    type: { type: 'string', description: 'What kind of business, e.g. "Wedding venue", "Real estate agent"' },
+    city: { type: 'string' },
+    website: { type: 'string', description: 'Homepage URL, or empty string' },
+    email: { type: 'string', description: 'A public contact email shown on their website or listing, or empty string. Never guess or make one up.' },
+    phone: { type: 'string', description: 'Public phone number, or empty string' },
+    reason: { type: 'string', description: 'One short sentence: why they could use video from this videographer, based on something specific you saw' },
+  };
+  const SAVE_CLIENTS = {
+    name: 'save_clients',
+    description: 'Save the potential clients you found. Call it once, at the end, with all of them.',
+    strict: true,
+    input_schema: {
+      type: 'object', additionalProperties: false, required: ['clients'],
+      properties: { clients: { type: 'array', items: { type: 'object', additionalProperties: false, required: Object.keys(CLIENT_PROPS), properties: CLIENT_PROPS } } },
+    },
+  };
+  const findPrompt = ({ profile, kind, area, count, exclude }) => `You are researching potential clients for a freelance videographer.
+
+${profileText(profile)}
+
+Find ${count} real, currently operating ${kind || 'businesses that would hire a videographer'} in or near ${area || profile.area || 'their area'} that are good prospects for this videographer.
+- Prefer ones with a clear reason to want video: no or outdated video on their website or social pages, a new opening or location, regular events, listings or launches, an active social presence that would benefit from video.
+- Search the web, then open their websites (especially contact / about pages) to find a public contact email. Use only emails you actually saw; if there's none, leave it empty. Never guess an address.
+- Skip big national chains and anyone in this list (already saved): ${exclude.length ? exclude.join('; ') : 'none'}.
+- When you're done, call save_clients once with everyone you found (fewer than ${count} is fine if you can't find enough good ones). Don't write anything else.`;
+
+  // Claude: web search + web fetch on Anthropic's side, results come back through save_clients.
+  async function findClientsClaude(opts) {
+    const api = getClient();
+    if (!api) return { error: 'Add your Claude key in Settings → Rias\'s mind first.' };
+    const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+    const basic = model === 'claude-haiku-5-5';
+    const messages = [{ role: 'user', content: findPrompt(opts) }];
+    const params = {
+      model,
+      max_tokens: 16000,
+      output_config: { effort: 'medium' },
+      tools: [
+        { type: basic ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: Math.min(12, 4 + Math.ceil(opts.count / 2)) },
+        { type: basic ? 'web_fetch_20250910' : 'web_fetch_20260209', name: 'web_fetch', max_uses: Math.min(20, opts.count + 4), max_content_tokens: 6000 },
+        SAVE_CLIENTS,
+      ],
+      messages,
+    };
+    if (MODELS[model].fallbacks) { params.betas = ['server-side-fallback-2026-07-01']; params.fallbacks = 'default'; }
+    try {
+      for (let step = 0; step < 8; step++) {
+        const stream = MODELS[model].fallbacks ? api.beta.messages.stream(params) : api.messages.stream(params);
+        const res = await stream.finalMessage();
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (res.stop_reason === 'refusal') return { error: 'The search was declined. Try describing the clients differently.' };
+        const call = res.content.find((b) => b.type === 'tool_use' && b.name === 'save_clients');
+        if (call) return { clients: (call.input && call.input.clients) || [] };
+        if (res.stop_reason === 'pause_turn') { messages.push({ role: 'assistant', content: res.content }); continue; }
+        if (res.stop_reason === 'tool_use') {
+          messages.push({ role: 'assistant', content: echoable(res.content) },
+            { role: 'user', content: res.content.filter((b) => b.type === 'tool_use').map((b) => ({ type: 'tool_result', tool_use_id: b.id, content: 'Unknown tool. Use save_clients.', is_error: true })) });
+          continue;
+        }
+        // Finished without saving: ask once more for the list.
+        messages.push({ role: 'assistant', content: echoable(res.content) }, { role: 'user', content: 'Now call save_clients with everyone you found.' });
+      }
+      return { error: 'The search took too long. Try asking for fewer clients.' };
+    } catch (e) {
+      const A = window.Anthropic;
+      if (e instanceof A.AuthenticationError || e instanceof A.PermissionDeniedError) return { error: 'Your Claude API key was rejected. Check it in Settings → Rias\'s mind.' };
+      if (e instanceof A.RateLimitError) return { error: 'Claude is rate-limiting your key right now. Try again in a minute.' };
+      if (e instanceof A.BadRequestError) return { error: `Claude couldn't run the search (${e.message}).` };
+      return { error: 'Couldn\'t reach Claude. Check your internet and try again.' };
+    }
+  }
+
+  // Gemini: Google Search grounding; the list comes back as JSON in the text.
+  async function findClientsGemini(opts) {
+    const model = await geminiModel();
+    const prompt = `${findPrompt(opts).replace(/- When you're done, call save_clients[^\n]*/, '')}
+- Reply with only a JSON array, no other text. Each item: {"name","type","city","website","email","phone","reason"} (use "" when unknown).`;
+    const data = await gemini(`models/${model}:generateContent`, {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      tools: [{ google_search: {} }],
+      generationConfig: { maxOutputTokens: 8192 },
+    });
+    if (data.error) return { error: data.error };
+    const text = ((((data.candidates || [])[0] || {}).content || {}).parts || []).filter((p) => p.text && !p.thought).map((p) => p.text).join('');
+    const json = (text.match(/\[[\s\S]*\]/) || [])[0];
+    try { return { clients: JSON.parse(json) }; } catch { return { error: 'Gemini didn\'t return a usable list. Try again, or use Claude for better searches.' }; }
+  }
+
+  /** { profile, kind, area, count, exclude: [names] } → { clients: [...] } or { error }. */
+  async function findClients(opts) {
+    if (!enabled()) return { error: 'Turn on her AI first (Settings → Rias\'s mind).' };
+    const clean = (c) => Object.fromEntries(Object.keys(CLIENT_PROPS).map((k) => [k, String((c && c[k]) || '').trim()]));
+    let res;
+    try {
+      res = provider() === 'gemini' ? await findClientsGemini(opts) : await findClientsClaude(opts);
+    } catch (e) {
+      res = { error: e && e.status === 429 ? 'Gemini\'s free limit is used up for now. Try again later, or use Claude.' : 'Couldn\'t reach Gemini. Check your internet and key.' };
+    }
+    if (res.clients) res.clients = res.clients.map(clean).filter((c) => c.name)
+      // Only keep emails that look real.
+      .map((c) => ({ ...c, email: /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(c.email) ? c.email : '' }));
+    return res;
+  }
+
+  const EMAIL_SCHEMA = {
+    type: 'object', additionalProperties: false, required: ['subject', 'body'],
+    properties: { subject: { type: 'string' }, body: { type: 'string' } },
+  };
+  const outreachPrompt = ({ profile, client, followUp, previous, tweak }) => `Write a ${followUp ? 'short follow-up to a cold email' : 'cold outreach email'} from a freelance videographer to a potential client.
+
+About the videographer:
+${profileText(profile)}
+Tone: ${profile.tone || 'friendly and professional'}
+
+The potential client:
+${client.name} (${client.type || 'business'}${client.city ? `, ${client.city}` : ''})${client.website ? `\nWebsite: ${client.website}` : ''}
+Why they might want video: ${client.reason || 'not known'}${client.notes ? `\nNotes: ${client.notes}` : ''}
+${followUp && previous ? `\nThe first email (sent ${previous.when}):\nSubject: ${previous.subject}\n${previous.body}\n` : ''}
+Rules:
+- Write as the videographer, in the first person. Sound like a real person, not a template or an ad. No hype words, no fake urgency, no exaggeration.
+- ${followUp ? '2 to 4 sentences: a friendly nudge that adds one small new idea or reason, not a repeat.' : 'Under 120 words. Open with something specific about them (from the reason above), say what you could make for them and the benefit in one or two sentences, mention the portfolio link once if there is one, and end with one easy ask (a quick call or a reply).'}
+- An honest, specific subject line (no clickbait, no "Re:" unless it's a follow-up to the same thread).
+- Greeting with their business name or "Hi there" if no person is known.
+- End with one short line letting them opt out, like "If it's not a fit, just let me know and I won't follow up." Then a sign-off line like "Thanks," on its own line. Don't add a name or signature; the app adds it.${tweak ? `\n- Change requested: ${tweak}` : ''}`;
+
+  /** { profile, client, followUp, previous, tweak } → { subject, body } or { error }. */
+  async function writeOutreach(opts) {
+    if (!enabled()) return { error: 'no-ai' };
+    try {
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: outreachPrompt(opts) }] }],
+          generationConfig: { maxOutputTokens: 2048, responseMimeType: 'application/json', responseSchema: geminiSchema(EMAIL_SCHEMA) },
+        });
+        if (data.error) return { error: data.error };
+        const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        return JSON.parse(parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''));
+      }
+      const api = getClient();
+      if (!api) return { error: 'Add your Claude key first.' };
+      const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+      const res = await api.messages.create({
+        model,
+        max_tokens: 3000,
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: EMAIL_SCHEMA } },
+        messages: [{ role: 'user', content: outreachPrompt(opts) }],
+      });
+      if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+      if (res.stop_reason === 'refusal') return { error: 'That email request was declined.' };
+      return JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+    } catch (e) {
+      return { error: 'Couldn\'t write the email just now. Check your internet and try again.' };
+    }
+  }
+
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach };
 };

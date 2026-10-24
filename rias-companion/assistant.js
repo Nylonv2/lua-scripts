@@ -151,7 +151,7 @@ window.createAssistant = function createAssistant(ctx) {
       case 'dnd_on': case 'dnd_off': {
         const res = deviceCall('dnd', action === 'dnd_on');
         if (res == null) return needApp();
-        if (res === 'no-permission') return fail('I need permission for Do Not Disturb first. Go to Settings → Assistant → Do Not Disturb and allow me.');
+        if (res === 'no-permission') return fail('I need permission for Do Not Disturb first. Go to Settings → Phone assistant → Do Not Disturb and allow me.');
         return r(action === 'dnd_on' ? 'Do Not Disturb is on. Nobody bothers you but me~' : 'Do Not Disturb is off.');
       }
       case 'open_app': {
@@ -162,7 +162,7 @@ window.createAssistant = function createAssistant(ctx) {
       case 'call': {
         const res = deviceCall('call', v);
         if (res == null) return needApp();
-        if (res === 'no-permission') return fail('I need access to your contacts to call by name. Go to Settings → Assistant → Calls & texts.');
+        if (res === 'no-permission') return fail('I need access to your contacts to call by name. Go to Settings → Phone assistant → Calls & texts.');
         if (res === 'not-found') return fail(`I couldn't find “${v}” in your contacts.`);
         return res.startsWith('ok') ? r(`Calling ${res.slice(3) || v}.`) : fail('I couldn\'t start the call.');
       }
@@ -170,7 +170,7 @@ window.createAssistant = function createAssistant(ctx) {
         if (!message) return fail(`What should I say to ${v}?`);
         const res = deviceCall('text', v, message);
         if (res == null) return needApp();
-        if (res === 'no-permission') return fail('I need access to your contacts to text by name. Go to Settings → Assistant → Calls & texts.');
+        if (res === 'no-permission') return fail('I need access to your contacts to text by name. Go to Settings → Phone assistant → Calls & texts.');
         if (res === 'not-found') return fail(`I couldn't find “${v}” in your contacts.`);
         return res.startsWith('ok') ? r(`Your message to ${res.slice(3) || v} is ready. Just tap send.`) : fail('I couldn\'t open your messages app.');
       }
@@ -195,9 +195,9 @@ window.createAssistant = function createAssistant(ctx) {
    * Opens the email app with the email ready; the user checks it and taps Send.
    * { to: address, contact name or '', subject, body } → { ok, said } (said = her short confirmation).
    */
-  function email({ to = '', subject = '', body = '' }) {
+  function email({ to = '', subject = '', body = '', sign = true }) {
     let text = String(body || '').trim();
-    const sig = signature();
+    const sig = sign ? signature() : '';
     // Sign it with your name unless it's already signed.
     if (sig && !text.slice(-60).toLowerCase().includes(sig.toLowerCase())) text += `${/(thanks|regards|best|cheers|sincerely|talk soon)[,!.]*$/i.test(text) ? '\n' : '\n\n'}${sig}`;
     const d = D();
@@ -209,7 +209,7 @@ window.createAssistant = function createAssistant(ctx) {
       const addr = /@/.test(to) ? String(to).replace(/\s/g, '') : '';
       try { window.open(`mailto:${addr}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`, '_blank'); res = `ok:${to}|${addr}`; } catch { res = 'no-app'; }
     }
-    if (res === 'no-permission') return { ok: false, said: say(`I need access to your contacts to find ${to}'s email. Go to Settings → Assistant → Calls & texts, or give me their email address.`) };
+    if (res === 'no-permission') return { ok: false, said: say(`I need access to your contacts to find ${to}'s email. Go to Settings → Phone assistant → Calls & texts, or give me their email address.`) };
     if (res === 'not-found') return { ok: false, said: say(`I couldn't find an email address for “${to}” in your contacts. What's their email?`) };
     if (!String(res).startsWith('ok')) return { ok: false, said: say('I couldn\'t open your email app, {name}.') };
     const who = String(res).slice(3).split('|')[0] || to;
@@ -229,7 +229,7 @@ window.createAssistant = function createAssistant(ctx) {
     if (!d || !d.notifications) return { ok: false, said: say(NEEDS_APP) };
     let s = {};
     try { s = JSON.parse(d.status()); } catch { /* old app */ }
-    if (!s.notifications) return { ok: false, said: say('I need permission to read your notifications. Go to Settings → Assistant → Read notifications and allow me.') };
+    if (!s.notifications) return { ok: false, said: say('I need permission to read your notifications. Go to Settings → Phone assistant → Read notifications and allow me.') };
     let list = [];
     try { list = JSON.parse(d.notifications(st().notesReadAt || 0)); } catch { /* none */ }
     st().notesReadAt = Date.now();
@@ -337,6 +337,12 @@ window.createAssistant = function createAssistant(ctx) {
 
     // Do Not Disturb
     if (/\b(do not disturb|don't disturb|dnd)\b/.test(t)) return one(run(/\b(off|disable|stop|end|turn off|deactivate)\b/.test(t) ? 'dnd_off' : 'dnd_on'));
+
+    // "Find me clients" → the Assistant tab's client search.
+    if (/^(?:find|get|look for|search for|hunt for)\b.*\b(?:clients|customers|leads|prospects)\b/.test(t)) {
+      const line = ctx.findClients && ctx.findClients();
+      return [line || say('Open the Assistant tab and tap Find clients, and I\'ll go looking.')];
+    }
 
     // Email: with her AI on she writes it properly (draft_email tool); without it, a short plain one.
     m = rawText.trim().replace(/[?.!]+$/, '').match(/^(?:(?:hey |ok |okay )?rias[,!.]?\s+)?(?:please\s+|can you\s+|could you\s+)?(?:send |write |draft )?(?:an |a )?e-?mail(?: to)?\s+(\S+@\S+|[a-z][a-z'.-]*(?:\s+[A-Z][a-z'.-]+)?)(?:\s*(?:,|saying|that says|that|about|to say|and say|and tell (?:him|her|them))\s+(.+))?$/i);
