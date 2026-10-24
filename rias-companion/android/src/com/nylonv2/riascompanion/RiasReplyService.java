@@ -35,6 +35,7 @@ import java.util.ArrayDeque;
 public class RiasReplyService extends Service {
     static final String ACTION_SAY = "com.nylonv2.riascompanion.SAY";
     static final String ACTION_REPLY = "com.nylonv2.riascompanion.REPLY";
+    static final String ACTION_WARM = "com.nylonv2.riascompanion.WARM";
     static final String EXTRA_TEXT = "text";
     static final String EXTRA_CANCEL = "cancelId";
     static final String EXTRA_VOICE = "voice";   // answer out loud
@@ -68,6 +69,24 @@ public class RiasReplyService extends Service {
     static void say(Context c, String text) {
         say(c, text, false, false);
     }
+
+    /** The assistant sheet opened: load her mind now, while you're still talking, so she answers sooner. */
+    static void warm(Context c) {
+        Intent i = new Intent(c, RiasReplyService.class).setAction(ACTION_WARM);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private final Runnable idleStop = new Runnable() {
+        @Override
+        public void run() {
+            if (busy || !queue.isEmpty()) return;
+            lastShown = true; // nothing to keep in the shade
+            stopTurn();
+        }
+    };
 
     static void say(Context c, String text, boolean voice, boolean fromAssist) {
         Intent i = new Intent(c, RiasReplyService.class).setAction(ACTION_SAY).putExtra(EXTRA_TEXT, text)
@@ -161,6 +180,16 @@ public class RiasReplyService extends Service {
                 }
             }
         }
+        if (intent != null && ACTION_WARM.equals(intent.getAction())) {
+            Notification w = conversation(this, false);
+            if (Build.VERSION.SDK_INT >= 34) startForeground(NOTE_ID, w, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
+            else startForeground(NOTE_ID, w);
+            ensureWeb();
+            main.removeCallbacks(idleStop);
+            if (!busy && queue.isEmpty()) main.postDelayed(idleStop, 45000);
+            return START_NOT_STICKY;
+        }
+        main.removeCallbacks(idleStop);
         if (text != null && !text.trim().isEmpty()) ChatLog.add(this, "me", text);
         Notification n = conversation(this, true);
         if (Build.VERSION.SDK_INT >= 34) startForeground(NOTE_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
@@ -255,7 +284,10 @@ public class RiasReplyService extends Service {
         lastShown = shown;
         current = null;
         RiasChatWidget.update(this);
-        if (queue.isEmpty()) stopTurn(); else pump();
+        // The assistant sheet is still open: stay ready a little longer for a follow-up.
+        if (queue.isEmpty() && shown && assist != null) main.postDelayed(idleStop, 25000);
+        else if (queue.isEmpty()) stopTurn();
+        else pump();
     }
 
     @SuppressWarnings("deprecation")
@@ -275,6 +307,7 @@ public class RiasReplyService extends Service {
     @Override
     public void onDestroy() {
         main.removeCallbacks(timeout);
+        main.removeCallbacks(idleStop);
         if (web != null) {
             web.destroy();
             web = null;

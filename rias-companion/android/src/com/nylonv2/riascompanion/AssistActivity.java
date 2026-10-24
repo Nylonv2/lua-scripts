@@ -105,6 +105,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         WakeService.pause();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         RiasReplyService.assist = this;
+        RiasReplyService.warm(this);
         quiet = !"full".equals(getSharedPreferences("rias", MODE_PRIVATE).getString("assistStyle", "quiet"));
         if (quiet) {
             // A small window near the bottom; the rest of the screen stays usable.

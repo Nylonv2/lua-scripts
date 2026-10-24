@@ -3231,7 +3231,7 @@
           await userSays(text);
           // Wait for all of her messages (and any tool work) to land.
           let quiet = 0, n = state.messages.length;
-          for (let t = 0; t < 600 && quiet < 12; t++) {
+          for (let t = 0; t < 600 && quiet < 6; t++) {
             await new Promise((r) => setTimeout(r, 100));
             if (state.messages.length !== n || busy()) { n = state.messages.length; quiet = 0; } else quiet++;
           }
