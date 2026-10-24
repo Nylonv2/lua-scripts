@@ -644,6 +644,12 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** Settings → Theme, so the alarm screen matches the app. */
+        @JavascriptInterface
+        public void setTheme(String theme) {
+            ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString("theme", theme).apply();
+        }
+
         /** Settings → Alarm card picture: "animated", "mine" or "photo". */
         @JavascriptInterface
         public void setAlarmArt(String art) {
@@ -654,6 +660,21 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setAlarmPicture(String base64) {
             java.io.File f = Scheduler.alarmPictureFile(ctx);
+            if (base64 == null || base64.isEmpty()) {
+                f.delete();
+                return;
+            }
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) {
+                out.write(android.util.Base64.decode(base64, android.util.Base64.DEFAULT));
+            } catch (Exception ignored) {
+            }
+        }
+
+        /** The card photo's subject cut out (base64 WebP) and which picture it belongs to ("photo"/"mine"); "" clears it. */
+        @JavascriptInterface
+        public void setAlarmCutout(String base64, String forArt) {
+            java.io.File f = new java.io.File(ctx.getFilesDir(), "alarm-cutout.webp");
+            ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString("alarmCutFor", base64 == null || base64.isEmpty() ? "" : forArt).apply();
             if (base64 == null || base64.isEmpty()) {
                 f.delete();
                 return;

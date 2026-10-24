@@ -186,7 +186,7 @@ Boundaries:
     return client;
   }
   const provider = () => (ctx.state.ai.provider === 'gemini' ? 'gemini' : 'claude');
-  const enabled = () => !!(ctx.state.ai.on && (provider() === 'gemini'
+  const enabled = () => !!(ctx.state.ai.on && !(ctx.overLimit && ctx.overLimit()) && (provider() === 'gemini'
     ? ctx.state.ai.geminiKey.trim()
     : ctx.state.ai.key.trim() && window.Anthropic));
 
@@ -232,7 +232,8 @@ Boundaries:
   // Returns { lines } on success, { error } when the user should hear about a problem,
   // or null to quietly fall back to the written replies.
   // `image` is an optional base64 JPEG (e.g. a photo of a work schedule).
-  async function reply(userText, image) {
+  // `live` (optional): { onText(textSoFar), onReset() } to show her reply while she writes it.
+  async function reply(userText, image, live) {
     if (provider() === 'gemini') return geminiReply(userText, image);
     const api = getClient();
     if (!api) return null;
@@ -260,7 +261,19 @@ Boundaries:
     }
     try {
       for (let step = 0; step < 8; step++) {
-        const res = MODELS[model].fallbacks ? await api.beta.messages.create(params) : await api.messages.create(params);
+        // Streamed, so her words appear as she writes them.
+        const stream = MODELS[model].fallbacks ? api.beta.messages.stream(params) : api.messages.stream(params);
+        let soFar = '';
+        if (live) {
+          stream.on('text', (delta) => { soFar += delta; live.onText(soFar); });
+          // A server-side fallback restarts the answer on another model.
+          stream.on('streamEvent', (ev) => {
+            if (ev.type === 'content_block_start' && ev.content_block && ev.content_block.type === 'fallback') { soFar = ''; live.onReset(); }
+          });
+        }
+        const res = await stream.finalMessage();
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (live && res.stop_reason === 'tool_use') live.onReset(); // the next step writes the real answer
         if (res.stop_reason === 'refusal') return null;
         if (res.stop_reason === 'tool_use') {
           const results = await Promise.all(res.content.filter((b) => b.type === 'tool_use').map(async (b) => ({
@@ -417,6 +430,7 @@ Boundaries:
           tools: GEMINI_TOOLS,
           generationConfig: { maxOutputTokens: image ? 8192 : 2048 },
         });
+        if (ctx.onUsage && data.usageMetadata) ctx.onUsage(model, { input_tokens: data.usageMetadata.promptTokenCount || 0, output_tokens: data.usageMetadata.candidatesTokenCount || 0 });
         const cand = (data.candidates || [])[0];
         if (!cand || !cand.content || !cand.content.parts) return null; // blocked or empty
         const calls = cand.content.parts.filter((p) => p.functionCall);

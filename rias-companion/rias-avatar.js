@@ -45,11 +45,15 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       <!-- neck -->
       <path fill="#f6cdbd" d="M134 190 L166 190 L168 236 Q150 246 132 236Z"/>
       <!-- blouse + Kuoh-style cape -->
-      <path fill="#fbf6f4" d="M54 360 C60 292 96 252 150 246 C204 252 240 292 246 360Z"/>
-      <path fill="#1d1420" d="M52 360 C58 296 88 262 126 250 L150 312 L174 250 C212 262 242 296 248 360Z"/>
-      <path fill="#2c1f31" d="M64 360 C70 312 92 282 118 268 L104 360Z M236 360 C230 312 208 282 182 268 L196 360Z"/>
+      <path class="blouse" fill="#fbf6f4" d="M54 360 C60 292 96 252 150 246 C204 252 240 292 246 360Z"/>
+      <path class="cape" fill="#1d1420" d="M52 360 C58 296 88 262 126 250 L150 312 L174 250 C212 262 242 296 248 360Z"/>
+      <path class="cape-shade" fill="#2c1f31" d="M64 360 C70 312 92 282 118 268 L104 360Z M236 360 C230 312 208 282 182 268 L196 360Z"/>
+      <!-- outfit extras: summer straps, pajama dots, winter scarf -->
+      <path class="summer-straps" fill="none" stroke="#e8b04a" stroke-width="5" d="M118 262 L132 330 M182 262 L168 330"/>
+      <g class="pj-dots" fill="#fff" opacity=".8"><circle cx="90" cy="320" r="4"/><circle cx="118" cy="300" r="4"/><circle cx="104" cy="345" r="4"/><circle cx="210" cy="320" r="4"/><circle cx="182" cy="300" r="4"/><circle cx="196" cy="345" r="4"/><circle cx="150" cy="340" r="4"/></g>
       <!-- collar -->
-      <path fill="#ffffff" d="M126 248 L150 292 L138 250Z M174 248 L150 292 L162 250Z"/>
+      <path class="collar" fill="#ffffff" d="M126 248 L150 292 L138 250Z M174 248 L150 292 L162 250Z"/>
+      <g class="scarf"><path fill="#c8173a" d="M118 236 Q150 262 182 236 L188 254 Q150 284 112 254Z"/><path fill="#9e1030" d="M160 258 L174 330 L156 332 L148 262Z"/><path fill="#fff" opacity=".35" d="M120 246 Q150 268 180 246 L182 250 Q150 274 118 250Z"/></g>
       <!-- ribbon -->
       <g class="ribbon">
         <path fill="#c8173a" d="M150 292 L128 280 L131 302Z M150 292 L172 280 L169 302Z"/>
@@ -121,6 +125,18 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       <path class="ahoge" fill="url(#rhf)" d="M150 50 C154 22 172 10 190 18 C172 20 160 30 155 52Z"/>
     </g>
 
+    <!-- gestures -->
+    <g class="arm-wave">
+      <path class="sleeve" d="M214 330 Q244 290 250 250 L260 204" fill="none" stroke="#1d1420" stroke-width="22" stroke-linecap="round"/>
+      <g class="hand"><ellipse cx="262" cy="190" rx="13" ry="16" fill="url(#skin)"/><path d="M251 196 Q244 190 247 182" fill="none" stroke="#f0c2b0" stroke-width="5" stroke-linecap="round"/></g>
+    </g>
+    <g class="arms-crossed">
+      <path class="sleeve" d="M74 336 Q140 312 214 300" fill="none" stroke="#1d1420" stroke-width="24" stroke-linecap="round"/>
+      <path class="sleeve" d="M226 336 Q160 312 86 300" fill="none" stroke="#2c1f31" stroke-width="24" stroke-linecap="round"/>
+      <ellipse cx="216" cy="298" rx="11" ry="9" fill="url(#skin)"/><ellipse cx="84" cy="298" rx="11" ry="9" fill="url(#skin)"/>
+    </g>
+    <path class="wink-r" d="M159 146 Q173 136 186 144" transform="translate(150 145) scale(1.14) translate(-150 -145)" fill="none" stroke="#3a0a16" stroke-width="3.4" stroke-linecap="round"/>
+
     <!-- night-time zzz -->
     <g class="zzz" fill="#e3b866" font-family="Georgia, serif" font-weight="bold">
       <text x="214" y="86" font-size="16">z</text><text x="228" y="68" font-size="20">z</text><text x="246" y="46" font-size="26">Z</text>
@@ -184,6 +200,19 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     }
   }
 
+  // A short gesture: 'wave', 'wink' or 'crossed' (arms folded, unimpressed).
+  let gestureTimer = 0;
+  function gesture(name, ms = 2400) {
+    clearTimeout(gestureTimer);
+    svg.classList.remove('wave', 'wink', 'crossed');
+    void svg.getBoundingClientRect();
+    svg.classList.add(name);
+    gestureTimer = setTimeout(() => svg.classList.remove(name), ms);
+  }
+  // Outfits: 'uniform', 'pajamas', 'winter', 'summer'.
+  function setOutfit(name) { svg.dataset.outfit = name || 'uniform'; }
+
   setMood('neutral');
-  return { talk, stopTalking, setMood, react, get mood() { return mood; } };
+  setOutfit('uniform');
+  return { talk, stopTalking, setMood, react, gesture, setOutfit, get mood() { return mood; } };
 };

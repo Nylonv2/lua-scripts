@@ -200,6 +200,38 @@ In the Android app, **Connect** in **Settings → Phone calendar & other apps** 
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
 
+## What's new in 5.0
+
+- **Immersive alarm card:** alarm-style reminders pop up as a full-art card, the kind where the art fills the whole
+  card and the character steps out of it. The scene fills the card edge to edge; the subject (the animated Rias, or the
+  person in your card photo) rises over the top edge; sparkles and petals drift in front. Scene, subject and sparkles
+  sit at different depths, so tilting the phone (or dragging the card, or its idle sway) looks into a small 3D world,
+  under a holo sheen. The reminder and her line are printed over the bottom of the art. **Pop-out photos:** when you
+  choose a card photo, the app cuts the person out of the background *on the phone* with Google's MediaPipe
+  "magic touch" segmenter (`photo-cutout.js`, Apache-2.0). The engine (~13 MB) and model (~6 MB) download once from
+  jsDelivr / Google's model storage the first time you make a cutout; your photo is never uploaded. Without a clear
+  subject, or offline, the photo fills the card as a living photo instead. *✨ Make the photo pop out* and *Turn
+  pop-out off* are in Settings → Notifications → *Alarm card picture*.
+- **Her replies stream in** as she writes them (Claude), with her mouth moving; the typing dots disappear once she
+  starts. Gemini replies still arrive whole.
+- **The animated Rias has gestures and outfits:** she waves when you arrive, winks when she's pleased with you, and
+  folds her arms when something's overdue. Outfits change by themselves: pajamas near bedtime, a coat and scarf
+  when it's cold or winter, summer clothes when it's hot or summer, the school uniform otherwise (or pick one in
+  Settings → Home screen → *Rias's outfit*).
+- **Celebrations:** a burst of hearts, sparkles and petals with a little badge when you finish everything for the
+  day, hit a streak milestone (3, 7, 14, 21, 30, 50, 100, 365 days) or reach your water goal, and Rias reacts.
+- **Themes:** Crimson (Gremory red), Amethyst, Midnight blue and Royal gold (Settings → Home screen → *Theme*). The
+  room, glows, buttons and alarm screen all follow; gold trim stays gold.
+- **Polish:** screens glide in, buttons press in slightly, and small vibrations on taps (firmer for Done; turn off
+  under *Little vibrations when I tap*).
+- **Month calendar:** Reminders → *Month* shows the month as a heatmap of how much you got done each day, a gold bar
+  on work days and 🌙 on nights you went to bed on time. Tap a day for its reminders (done / missed), shifts,
+  calories, water, sleep and weather; future days show what's planned.
+- **AI cost meter:** Settings → Rias's mind shows an estimate of this month's Claude spend (from Anthropic's list
+  prices and the token counts each reply reports, web searches included) and how many requests she's made. Set a
+  *Monthly limit* and, once it's reached, she quietly switches to her written replies until next month. Gemini's
+  free tier counts as $0.
+
 ## The look (4.3)
 
 The whole app shares the scene from the chat and the alarm card: a dark crimson room behind every screen with

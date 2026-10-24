@@ -112,9 +112,15 @@ public class AlarmActivity extends Activity {
                     String mine = dataUrl(Scheduler.pictureFile(self));
                     String pic = "animated".equals(art) ? "" : "mine".equals(art) ? mine : "photo".equals(art) ? photo
                             : !photo.isEmpty() ? photo : mine;
-                    o.put("art", pic.isEmpty() ? "animated" : art);
+                    String resolved = pic.isEmpty() ? "animated" : pic.equals(photo) ? "photo" : "mine";
+                    o.put("art", resolved);
                     o.put("pic", pic);
+                    String cutFor = getSharedPreferences("rias", MODE_PRIVATE).getString("alarmCutFor", "");
+                    if (!pic.isEmpty() && cutFor.equals(resolved)) {
+                        o.put("cut", dataUrl(new java.io.File(getFilesDir(), "alarm-cutout.webp")).replace("image/jpeg", "image/webp"));
+                    }
                     o.put("bg", mine);
+                    o.put("theme", getSharedPreferences("rias", MODE_PRIVATE).getString("theme", "crimson"));
                 } catch (Exception ignored) {
                 }
                 return o.toString();

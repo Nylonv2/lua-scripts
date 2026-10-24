@@ -186,7 +186,7 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     state.water[k] = after;
     save();
     const goal = state.settings.waterGoal || 8;
-    if (react && k === dateKey() && before < goal && after >= goal) riasLine(ctx.R.water.goal);
+    if (react && k === dateKey() && before < goal && after >= goal) { riasLine(ctx.R.water.goal); if (ctx.celebrate) ctx.celebrate('Water goal reached! 💧', `${after} glasses today`); }
     render();
     return after;
   }

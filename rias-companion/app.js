@@ -66,6 +66,7 @@
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       autoBackup: true, briefing: true, city: '', recap: true, windDown: true,
       alarmSound: 'chime', alarmSoundUri: '', alarmSoundTitle: '', alarmRing: true, alarmArt: 'auto',
+      riasOutfit: 'auto', theme: 'crimson', haptics: true, aiLimit: 0,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
@@ -212,6 +213,45 @@
     const log = state.log[day] || {};
     state.summary[day] = { done: list.filter((it) => log[it.id] === 'done').length, total: list.length };
   }
+  // ---------- celebrations, haptics, theme ----------
+  // A burst of hearts, sparkles and petals with a little badge, and Rias reacting.
+  function celebrate(title, sub = '') {
+    const box = document.createElement('div');
+    box.className = 'celebrate';
+    box.setAttribute('role', 'status');
+    let parts = '';
+    for (let i = 0; i < 42; i++) {
+      const ch = ['♥', '✦', '✧', '❀', '•'][i % 5];
+      const x = (Math.random() * 2 - 1) * 46, y = -(30 + Math.random() * 55), r = Math.round(Math.random() * 720 - 360);
+      parts += `<i style="--x:${x.toFixed(1)}vw;--y:${y.toFixed(1)}vh;--r:${r}deg;--d:${Math.round(Math.random() * 300)}ms;font-size:${12 + Math.round(Math.random() * 16)}px">${ch}</i>`;
+    }
+    box.innerHTML = `${parts}<div class="celebrate-badge"><span>✦</span><b></b><small></small></div>`;
+    box.querySelector('b').textContent = title;
+    box.querySelector('small').textContent = sub;
+    document.body.append(box);
+    haptic([20, 40, 30]);
+    if (Avatar) { Avatar.setMood('happy'); Avatar.react(); setTimeout(() => Avatar.gesture('wink', 1600), 500); }
+    const close = () => box.remove();
+    box.addEventListener('click', close);
+    setTimeout(close, 3200);
+  }
+  function haptic(pattern = 8) {
+    if (state.settings.haptics === false || !navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch { /* not allowed */ }
+  }
+  function applyTheme() {
+    document.documentElement.dataset.theme = state.settings.theme || 'crimson';
+    const N = window.RiasNative;
+    if (N && N.setTheme) { try { N.setTheme(state.settings.theme || 'crimson'); } catch { /* older app */ } }
+  }
+  applyTheme();
+  // A light tick on every button; a firmer one for the main actions.
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('button, .chip, .row-item');
+    if (!b) return;
+    haptic(b.matches('.btn-primary, button.primary, .ac-done, .check, .fab, .send') ? 14 : 6);
+  }, true);
+
   function streak() {
     const good = (k) => { const s = state.summary[k]; return s && s.total && s.done / s.total >= 0.6; };
     const d = new Date();
@@ -420,7 +460,7 @@
     if (art === 'animated') { $('.ac-stage').append($('#stage')); $('#stage').hidden = false; Avatar.setMood('happy'); }
     window.AlarmCard.fill({
       time: fmtClock(Date.now()), title: item.title, text, icon: CATEGORY_ICON[item.category] || '⏰',
-      pic, bg: pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+      pic, cut: loadCutout(art), bg: pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
     });
     alarmDlg.showModal();
     if (art === 'animated') setTimeout(() => Avatar.talk(text.length * 55), 700);
@@ -483,6 +523,9 @@
       const list = todaysItems();
       if (status === 'done' && list.length && list.every((it) => statusOf(it.id) === 'done')) {
         setTimeout(() => addMessage('rias', say(pick(R.allDone))), 900);
+        const n = streak();
+        const milestone = [3, 7, 14, 21, 30, 50, 100, 365].includes(n);
+        celebrate(milestone ? `${n}-day streak!` : 'All done for today!', milestone ? say('Look at you, {name}. I knew you had it in you~') : say(pick(praiseLines())));
       } else if (status === 'done' && item.category === 'meal') {
         // Finished a meal reminder: ask what it was, with a button into the food diary.
         setTimeout(() => addMessage('rias', say(pick(R.food.ask)), { action: 'food', meal: mealFor(toMin(item.time)) }), 900);
@@ -877,6 +920,7 @@
   }
 
   const seenMsgs = new Set();
+  let skipAnimNext = false;
   let feedPrimed = false;
   function dayLabel(ts) {
     const d = new Date(ts), t = new Date();
@@ -913,7 +957,8 @@
         img.alt = 'Photo you sent';
         el.append(img);
       }
-      if (m.from === 'rias' && el.classList.contains('fresh')) {
+      if (m.from === 'rias' && el.classList.contains('fresh') && skipAnimNext) { skipAnimNext = false; el.append(m.text); } // already seen while streaming
+      else if (m.from === 'rias' && el.classList.contains('fresh')) {
         // Her newest words drift in one at a time, as if she's saying them.
         let n = 0;
         for (const w of m.text.split(/(\s+)/)) {
@@ -995,6 +1040,9 @@
         : /worried|haven't|still|don't keep me waiting|missed/i.test(text) ? 'worried' : null;
       clearTimeout(chatMoodTimer);
       if (mood) { Avatar.setMood(mood); chatMoodTimer = setTimeout(() => Avatar.setMood(baseMood()), 5000); }
+      if (mood === 'happy' && /good (boy|girl)|proud|ufufu|well done/i.test(text) && Math.random() < 0.6) setTimeout(() => Avatar.gesture('wink', 1600), 600);
+      if (mood === 'worried') Avatar.gesture('crossed', 3200);
+      if (/\b(hello|hi|hey|welcome back|morning|goodnight|good night)\b/i.test(text) && Math.random() < 0.5) Avatar.gesture('wave', 2300);
     }
     if (/power of destruction|destroy|obliterat/i.test(text)) {
       fx.classList.remove('flash'); void fx.offsetWidth; fx.classList.add('flash');
@@ -1013,6 +1061,18 @@
     }
   }
 
+  // A reply she's still writing: one live line at the end of the chat, replaced by the real messages when she's done.
+  let liveEl = null, liveTalk = 0;
+  function streamPreview(text) {
+    if (text === null) { if (liveEl) { skipAnimNext = !!liveEl.textContent; liveEl.remove(); } liveEl = null; return; }
+    if (!liveEl) { liveEl = document.createElement('div'); liveEl.className = 'msg rias first streaming'; }
+    if (!liveEl.isConnected) feed.append(liveEl);
+    liveEl.textContent = text;
+    liveEl.hidden = !text;
+    const near = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 160;
+    if (near) feed.scrollTop = feed.scrollHeight;
+    if (text && Avatar && currentView === 'chat' && Date.now() > liveTalk) { Avatar.talk(1500); liveTalk = Date.now() + 1400; }
+  }
   // While she "types", she thinks in the scene: dots beside her head.
   function showTyping() {
     const view = $('#view-chat');
@@ -1242,6 +1302,9 @@
     currentView = view;
     if (view === 'chat') hideToast();
     if (view === 'chat' || view === 'home') placeRias(view);
+    // Screens glide in instead of snapping.
+    const next = $(`#view-${view}`);
+    if (next && next.hidden) { next.classList.remove('view-enter'); void next.offsetWidth; next.classList.add('view-enter'); }
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
     if (view === 'today') renderToday();
@@ -1280,8 +1343,13 @@
     if (r === undefined) {
       // Her AI is thinking: show typing until it answers, then fall back to written lines if needed.
       const typing = showTyping();
-      const res = await AI.reply(text, photo && photo.full);
+      // Her words appear in the chat as she writes them (Claude); the typing dots go once she starts.
+      const res = await AI.reply(text, photo && photo.full, {
+        onText(t) { typing.remove(); streamPreview(t); },
+        onReset() { streamPreview(''); },
+      });
       typing.remove();
+      streamPreview(null);
       aiTyped = true;
       if (res && res.lines) r = res.lines;
       else {
@@ -1384,6 +1452,7 @@
   function refresh() { updateSummary(); renderToday(); renderStatus(); }
   const modCtx = {
     state, save, $, R, dateKey, uid, fmtClock, fmtTime, toMin, shiftsOn, silencePast, refresh,
+    celebrate: (title, sub) => celebrate(title, sub),
     mealNow: () => mealFor(nowMin()),
     // Food dialog's "Ask Rias to estimate" (AI is created further down; used only on tap).
     canEstimate: () => AI.enabled(),
@@ -1468,8 +1537,45 @@
     ].filter(Boolean).join('\n');
   }
 
+  // ---------- AI cost meter ----------
+  // Estimated from Anthropic's list prices ($ per million tokens); Gemini's free tier counts as $0.
+  const PRICES = {
+    'claude-opus-5-5': [4, 20, 0.2, 5], 'claude-sonnet-5-5': [2, 10, 0.2, 2.5], 'claude-haiku-5-5': [0.1, 0.5, 0.01, 0.125],
+    'claude-opus-5': [5, 25, 0.5, 6.25], 'claude-fable-5-1': [10, 50, 0.25, 12.5],
+  };
+  const monthKey = (d = new Date()) => dateKey(d).slice(0, 7);
+  function trackUsage(model, u) {
+    if (!u) return;
+    const m = (state.aiUsage ||= {})[monthKey()] ||= { cost: 0, replies: 0, input: 0, output: 0, searches: 0 };
+    const p = /^gemini/.test(model) ? [0, 0, 0, 0] : PRICES[model] || PRICES[Object.keys(PRICES).find((k) => model.startsWith(k))] || [5, 25, 0.5, 6.25];
+    const searches = (u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
+    m.cost += ((u.input_tokens || 0) * p[0] + (u.output_tokens || 0) * p[1] + (u.cache_read_input_tokens || 0) * p[2] + (u.cache_creation_input_tokens || 0) * p[3]) / 1e6
+      + (p[0] ? searches * 0.01 : 0);
+    m.replies += 1; m.input += u.input_tokens || 0; m.output += u.output_tokens || 0; m.searches += searches;
+    save();
+    if (overLimit() && !m.warned) {
+      m.warned = true;
+      setTimeout(() => addMessage('rias', say(`I've reached the AI budget you set ($${state.settings.aiLimit}) for this month, {name}, so I'll use my own words until next month. You can raise it in Settings → Rias's mind.`)), 1500);
+    }
+    if (!$('#view-settings').hidden) renderCost();
+  }
+  function overLimit() {
+    const lim = Number(state.settings.aiLimit) || 0;
+    const m = (state.aiUsage || {})[monthKey()];
+    return !!(lim && m && m.cost >= lim);
+  }
+  function renderCost() {
+    const m = (state.aiUsage || {})[monthKey()] || { cost: 0, replies: 0, searches: 0 };
+    const lim = Number(state.settings.aiLimit) || 0;
+    $('#cost-now').textContent = `$${m.cost < 10 ? m.cost.toFixed(2) : m.cost.toFixed(1)}`;
+    $('#cost-bar').style.width = `${lim ? Math.min(100, (m.cost / lim) * 100) : Math.min(100, m.cost * 10)}%`;
+    $('#cost-meter').classList.toggle('over', overLimit());
+    $('#cost-sub').textContent = `${m.replies} AI request${m.replies === 1 ? '' : 's'}${m.searches ? ` · ${m.searches} web search${m.searches === 1 ? '' : 'es'}` : ''}`
+      + (overLimit() ? ' · Limit reached: she uses her own words until next month.' : lim ? ` · limit $${lim}` : '') + '. An estimate from list prices; your Anthropic bill is the real number.';
+  }
+
   const AI = window.createRiasAI({
-    state, contextText,
+    state, contextText, onUsage: trackUsage, overLimit,
     tools: {
       addReminder({ title, time, repeat, date }) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
@@ -1550,6 +1656,8 @@
     b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
     clearTimeout(moodTimer);
     if (mood) { Avatar.setMood(mood); moodTimer = setTimeout(() => Avatar.setMood(baseMood()), 4500); }
+    if (mood === 'worried') Avatar.gesture('crossed', 3000);
+    else if (mood === 'happy' && Math.random() < 0.35) setTimeout(() => Avatar.gesture('wink', 1500), 400);
     Avatar.talk(text.length * 55);
     if (Living) Living.talk(text.length * 55);
   }
@@ -1573,11 +1681,34 @@
     const o = pick(options);
     return [[].concat(o[0]).join(' '), o[1]];
   }
+  // What she's wearing: pajamas near bedtime, a coat when it's cold or winter, summer clothes when it's hot.
+  function outfitNow() {
+    const pick = state.settings.riasOutfit || 'auto';
+    if (pick !== 'auto') return pick;
+    if (!state.profile) return 'uniform';
+    const late = minutesPastBedtime();
+    if (!isAwake() || late > -60) return 'pajamas';
+    const w = weatherFor(new Date());
+    const hot = w && (state.weather.unit === 'F' ? w.max >= 86 : w.max >= 30);
+    const cold = w && (state.weather.unit === 'F' ? w.max <= 50 : w.max <= 10);
+    const m = new Date().getMonth();
+    if (cold || (!w && [11, 0, 1].includes(m))) return 'winter';
+    if (hot || (!w && [5, 6, 7].includes(m))) return 'summer';
+    return 'uniform';
+  }
+  let wavedThisSession = false;
+  function greetWave() {
+    if (wavedThisSession || !Avatar) return;
+    wavedThisSession = true;
+    setTimeout(() => Avatar.gesture('wave', 2300), 500);
+  }
   // One Rias: she stands on Home, and walks into the chat scene when you talk to her.
   function placeRias(view) {
     const host = view === 'chat' ? $('#scene-rias') : $('.home-hero');
     for (const el of [$('#stage'), $('#stage-pic')]) if (el.parentElement !== host) host.append(el);
     if (Avatar && Avatar.mood !== 'happy') Avatar.setMood(baseMood());
+    if (Avatar) Avatar.setOutfit(outfitNow());
+    greetWave();
   }
   function onRiasTap() {
     Avatar.react();
@@ -1603,6 +1734,7 @@
     $('#home-goodnight').hidden = !(toBed >= -90 && toBed <= 360) || !!state.sleep[wakeDayKey()];
     if (!$('#home-bubble').textContent) $('#home-bubble').textContent = say(pick(R.greet[period(nm)] || R.greet.evening));
     if (Avatar.mood !== 'happy') Avatar.setMood(baseMood());
+    Avatar.setOutfit(outfitNow());
 
     // Next up / waiting on you.
     const card = $('#next-card');
@@ -1785,6 +1917,101 @@
   });
 
   $('#add').addEventListener('click', () => openEditor(null));
+
+  // ---------- month calendar (Reminders → Month) ----------
+  let monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1), monthSel = dateKey();
+  $('#rem-mode').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-m]');
+    if (!b) return;
+    for (const x of $('#rem-mode').children) x.classList.toggle('active', x === b);
+    const month = b.dataset.m === 'month';
+    $('#view-today').classList.toggle('month-mode', month);
+    $('#month-pane').hidden = !month;
+    if (month) renderMonth();
+  });
+  $('#m-prev').addEventListener('click', () => { monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1); renderMonth(); });
+  $('#m-next').addEventListener('click', () => { monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1); renderMonth(); });
+  $('#m-grid').addEventListener('click', (e) => {
+    const c = e.target.closest('[data-day]');
+    if (!c) return;
+    monthSel = c.dataset.day;
+    renderMonth();
+  });
+  function dayStats(d) {
+    const k = dateKey(d), today = dateKey();
+    const s = k === today ? (updateSummary(), state.summary[k]) : state.summary[k];
+    const night = state.sleep[k];
+    return {
+      k, past: k <= today, s, ratio: s && s.total ? s.done / s.total : null,
+      shifts: shiftsOn(d), sleepOk: night && minutesPastBedtime(night.at) <= 30, night,
+      kcal: (state.food[k] || []).reduce((a, e) => a + ((e.n && e.n.kcal) || 0), 0), water: state.water[k] || 0,
+    };
+  }
+  function renderMonth() {
+    $('#m-title').textContent = monthStart.toLocaleDateString([], { month: 'long', year: 'numeric' });
+    const grid = $('#m-grid');
+    grid.textContent = '';
+    for (const w of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
+      const h = document.createElement('span'); h.className = 'm-wd'; h.textContent = w[0]; grid.append(h);
+    }
+    const first = new Date(monthStart);
+    first.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(first); d.setDate(first.getDate() + i);
+      if (i >= 35 && d.getMonth() !== monthStart.getMonth()) break;
+      const st = dayStats(d);
+      const c = document.createElement('button');
+      c.type = 'button';
+      c.dataset.day = st.k;
+      const heat = st.ratio == null ? 0 : st.ratio >= 0.9 ? 4 : st.ratio >= 0.6 ? 3 : st.ratio >= 0.3 ? 2 : st.ratio > 0 ? 1 : 0;
+      c.className = `m-day h${st.past ? heat : 0}${d.getMonth() !== monthStart.getMonth() ? ' out' : ''}${st.k === dateKey() ? ' today' : ''}${st.k === monthSel ? ' sel' : ''}${st.past ? '' : ' future'}`;
+      c.innerHTML = `<b>${d.getDate()}</b>${st.shifts.length ? '<i class="m-shift"></i>' : ''}${st.sleepOk ? '<em>🌙</em>' : ''}`;
+      c.setAttribute('aria-label', d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }));
+      grid.append(c);
+    }
+    renderDayDetail();
+  }
+  function renderDayDetail() {
+    const [y, m, dd] = monthSel.split('-').map(Number);
+    const d = new Date(y, m - 1, dd);
+    const st = dayStats(d);
+    const box = $('#m-detail');
+    box.textContent = '';
+    const head = document.createElement('div');
+    head.className = 'dd-head';
+    head.innerHTML = '<div><p class="eyebrow"></p><h3></h3></div><span class="dd-score"></span>';
+    head.querySelector('.eyebrow').textContent = d.toLocaleDateString([], { weekday: 'long' });
+    head.querySelector('h3').textContent = d.toLocaleDateString([], { month: 'long', day: 'numeric' });
+    head.querySelector('.dd-score').textContent = st.past && st.s && st.s.total ? `${st.s.done}/${st.s.total} done` : st.past ? '' : 'Planned';
+    box.append(head);
+    const facts = [];
+    for (const sh of st.shifts) facts.push(`💼 ${sh.label || 'Work'} ${fmtTime(sh.start)}–${fmtTime(sh.end)}`);
+    if (st.past && st.kcal) facts.push(`🍽️ ${Math.round(st.kcal)} kcal`);
+    if (st.past && st.water) facts.push(`💧 ${st.water} glass${st.water === 1 ? '' : 'es'}`);
+    if (st.night) facts.push(`🌙 Bed at ${fmtClock(st.night.at)}${st.night.quality ? ` · slept ${st.night.quality}` : ''}`);
+    const w = weatherFor(d);
+    if (w) facts.push(weatherLine(d, true));
+    if (facts.length) {
+      const f = document.createElement('div'); f.className = 'dd-facts';
+      for (const t of facts) { const s = document.createElement('span'); s.textContent = t; f.append(s); }
+      box.append(f);
+    }
+    const log = state.log[st.k] || {};
+    const items = itemsOn(d);
+    const ul = document.createElement('ul');
+    ul.className = 'dd-list';
+    if (!items.length) ul.innerHTML = '<li class="muted">Nothing planned.</li>';
+    for (const it of items.slice(0, 40)) {
+      const li = document.createElement('li');
+      const status = log[it.id];
+      li.className = status || (st.past && st.k !== dateKey() ? 'missed' : '');
+      li.innerHTML = '<span class="dd-dot"></span><span class="dd-time"></span><span class="dd-title"></span>';
+      li.querySelector('.dd-time').textContent = fmtTime(it.time);
+      li.querySelector('.dd-title').textContent = it.title;
+      ul.append(li);
+    }
+    box.append(ul);
+  }
 
   // ---------- swipe on reminders ----------
   const SWIPE_OPEN = 168;
@@ -2047,6 +2274,9 @@
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.alarmPopup.checked = alarmOn();
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
+    sf.elements.riasOutfit.value = state.settings.riasOutfit || 'auto';
+    sf.elements.theme.value = state.settings.theme || 'crimson';
+    sf.elements.haptics.checked = state.settings.haptics !== false;
     popupCheck();
     const list = $('#alarm-cat-list');
     list.textContent = '';
@@ -2087,6 +2317,8 @@
     $('#city-hint').textContent = weatherFor(new Date()) ? `Today: ${weatherLine(new Date(), true)}` : state.weather ? '' : 'Set your city and Rias tells you the weather each morning.';
     renderMemory();
     renderSounds();
+    renderCost();
+    sf.elements.aiLimit.value = String(state.settings.aiLimit || 0);
     renderArt();
     sf.elements.alarmRing.checked = state.settings.alarmRing !== false;
     backupHint();
@@ -2169,6 +2401,7 @@
       box.append(l);
     }
     $('#art-photo').textContent = loadAlarmPicture() ? '📷 Change the card photo' : '📷 Choose a photo for the card';
+    renderCut();
   }
   function pushArt() {
     const N = window.RiasNative;
@@ -2177,7 +2410,7 @@
   $('#art-list').addEventListener('change', (e) => {
     if (e.target.name !== 'alarmArt') return;
     state.settings.alarmArt = e.target.value;
-    save(); pushArt();
+    save(); pushArt(); renderCut();
   });
   $('#art-photo').addEventListener('click', () => $('#art-file').click());
   $('#art-file').addEventListener('change', async (e) => {
@@ -2193,9 +2426,50 @@
       if (N && N.setAlarmPicture) { try { N.setAlarmPicture(data.full); } catch { /* older app */ } }
       pushArt(); renderArt();
       $('#art-hint').textContent = 'Card photo set. It stays on this phone.';
+      makeCutout();
     } catch {
       $('#art-hint').textContent = 'That file couldn’t be opened as a picture, or the phone’s storage is full.';
     }
+  });
+  // "Pop out of the card": cut the subject out of the card's photo (photo-cutout.js, on the phone).
+  const CUT_KEY = 'rias-alarm-cutout';
+  function loadCutout(art) {
+    try { const c = JSON.parse(localStorage.getItem(CUT_KEY) || 'null'); return c && c.for === art ? c.data : ''; } catch { return ''; }
+  }
+  async function makeCutout() {
+    const art = alarmArt();
+    const src = art === 'photo' ? loadAlarmPicture() : art === 'mine' ? loadPicture() : '';
+    if (!src || !window.RiasCutout) { renderCut(); return; }
+    $('#cut-hint').textContent = 'Cutting the photo out… (the first time downloads about 20 MB)';
+    $('#cut-make').disabled = true;
+    try {
+      const r = await window.RiasCutout.cut(src);
+      if (!r) { $('#cut-hint').textContent = 'I couldn’t find one clear subject in that photo. It still fills the card, just without stepping out.'; return; }
+      localStorage.setItem(CUT_KEY, JSON.stringify({ for: art, data: r.cutout }));
+      const N = window.RiasNative;
+      if (N && N.setAlarmCutout) { try { N.setAlarmCutout(r.cutout.split(',')[1], art); } catch { /* older app */ } }
+      $('#cut-hint').textContent = 'Done ✓ The photo steps out of the card. Tap 👀 Preview.';
+    } catch {
+      $('#cut-hint').textContent = 'Couldn’t cut it out. The first time needs internet to download the cutout tool.';
+    } finally {
+      $('#cut-make').disabled = false;
+      renderCut();
+    }
+  }
+  function renderCut() {
+    const art = alarmArt();
+    $('#cut-row').hidden = art === 'animated';
+    const has = !!loadCutout(art);
+    $('#cut-make').textContent = has ? '↻ Redo the pop-out' : '✨ Make the photo pop out';
+    $('#cut-off').hidden = !has;
+  }
+  $('#cut-make').addEventListener('click', makeCutout);
+  $('#cut-off').addEventListener('click', () => {
+    try { localStorage.removeItem(CUT_KEY); } catch { /* ignore */ }
+    const N = window.RiasNative;
+    if (N && N.setAlarmCutout) { try { N.setAlarmCutout('', ''); } catch { /* older app */ } }
+    $('#cut-hint').textContent = 'Pop-out off: the photo fills the card.';
+    renderCut();
   });
   $('#art-preview').addEventListener('click', () => showAlarmCard({ id: '', title: 'Preview', category: 'custom' }, say('This is how I\'ll call you, {name}. Tilt your phone~')));
 
@@ -2212,6 +2486,13 @@
       ul.append(li);
     }
   }
+  sf.elements.theme.addEventListener('change', () => { document.documentElement.dataset.theme = sf.elements.theme.value; });
+  sf.elements.riasOutfit.addEventListener('change', () => {
+    if (!Avatar) return;
+    const v = sf.elements.riasOutfit.value;
+    if (v !== 'auto') { Avatar.setOutfit(v); return; }
+    const was = state.settings.riasOutfit; state.settings.riasOutfit = 'auto'; Avatar.setOutfit(outfitNow()); state.settings.riasOutfit = was;
+  });
   $('#mem-list').addEventListener('click', (e) => {
     const b = e.target.closest('.mem-del');
     if (!b) return;
@@ -2252,6 +2533,9 @@
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
       homeChar: sf.elements.homeChar.value,
+      riasOutfit: sf.elements.riasOutfit.value,
+      theme: sf.elements.theme.value,
+      haptics: sf.elements.haptics.checked,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
       autoBackup: sf.elements.autoBackup.checked,
@@ -2259,7 +2543,9 @@
       recap: sf.elements.recap.checked,
       windDown: sf.elements.windDown.checked,
       alarmRing: sf.elements.alarmRing.checked,
+      aiLimit: Number(sf.elements.aiLimit.value) || 0,
     });
+    applyTheme();
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
       key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),

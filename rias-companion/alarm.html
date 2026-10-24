@@ -17,6 +17,7 @@
       const N = window.AlarmNative;
       let d = {};
       try { d = JSON.parse(N.data()); } catch { /* opened without the app */ }
+      document.documentElement.dataset.theme = d.theme || 'crimson';
       const animated = d.art === 'animated' || !d.pic;
       let avatar = null;
       if (animated && window.createRiasAvatar) {
@@ -28,7 +29,7 @@
       if (avatar) avatar.setMood('happy');
       window.AlarmCard.fill({
         time: new Date(d.at || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-        title: d.title, text: d.text, icon: d.icon, pic: d.pic || '', bg: d.pic || d.bg || '', animated, hasItem: !!d.itemId,
+        title: d.title, text: d.text, icon: d.icon, pic: d.pic || '', cut: d.cut || '', bg: d.pic || d.bg || '', animated, hasItem: !!d.itemId,
       });
       if (avatar) setTimeout(() => avatar.talk((d.text || '').length * 60), 1200);
       document.getElementById('alarm-done').onclick = () => N.done();

@@ -133,6 +133,20 @@
 
       <!-- Today -->
       <section class="view pad" id="view-today" hidden>
+        <div class="segmented rem-mode" id="rem-mode" role="tablist" aria-label="View">
+          <button type="button" data-m="today" class="active" role="tab">Today</button>
+          <button type="button" data-m="month" role="tab">Month</button>
+        </div>
+        <div class="month-pane" id="month-pane" hidden>
+          <div class="month-nav">
+            <button type="button" class="icon-btn" id="m-prev" aria-label="Previous month">‹</button>
+            <h1 class="page-title" id="m-title"></h1>
+            <button type="button" class="icon-btn" id="m-next" aria-label="Next month">›</button>
+          </div>
+          <div class="month-grid card" id="m-grid"></div>
+          <div class="month-legend"><span>Less</span><i class="h1"></i><i class="h2"></i><i class="h3"></i><i class="h4"></i><span>More done</span><span class="lg-shift">Work</span><span>🌙 Slept on time</span></div>
+          <div class="card day-detail" id="m-detail"></div>
+        </div>
         <div class="page-head">
           <div>
             <p class="eyebrow" id="today-weekday"></p>
@@ -264,6 +278,24 @@
               <option value="picture">My chosen picture</option>
             </select>
           </label>
+          <label>Rias's outfit
+            <select name="riasOutfit">
+              <option value="auto">Changes with the time and season</option>
+              <option value="uniform">School uniform</option>
+              <option value="pajamas">Pajamas</option>
+              <option value="winter">Winter coat</option>
+              <option value="summer">Summer</option>
+            </select>
+          </label>
+          <label>Theme
+            <select name="theme">
+              <option value="crimson">Crimson (Gremory red)</option>
+              <option value="amethyst">Amethyst</option>
+              <option value="midnight">Midnight blue</option>
+              <option value="gold">Royal gold</option>
+            </select>
+          </label>
+          <label class="switch"><input name="haptics" type="checkbox"> Little vibrations when I tap</label>
           </section>
           <section class="set-group">
           <h2>Rias's picture</h2>
@@ -324,6 +356,21 @@
               <option value="claude-haiku-5-5">Claude Haiku 5.5 — fastest, cheapest</option>
             </select>
           </label>
+          </div>
+          <div class="cost-meter" id="cost-meter">
+            <div class="cost-top"><span class="field-label">This month</span><b id="cost-now">$0.00</b></div>
+            <div class="meter"><span id="cost-bar"></span></div>
+            <p class="muted small" id="cost-sub"></p>
+            <label>Monthly limit
+              <select name="aiLimit">
+                <option value="0">No limit</option>
+                <option value="1">$1</option>
+                <option value="2">$2</option>
+                <option value="5">$5</option>
+                <option value="10">$10</option>
+                <option value="20">$20</option>
+              </select>
+            </label>
           </div>
           <button type="button" id="ai-test">Test connection</button>
           <p class="small voice-hint" id="ai-hint"></p>
@@ -411,6 +458,8 @@
             <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
             <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
             <input type="file" id="art-file" accept="image/*" hidden>
+            <div class="row" id="cut-row"><button type="button" id="cut-make">✨ Make the photo pop out</button><button type="button" id="cut-off" hidden>Turn pop-out off</button></div>
+            <p class="small muted" id="cut-hint">The person in your photo steps out over the top of the card. Works best with one clear person or character.</p>
             <p class="small voice-hint" id="art-hint"></p>
           </div>
           <label class="switch"><input name="alarmRing" type="checkbox"> Keep ringing until I answer (stops after 3 minutes)</label>
@@ -694,6 +743,7 @@
   <script src="ai.js"></script>
   <script src="rias-avatar.js"></script>
   <script src="living-photo.js"></script>
+  <script src="photo-cutout.js"></script>
   <script src="alarm-card.js"></script>
   <script src="app.js"></script>
 </body>

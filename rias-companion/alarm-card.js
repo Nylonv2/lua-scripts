@@ -1,13 +1,19 @@
-// The alarm pop-up as a holographic trading card floating in a dark, sparkling scene:
-// your photo (or the animated Rias) in the art window, drifting behind the card too,
-// a rainbow sheen and glare that follow the tilt (phone motion, a drag, or a gentle
-// idle sway), and the reminder printed on the card. Used by the in-app pop-up
-// (index.html) and by the Android alarm screen (alarm.html).
+// The alarm pop-up as an immersive full-art card: the art fills the whole card, the
+// subject (the animated Rias, or your photo cut out from its background) steps out
+// over the top edge, and three layers (scene, subject, sparkles) move at different
+// depths as the card tilts (phone motion, a drag, or a gentle idle sway), under a
+// holo sheen. The reminder sits on the art. Used by the in-app pop-up (index.html)
+// and by the Android alarm screen (alarm.html).
 window.AlarmCard = (() => {
   'use strict';
 
+  const CIRCLE = `<svg class="ac-circle" viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke="currentColor">
+    <circle cx="100" cy="100" r="96" stroke-width="1.4"/><circle cx="100" cy="100" r="86" stroke-width=".7"/><circle cx="100" cy="100" r="56" stroke-width="1"/>
+    <polygon points="100,14 174.5,143 25.5,143" stroke-width="1.1"/><polygon points="100,186 25.5,57 174.5,57" stroke-width="1.1"/></g></svg>`;
+
   const HTML = `
   <div class="ac-scene">
+    <div class="ac-room" aria-hidden="true"></div>
     <img class="ac-bg-pic" alt="" hidden>
     <div class="ac-motes" aria-hidden="true">${'<i></i>'.repeat(14)}</div>
     <div class="ac-top">
@@ -16,25 +22,28 @@ window.AlarmCard = (() => {
     </div>
     <div class="ac-card-wrap">
       <div class="ac-card">
-        <div class="ac-inner">
-          <div class="ac-head">
-            <span class="ac-name">Rias Gremory</span>
-            <span class="ac-type" aria-hidden="true"></span>
-          </div>
-          <div class="ac-art">
-            <img class="ac-pic" alt="" hidden>
-            <div class="ac-stage"></div>
-            <div class="ac-art-sparks" aria-hidden="true">${'<i>✦</i>'.repeat(6)}</div>
-          </div>
-          <div class="ac-title" id="alarm-title"></div>
-          <div class="ac-ability">
-            <span class="ac-ability-label">✦ Rias says</span>
-            <p class="ac-text" id="alarm-text"></p>
-          </div>
-          <div class="ac-foot"><span>Gremory · Occult Research Club</span><span class="ac-no"></span></div>
+        <div class="ac-layer ac-back">
+          <img class="ac-back-pic" alt="" hidden>
+          <div class="ac-back-living"></div>
+          ${CIRCLE}
+          <div class="ac-rays"></div>
         </div>
+        <div class="ac-layer ac-subject">
+          <img class="ac-cut" alt="" hidden>
+          <div class="ac-stage"></div>
+        </div>
+        <div class="ac-layer ac-front" aria-hidden="true">${'<i>✦</i>'.repeat(7)}${'<b></b>'.repeat(6)}</div>
         <div class="ac-holo" aria-hidden="true"></div>
         <div class="ac-glare" aria-hidden="true"></div>
+        <div class="ac-head">
+          <span class="ac-name">Rias Gremory</span>
+          <span class="ac-type" aria-hidden="true"></span>
+        </div>
+        <div class="ac-info">
+          <div class="ac-title" id="alarm-title"></div>
+          <p class="ac-text" id="alarm-text"></p>
+          <div class="ac-foot"><span>✦ Gremory · Occult Research Club</span><span class="ac-no"></span></div>
+        </div>
       </div>
     </div>
     <div class="ac-actions">
@@ -92,7 +101,10 @@ window.AlarmCard = (() => {
   }
 
   /**
-   * opts: { time, title, text, icon, pic (data URL or ''), bg (data URL or ''), animated, hasItem }
+   * opts: { time, title, text, icon, animated, pic (full photo, data URL), cut (the subject cut out, data URL),
+   *         bg (picture for the blurred room behind), hasItem }
+   * With `cut`, the photo fills the card and the cut-out subject steps out over the top edge.
+   * Without it, the photo fills the card as a living photo. `animated` puts the animated Rias in front.
    * Call each time the alarm shows; it replays the card's entrance.
    */
   function fill(opts) {
@@ -103,16 +115,26 @@ window.AlarmCard = (() => {
     q('#alarm-text').textContent = opts.text || '';
     q('.ac-type').textContent = opts.icon || '⏰';
     q('.ac-no').textContent = `No. ${String(new Date().getDate()).padStart(2, '0')}${String(new Date().getHours()).padStart(2, '0')}`;
-    const pic = q('.ac-pic');
-    pic.hidden = !!opts.animated || !opts.pic;
-    if (!pic.hidden) pic.src = opts.pic;
-    // A photo in the art window comes alive (living-photo.js) when it can.
-    if (!pic.hidden && window.createLivingPhoto) {
-      if (!living) { const el = document.createElement('div'); q('.ac-art').prepend(el); living = window.createLivingPhoto(el, { tiltFrame: false }); }
+    const photo = !opts.animated && opts.pic;
+    const popOut = !!(photo && opts.cut);
+    card.classList.toggle('pop', popOut || !!opts.animated);
+    card.classList.toggle('has-photo', !!photo);
+    // Back layer: the photo itself (blurred a little when the cut-out stands in front of it).
+    const back = q('.ac-back-pic');
+    back.hidden = !popOut;
+    if (popOut) back.src = opts.pic;
+    const lv = q('.ac-back-living');
+    lv.hidden = !photo || popOut;
+    if (photo && !popOut && window.createLivingPhoto) {
+      if (!living) living = window.createLivingPhoto(lv, { tiltFrame: false });
       living.setSrc(opts.pic);
-      pic.hidden = true;
+    } else if (photo && !popOut) {
+      back.hidden = false; back.src = opts.pic;
     }
-    if (living) q('.ac-art .living').hidden = !!opts.animated || !opts.pic;
+    // Subject layer: the cut-out, or the animated Rias.
+    const cut = q('.ac-cut');
+    cut.hidden = !popOut;
+    if (popOut) cut.src = opts.cut;
     q('.ac-stage').hidden = !opts.animated;
     const bg = q('.ac-bg-pic');
     bg.hidden = !opts.bg;
