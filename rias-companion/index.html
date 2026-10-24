@@ -94,18 +94,42 @@
       </section>
 
       <!-- Chat -->
-      <section class="view" id="view-chat" hidden>
+      <section class="view chat-view" id="view-chat" hidden>
+        <div class="chat-head">
+          <div class="chat-av">
+            <svg class="chat-ring" viewBox="0 0 100 100" aria-hidden="true">
+              <g fill="none" stroke="currentColor">
+                <circle cx="50" cy="50" r="47" stroke-width="1.6"/>
+                <circle cx="50" cy="50" r="42" stroke-width=".7" stroke-dasharray="2 3"/>
+                <polygon points="50,6 88,72 12,72" stroke-width=".9"/>
+                <polygon points="50,94 12,28 88,28" stroke-width=".9"/>
+              </g>
+            </svg>
+            <img class="avatar" src="icons/icon.svg" alt="">
+            <span class="presence" aria-hidden="true"></span>
+          </div>
+          <div class="chat-who">
+            <b>Rias Gremory</b>
+            <span id="chat-activity"></span>
+          </div>
+          <span class="chat-crest" aria-hidden="true">♛ King</span>
+          <button type="button" class="gear icon-btn" id="chat-settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
+        </div>
         <div class="feed" id="feed" aria-live="polite"></div>
+        <div class="feed-fx" id="feed-fx" aria-hidden="true"></div>
         <div class="quick" id="quick">
           <button type="button" data-say="What should I do now?">What now?</button>
           <button type="button" data-say="What's my plan for today?">Today's plan</button>
-          <button type="button" data-say="I'm tired">I'm tired</button>
-          <button type="button" data-say="I'm bored">I'm bored</button>
           <button type="button" data-say="Praise me">Praise me</button>
+          <button type="button" data-say="How's Akeno doing?">How's Akeno?</button>
+          <button type="button" data-say="Tell me about your peerage">Your peerage</button>
+          <button type="button" data-say="Play chess with me">Play chess</button>
+          <button type="button" data-say="I need motivation">Motivate me</button>
+          <button type="button" data-say="I'm tired">I'm tired</button>
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
-          <input id="say" type="text" placeholder="Talk to Rias…" enterkeyhint="send">
+          <input id="say" type="text" placeholder="Speak to your King…" enterkeyhint="send" aria-label="Message Rias">
           <button type="button" id="attach" class="mic icon-btn" aria-label="Send Rias a photo (like your work schedule)"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></button>
           <input type="file" id="photo-file" accept="image/*" hidden>
           <button type="button" id="mic" class="mic icon-btn" aria-label="Talk with your voice" hidden><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>

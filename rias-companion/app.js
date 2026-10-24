@@ -209,7 +209,7 @@
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
-    if (from === 'rias') { speak(text); Chat.noteRias(text); showToast(m); }
+    if (from === 'rias') { speak(text); Chat.noteRias(text); showToast(m); chatEffects(text); }
     return m;
   }
 
@@ -528,12 +528,62 @@
 
   // ---------- rendering ----------
   const feed = $('#feed');
+  // What Rias is up to right now (same all through each 2-hour block, so it feels real).
+  const ACTIVITIES = {
+    morning: ['Having morning tea', 'Reviewing club reports', 'On her way to Kuoh Academy', 'Brushing her hair (it takes a while)'],
+    afternoon: ['In the Occult Research Club room', 'Playing chess with Kiba', 'Sharing sweets with Koneko', 'Reading reports from the Underworld'],
+    evening: ['Having tea with Akeno', 'Reading manga in the club room', 'Planning tomorrow\'s club activities', 'Video-calling her brother (he won\'t stop talking)'],
+    night: ['Fast asleep… shh', 'Stargazing on the club room roof', 'Reading in bed'],
+  };
+  function riasActivity() {
+    const p = state.profile ? period() : 'afternoon';
+    const list = ACTIVITIES[p];
+    const d = new Date();
+    const seed = d.getFullYear() * 400 + d.getMonth() * 31 + d.getDate() + Math.floor(d.getHours() / 2) * 7;
+    return list[seed % list.length];
+  }
+  function renderChatHead() {
+    const act = riasActivity();
+    $('#chat-activity').textContent = act;
+    $('.chat-head').classList.toggle('asleep', /asleep/i.test(act));
+  }
+
+  const seenMsgs = new Set();
+  let feedPrimed = false;
+  function dayLabel(ts) {
+    const d = new Date(ts), t = new Date();
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    if (d.toDateString() === t.toDateString()) return 'Today';
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  }
   function renderFeed() {
     const wasNearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 120;
     feed.textContent = '';
-    for (const m of state.messages) {
+    const pic = loadPicture() || DEFAULT_PIC;
+    const msgs = state.messages;
+    msgs.forEach((m, i) => {
+      const prev = msgs[i - 1], next = msgs[i + 1];
+      if (!prev || dayLabel(prev.ts) !== dayLabel(m.ts)) {
+        const sep = document.createElement('div');
+        sep.className = 'day-sep';
+        sep.innerHTML = '<span></span>';
+        sep.firstChild.textContent = `✦ ${dayLabel(m.ts)} ✦`;
+        feed.append(sep);
+      }
+      // Rias's messages in a row form a group: name on the first, her picture on the last.
+      const sameAsPrev = prev && prev.from === m.from && m.ts - prev.ts < 5 * 60000 && dayLabel(prev.ts) === dayLabel(m.ts);
+      const sameAsNext = next && next.from === m.from && next.ts - m.ts < 5 * 60000 && dayLabel(next.ts) === dayLabel(m.ts);
       const el = document.createElement('div');
       el.className = `msg ${m.from}`;
+      if (m.from === 'rias' && !sameAsPrev) {
+        const nm = document.createElement('span');
+        nm.className = 'msg-name';
+        nm.textContent = 'Rias';
+        el.append(nm);
+      }
+      if (feedPrimed && !seenMsgs.has(m.id)) el.classList.add('fresh');
+      seenMsgs.add(m.id);
       if (m.photo) {
         const img = document.createElement('img');
         img.className = 'msg-photo';
@@ -570,21 +620,59 @@
         acts.dataset.meal = m.meal || '';
         el.append(acts);
       }
-      const time = document.createElement('time');
-      time.textContent = fmtClock(m.ts);
-      el.append(time);
-      feed.append(el);
-    }
+      if (!sameAsNext) {
+        const time = document.createElement('time');
+        time.textContent = fmtClock(m.ts);
+        el.append(time);
+      }
+      if (m.from === 'rias') {
+        const row = document.createElement('div');
+        row.className = `msg-row${sameAsNext ? ' grouped' : ''}`;
+        const av = document.createElement('img');
+        av.className = 'avatar msg-av';
+        av.src = pic;
+        av.alt = '';
+        if (sameAsNext) av.style.visibility = 'hidden';
+        row.append(av, el);
+        feed.append(row);
+      } else {
+        if (sameAsNext) el.classList.add('grouped');
+        feed.append(el);
+      }
+    });
+    feedPrimed = true;
     if (wasNearBottom || feed.dataset.init !== '1') { feed.scrollTop = feed.scrollHeight; feed.dataset.init = '1'; }
   }
 
+  // Little moments: hearts when she praises you, a crimson flash for the Power of Destruction.
+  function chatEffects(text) {
+    const fx = $('#feed-fx');
+    if (!fx || currentView !== 'chat') return;
+    if (/power of destruction|destroy|obliterat/i.test(text)) {
+      fx.classList.remove('flash'); void fx.offsetWidth; fx.classList.add('flash');
+    }
+    if (/good (boy|girl)|proud of you|that's my|i love|treasure|ufufu/i.test(text)) {
+      for (let i = 0; i < 9; i++) {
+        const h = document.createElement('span');
+        h.className = 'fx-heart';
+        h.textContent = i % 3 === 0 ? '✦' : '♥';
+        h.style.left = `${10 + Math.random() * 80}%`;
+        h.style.animationDelay = `${i * 70}ms`;
+        h.style.fontSize = `${14 + Math.random() * 14}px`;
+        fx.append(h);
+        setTimeout(() => h.remove(), 2200);
+      }
+    }
+  }
+
   function showTyping() {
-    const el = document.createElement('div');
-    el.className = 'msg rias typing';
-    el.textContent = 'Rias is typing…';
-    feed.append(el);
+    const row = document.createElement('div');
+    row.className = 'msg-row typing-row';
+    row.innerHTML = '<img class="avatar msg-av" alt=""><div class="msg rias typing"><span class="dots"><i></i><i></i><i></i></span><span class="typing-text">Rias is writing…</span></div>';
+    row.querySelector('img').src = loadPicture() || DEFAULT_PIC;
+    feed.append(row);
     feed.scrollTop = feed.scrollHeight;
-    return el;
+    return row;
   }
 
   function renderStatus() {
@@ -596,6 +684,7 @@
       : next ? `Next: ${next.title} · ${fmtTime(next.time)}`
       : isAwake() ? 'Occult Research Club · online' : 'Resting… goodnight';
     if (currentView === 'home') renderHome();
+    if (currentView === 'chat') renderChatHead();
   }
 
   // ---------- Reminders page ----------
@@ -785,7 +874,9 @@
   $('.top .who').addEventListener('click', () => show('home'));
   $('.top .avatar').addEventListener('click', () => show('home'));
 
+  $('#chat-settings').addEventListener('click', () => show('settings'));
   function show(view) {
+    document.querySelector('.app').dataset.view = view;
     // Leaving Home adds a history entry so browser back returns there.
     if (view !== 'home' && currentView === 'home' && !window.RiasNative) { try { history.pushState({ rias: view }, ''); } catch { /* ignore */ } }
     currentView = view;
@@ -797,7 +888,7 @@
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
     if (view === 'work') Work.render();
-    if (view === 'chat') feed.scrollTop = feed.scrollHeight;
+    if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
 
@@ -985,6 +1076,7 @@
       `Work shifts, next 7 days: ${Work.summary()}.`,
       `Food diary today: ${Food.summary()}`,
       likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
+      `What you (Rias) are doing right now, shown in the app; stay consistent if it comes up: ${riasActivity()}.`,
     ].filter(Boolean).join('\n');
   }
 

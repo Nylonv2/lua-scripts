@@ -175,6 +175,14 @@ In the Android app, **Connect calendar** on the Reminders page (or **Settings �
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
 
+## The chat
+
+The Chat tab is Rias's club room: her picture inside a turning Gremory magic circle with a live status of what she's
+doing (tea with Akeno, chess with Kiba, stargazing, asleep at night; her AI knows it too), a faint magic circle and
+drifting sparks behind the messages, her messages grouped with her name in gold and her picture beside them, a
+"Rias is writing…" indicator, ✦ day dividers ✦, hearts when she praises you, a crimson flash at the Power of
+Destruction, and DxD quick replies (How's Akeno?, Your peerage, Play chess, Motivate me).
+
 ## Talking to Rias (written lines)
 
 Type or tap 🎙 and talk to her normally. She understands a few hundred everyday ways of
