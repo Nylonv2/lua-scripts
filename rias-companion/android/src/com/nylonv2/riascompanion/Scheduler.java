@@ -115,7 +115,7 @@ final class Scheduler {
         nm.createNotificationChannel(ch);
     }
 
-    private static void ensureAlarmChannel(Context c) {
+    static void ensureAlarmChannel(Context c) {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null || nm.getNotificationChannel(ALARM_CHANNEL) != null) return;
@@ -175,6 +175,34 @@ final class Scheduler {
         android.graphics.Bitmap pic = picture(c);
         if (pic != null) b.setLargeIcon(pic);
         nm.notify(id, b.build());
+        // Unlocked and in use: Android shrinks the alarm to a banner, so draw the centered card too.
+        if (AlarmOverlay.phoneInUse(c) && AlarmOverlay.allowed(c)) {
+            AlarmOverlay.show(c, text, title, itemId, at, id);
+        }
+    }
+
+    /** What could stop pop-ups from showing outside the app, for Settings → "Pop-up check". */
+    static String alarmCheck(Context c) {
+        JSONObject o = new JSONObject();
+        try {
+            NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+            o.put("notifications", enabled(c));
+            boolean channel = true;
+            if (Build.VERSION.SDK_INT >= 26 && nm != null) {
+                ensureAlarmChannel(c);
+                NotificationChannel ch = nm.getNotificationChannel(ALARM_CHANNEL);
+                channel = ch == null || ch.getImportance() >= NotificationManager.IMPORTANCE_HIGH;
+            }
+            o.put("channel", channel);
+            AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+            o.put("exact", Build.VERSION.SDK_INT < 31 || (am != null && am.canScheduleExactAlarms()));
+            o.put("fullScreen", canFullScreen(c));
+            o.put("overlay", AlarmOverlay.allowed(c));
+            android.os.PowerManager pm = (android.os.PowerManager) c.getSystemService(Context.POWER_SERVICE);
+            o.put("battery", Build.VERSION.SDK_INT < 23 || (pm != null && pm.isIgnoringBatteryOptimizations(c.getPackageName())));
+        } catch (Exception ignored) {
+        }
+        return o.toString();
     }
 
     /** Done / Snooze tapped on the pop-up while the app was closed; applied when it next opens. */

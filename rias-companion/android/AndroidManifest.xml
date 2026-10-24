@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <!-- Reminder pop-ups over the lock screen, like an alarm app. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- "Appear on top": the centered reminder pop-up while you're using another app. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Lets the pop-up check ask Android not to put Rias to sleep (Samsung "sleeping apps"). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Rias's AI replies (only if you add an API key) talk to api.anthropic.com. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Exact reminder times: granted at install on Android 13+, user-grantable on 12. -->

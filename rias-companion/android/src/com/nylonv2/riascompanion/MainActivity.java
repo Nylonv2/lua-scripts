@@ -491,6 +491,49 @@ public class MainActivity extends Activity {
             return Scheduler.canFullScreen(ctx);
         }
 
+        @JavascriptInterface
+        public String alarmCheck() {
+            return Scheduler.alarmCheck(ctx);
+        }
+
+        /** Opens the settings page that fixes one item of the pop-up check. */
+        @JavascriptInterface
+        public void openAlarmFix(String what) {
+            String pkg = ctx.getPackageName();
+            Intent i;
+            if ("overlay".equals(what) && Build.VERSION.SDK_INT >= 23) {
+                i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + pkg));
+            } else if ("battery".equals(what) && Build.VERSION.SDK_INT >= 23) {
+                i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + pkg));
+            } else if ("channel".equals(what) && Build.VERSION.SDK_INT >= 26) {
+                Scheduler.ensureAlarmChannel(ctx);
+                i = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, pkg)
+                        .putExtra(Settings.EXTRA_CHANNEL_ID, "rias_alarms");
+            } else if ("exact".equals(what) && Build.VERSION.SDK_INT >= 31) {
+                i = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + pkg));
+            } else if ("fullScreen".equals(what)) {
+                openFullScreenSettings();
+                return;
+            } else if ("notifications".equals(what)) {
+                openSettings();
+                return;
+            } else {
+                i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+            }
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                ctx.startActivity(i);
+            } catch (Exception e) {
+                Intent d = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    ctx.startActivity(d);
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         /** Android 14+: the switch that lets reminders pop up over the lock screen. */
         @JavascriptInterface
         public void openFullScreenSettings() {

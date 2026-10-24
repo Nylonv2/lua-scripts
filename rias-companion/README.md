@@ -118,16 +118,19 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
 - **Reminder pop-up (alarm style):** when a reminder is due, a card pops up in the middle of the screen with her
   picture, the time, the reminder and *Done ✓ / Snooze 10 min / Dismiss*, with a buzz and chime. With the app
   closed, the Android app uses full-screen alarm notifications: the screen turns on and the same card appears over
-  the lock screen (while you're using the phone, Android shows a pop-up notification instead; tap it for the card).
-  Buttons tapped there are applied the next time the app opens. On Android 14+, allow it once under
-  **Settings → Notifications → Allow pop-ups over the lock screen**. Turn it off with *Reminders pop up in the
-  middle of the screen*.
+  the lock screen. While you're using the phone, Android shrinks those to a small banner, so with **Appear on top**
+  allowed, Rias draws the card in the middle of the screen over whatever app is open. Buttons tapped there are
+  applied the next time the app opens. Turn it off with *Reminders pop up in the middle of the screen*.
+- **Pop-up check:** in the Android app, **Settings → Notifications** lists what Android needs before pop-ups can show
+  outside the app (notifications allowed, pop-up alerts set to sound/pop on screen, *Appear on top*, full screen over
+  the lock screen, not put to sleep by battery saving, exact alarms), each with a **Fix** button that opens the
+  right Android settings page. If reminders don't show up outside the app, fix everything here first.
 - **Choose which reminders pop up:** under *Which reminders pop up like an alarm*, tick the reminder types that get
   the big pop-up (default: wake up, medication, work shifts, phone calendar, sleep, other); the rest arrive as
   normal notifications. When adding or editing a reminder, *When it's due* overrides it for that one reminder.
   Alarm reminders show ⏰ in Today.
-- **Test them:** *Try them out* → ⏰ Pop-up (shows the card now), 🔒 Lock screen (Android app: fires in 10 seconds,
-  so lock your phone first), 💬 Banner.
+- **Test them:** *Try them out* → ⏰ Pop-up (shows the card now), 📱 Outside app (Android app: fires in 10 seconds,
+  so go to your home screen, another app, or lock your phone), 💬 Banner.
 - **Message banner:** other messages from Rias slide in at the top when you're on another tab. Tap to open the chat,
   swipe up to dismiss.
 

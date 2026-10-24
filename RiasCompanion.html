@@ -700,6 +700,20 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
 .settings .sync-box button.btn-text { background: none; border: 0; }
 .settings .sync-box .btn-primary.sm { background: var(--crimson); border-color: var(--crimson); color: #fff; }
 .settings .sync-box .btn-primary.sm.tonal { background: var(--panel); border-color: var(--line); color: var(--text); }
+
+/* Settings > Notifications: pop-up check */
+.popup-check { padding: 12px 14px; border-radius: var(--radius-sm); background: var(--panel-2); border: 1px solid var(--crimson-2); }
+.popup-check.ok { border-color: var(--line); }
+.pc-head { margin: 0 0 6px; font-weight: 700; font-size: .92rem; color: var(--crimson-2); }
+.popup-check.ok .pc-head { color: #7ddc9a; }
+.pc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pc-list li { display: flex; align-items: center; gap: 10px; font-size: .86rem; }
+.pc-ic { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: .8rem; font-weight: 700; background: rgba(125, 220, 154, .16); color: #7ddc9a; }
+.pc-list li.bad .pc-ic { background: var(--accent-soft); color: var(--crimson-2); }
+.pc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pc-text small { color: var(--muted); font-size: .76rem; }
+.pc-text small:empty { display: none; }
+.popup-check .btn-primary.sm { flex: none; background: var(--crimson); border-color: var(--crimson); color: #fff; }
 </style>
 </head>
 <body>
@@ -1068,8 +1082,10 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <h2>Notifications</h2>
           <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
           <label class="switch"><input name="alarmPopup" type="checkbox"> Reminders pop up in the middle of the screen, like an alarm</label>
-          <p class="small voice-hint" id="fullscreen-hint" hidden></p>
-          <button type="button" id="fullscreen-btn" hidden>Allow pop-ups over the lock screen</button>
+          <div class="popup-check" id="popup-check" hidden>
+            <p class="pc-head" id="pc-head"></p>
+            <ul class="pc-list" id="pc-list"></ul>
+          </div>
           <fieldset class="cats" id="alarm-cats">
             <legend>Which reminders pop up like an alarm</legend>
             <p class="muted small">Ticked types get the big pop-up. The rest come as normal notifications. You can also change it for a single reminder when you edit it.</p>
@@ -1078,7 +1094,7 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <p class="test-label">Try them out</p>
           <div class="test-row">
             <button type="button" id="test-alarm">⏰ Pop-up</button>
-            <button type="button" id="test-lock" hidden>🔒 Lock screen</button>
+            <button type="button" id="test-lock" hidden>📱 Outside app</button>
             <button type="button" id="test-banner">💬 Banner</button>
           </div>
           <p class="muted small" id="test-hint"></p>
@@ -4984,7 +5000,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.alarmPopup.checked = alarmOn();
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
-    fullScreenHint();
+    popupCheck();
     const list = $('#alarm-cat-list');
     list.textContent = '';
     for (const [key, label] of ALARM_CATS) {
@@ -5106,13 +5122,48 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     sf.elements.voiceRate.value = RIAS_RATE;
   });
 
-  // Android 14+ asks you to allow pop-ups over the lock screen once.
-  function fullScreenHint() {
+  // "Pop-up check": everything Android needs before reminders can pop up outside the app.
+  const POPUP_CHECKS = [
+    ['notifications', 'Notifications allowed', 'Without this Rias can\'t reach you outside the app at all.'],
+    ['channel', 'Pop-up alerts set to make sound and pop on screen', 'Tap Fix, then pick “Alert” / “Urgent” for Reminder pop-ups.'],
+    ['overlay', 'Appear on top', 'Shows the pop-up in the middle of the screen while you use other apps. Tap Fix and turn on “Allow” for Rias.'],
+    ['fullScreen', 'Full screen over the lock screen', 'Tap Fix and turn on “Allow full screen notifications”.'],
+    ['battery', 'Not put to sleep by battery saving', 'Samsung puts unused apps to sleep, which stops reminders. Tap Fix and choose Allow / Unrestricted.'],
+    ['exact', 'Alarms at the exact time', 'Tap Fix and allow “Alarms & reminders”.'],
+  ];
+  function popupCheck() {
     const N = window.RiasNative;
-    const need = !!(N && N.canFullScreen && alarmOn() && !N.canFullScreen());
-    $('#fullscreen-hint').hidden = !need;
-    $('#fullscreen-btn').hidden = !need;
-    if (need) $('#fullscreen-hint').textContent = 'To pop up over your lock screen like an alarm, Android needs your OK. Tap below and turn on “Allow full screen notifications” for Rias.';
+    const box = $('#popup-check');
+    if (!(N && N.alarmCheck)) { box.hidden = true; return; }
+    let res = {};
+    try { res = JSON.parse(N.alarmCheck()); } catch { /* old app */ }
+    const bad = POPUP_CHECKS.filter(([k]) => res[k] === false);
+    box.hidden = false;
+    box.classList.toggle('ok', !bad.length);
+    $('#pc-head').textContent = bad.length
+      ? `${bad.length} thing${bad.length === 1 ? '' : 's'} can stop pop-ups outside the app`
+      : 'Pop-ups are all set ✓';
+    const ul = $('#pc-list');
+    ul.textContent = '';
+    for (const [key, label, help] of POPUP_CHECKS) {
+      if (!(key in res)) continue;
+      const okay = res[key] !== false;
+      const li = document.createElement('li');
+      li.className = okay ? 'ok' : 'bad';
+      li.innerHTML = '<span class="pc-ic"></span><div class="pc-text"><b></b><small></small></div>';
+      li.querySelector('.pc-ic').textContent = okay ? '✓' : '!';
+      li.querySelector('b').textContent = label;
+      li.querySelector('small').textContent = okay ? '' : help;
+      if (!okay) {
+        const fix = document.createElement('button');
+        fix.type = 'button';
+        fix.className = 'btn-primary sm';
+        fix.textContent = 'Fix';
+        fix.addEventListener('click', () => N.openAlarmFix(key));
+        li.append(fix);
+      }
+      ul.append(li);
+    }
   }
   sf.elements.alarmPopup.addEventListener('change', () => { $('#alarm-cats').disabled = !sf.elements.alarmPopup.checked; });
 
@@ -5126,14 +5177,13 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const N = window.RiasNative;
     if (!N || !N.testAlarm) return;
     N.testAlarm(testText());
-    $('#test-hint').textContent = 'Lock your phone or go to the home screen now. The pop-up arrives in about 10 seconds.';
+    $('#test-hint').textContent = 'Now go to your home screen or another app (or lock your phone). The pop-up arrives in about 10 seconds.';
   });
   $('#test-banner').addEventListener('click', () => {
     // The banner only shows outside the chat, which is where you are (Settings).
     showToast({ text: say('Just checking in, {name}. This is what my messages look like when you\'re on another tab.') });
   });
 
-  $('#fullscreen-btn').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openFullScreenSettings) N.openFullScreenSettings(); });
 
   $('#perm').addEventListener('click', async () => {
     if (Native) Native.openSettings();
@@ -5210,7 +5260,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
-    if (state.profile && !$('#view-settings').hidden) { notifyHint(); fullScreenHint(); }
+    if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); }
   });
 })();
 </script>

@@ -688,3 +688,17 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
 .settings .sync-box button.btn-text { background: none; border: 0; }
 .settings .sync-box .btn-primary.sm { background: var(--crimson); border-color: var(--crimson); color: #fff; }
 .settings .sync-box .btn-primary.sm.tonal { background: var(--panel); border-color: var(--line); color: var(--text); }
+
+/* Settings > Notifications: pop-up check */
+.popup-check { padding: 12px 14px; border-radius: var(--radius-sm); background: var(--panel-2); border: 1px solid var(--crimson-2); }
+.popup-check.ok { border-color: var(--line); }
+.pc-head { margin: 0 0 6px; font-weight: 700; font-size: .92rem; color: var(--crimson-2); }
+.popup-check.ok .pc-head { color: #7ddc9a; }
+.pc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pc-list li { display: flex; align-items: center; gap: 10px; font-size: .86rem; }
+.pc-ic { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: .8rem; font-weight: 700; background: rgba(125, 220, 154, .16); color: #7ddc9a; }
+.pc-list li.bad .pc-ic { background: var(--accent-soft); color: var(--crimson-2); }
+.pc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pc-text small { color: var(--muted); font-size: .76rem; }
+.pc-text small:empty { display: none; }
+.popup-check .btn-primary.sm { flex: none; background: var(--crimson); border-color: var(--crimson); color: #fff; }

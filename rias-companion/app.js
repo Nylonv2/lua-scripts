@@ -1547,7 +1547,7 @@
     sf.elements.notify.checked = state.settings.notify;
     sf.elements.alarmPopup.checked = alarmOn();
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
-    fullScreenHint();
+    popupCheck();
     const list = $('#alarm-cat-list');
     list.textContent = '';
     for (const [key, label] of ALARM_CATS) {
@@ -1669,13 +1669,48 @@
     sf.elements.voiceRate.value = RIAS_RATE;
   });
 
-  // Android 14+ asks you to allow pop-ups over the lock screen once.
-  function fullScreenHint() {
+  // "Pop-up check": everything Android needs before reminders can pop up outside the app.
+  const POPUP_CHECKS = [
+    ['notifications', 'Notifications allowed', 'Without this Rias can\'t reach you outside the app at all.'],
+    ['channel', 'Pop-up alerts set to make sound and pop on screen', 'Tap Fix, then pick “Alert” / “Urgent” for Reminder pop-ups.'],
+    ['overlay', 'Appear on top', 'Shows the pop-up in the middle of the screen while you use other apps. Tap Fix and turn on “Allow” for Rias.'],
+    ['fullScreen', 'Full screen over the lock screen', 'Tap Fix and turn on “Allow full screen notifications”.'],
+    ['battery', 'Not put to sleep by battery saving', 'Samsung puts unused apps to sleep, which stops reminders. Tap Fix and choose Allow / Unrestricted.'],
+    ['exact', 'Alarms at the exact time', 'Tap Fix and allow “Alarms & reminders”.'],
+  ];
+  function popupCheck() {
     const N = window.RiasNative;
-    const need = !!(N && N.canFullScreen && alarmOn() && !N.canFullScreen());
-    $('#fullscreen-hint').hidden = !need;
-    $('#fullscreen-btn').hidden = !need;
-    if (need) $('#fullscreen-hint').textContent = 'To pop up over your lock screen like an alarm, Android needs your OK. Tap below and turn on “Allow full screen notifications” for Rias.';
+    const box = $('#popup-check');
+    if (!(N && N.alarmCheck)) { box.hidden = true; return; }
+    let res = {};
+    try { res = JSON.parse(N.alarmCheck()); } catch { /* old app */ }
+    const bad = POPUP_CHECKS.filter(([k]) => res[k] === false);
+    box.hidden = false;
+    box.classList.toggle('ok', !bad.length);
+    $('#pc-head').textContent = bad.length
+      ? `${bad.length} thing${bad.length === 1 ? '' : 's'} can stop pop-ups outside the app`
+      : 'Pop-ups are all set ✓';
+    const ul = $('#pc-list');
+    ul.textContent = '';
+    for (const [key, label, help] of POPUP_CHECKS) {
+      if (!(key in res)) continue;
+      const okay = res[key] !== false;
+      const li = document.createElement('li');
+      li.className = okay ? 'ok' : 'bad';
+      li.innerHTML = '<span class="pc-ic"></span><div class="pc-text"><b></b><small></small></div>';
+      li.querySelector('.pc-ic').textContent = okay ? '✓' : '!';
+      li.querySelector('b').textContent = label;
+      li.querySelector('small').textContent = okay ? '' : help;
+      if (!okay) {
+        const fix = document.createElement('button');
+        fix.type = 'button';
+        fix.className = 'btn-primary sm';
+        fix.textContent = 'Fix';
+        fix.addEventListener('click', () => N.openAlarmFix(key));
+        li.append(fix);
+      }
+      ul.append(li);
+    }
   }
   sf.elements.alarmPopup.addEventListener('change', () => { $('#alarm-cats').disabled = !sf.elements.alarmPopup.checked; });
 
@@ -1689,14 +1724,13 @@
     const N = window.RiasNative;
     if (!N || !N.testAlarm) return;
     N.testAlarm(testText());
-    $('#test-hint').textContent = 'Lock your phone or go to the home screen now. The pop-up arrives in about 10 seconds.';
+    $('#test-hint').textContent = 'Now go to your home screen or another app (or lock your phone). The pop-up arrives in about 10 seconds.';
   });
   $('#test-banner').addEventListener('click', () => {
     // The banner only shows outside the chat, which is where you are (Settings).
     showToast({ text: say('Just checking in, {name}. This is what my messages look like when you\'re on another tab.') });
   });
 
-  $('#fullscreen-btn').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openFullScreenSettings) N.openFullScreenSettings(); });
 
   $('#perm').addEventListener('click', async () => {
     if (Native) Native.openSettings();
@@ -1773,6 +1807,6 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
-    if (state.profile && !$('#view-settings').hidden) { notifyHint(); fullScreenHint(); }
+    if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); }
   });
 })();

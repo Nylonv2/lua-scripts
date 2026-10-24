@@ -379,8 +379,10 @@
           <h2>Notifications</h2>
           <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
           <label class="switch"><input name="alarmPopup" type="checkbox"> Reminders pop up in the middle of the screen, like an alarm</label>
-          <p class="small voice-hint" id="fullscreen-hint" hidden></p>
-          <button type="button" id="fullscreen-btn" hidden>Allow pop-ups over the lock screen</button>
+          <div class="popup-check" id="popup-check" hidden>
+            <p class="pc-head" id="pc-head"></p>
+            <ul class="pc-list" id="pc-list"></ul>
+          </div>
           <fieldset class="cats" id="alarm-cats">
             <legend>Which reminders pop up like an alarm</legend>
             <p class="muted small">Ticked types get the big pop-up. The rest come as normal notifications. You can also change it for a single reminder when you edit it.</p>
@@ -389,7 +391,7 @@
           <p class="test-label">Try them out</p>
           <div class="test-row">
             <button type="button" id="test-alarm">⏰ Pop-up</button>
-            <button type="button" id="test-lock" hidden>🔒 Lock screen</button>
+            <button type="button" id="test-lock" hidden>📱 Outside app</button>
             <button type="button" id="test-banner">💬 Banner</button>
           </div>
           <p class="muted small" id="test-hint"></p>
