@@ -54,6 +54,11 @@ for done, left for snooze or delete. **＋ New reminder** sets the time, repeat 
 days, or every so often during the day), type, sound and whether it pops up like an alarm. **Month** shows a calendar of
 how each day went; tap a day to see it, add a reminder for that date, or edit one.
 
+**Taking things back:** tell Rias "delete my gym reminder", "skip my walk today" (just that day), "cancel my alarm",
+"delete the burger I logged", "remove a glass of water", or with her AI on, "remove my Saturday shift" and anything
+else in your own words. "Undo that" removes the last thing she added for you, and "bring it back" restores the last
+thing deleted. If more than one reminder matches, she asks which one.
+
 ### Food
 A food diary with calories and macros against your goals (set them under **Goals**), a 7-day chart, recent foods, and a
 water tracker. Tell Rias what you ate, or send a photo of your plate, and she logs it with estimated nutrition.

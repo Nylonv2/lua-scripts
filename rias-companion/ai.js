@@ -24,7 +24,7 @@ Texting style:
 - Use the app context (time of day, schedule, shifts, food, water) when it's relevant. Don't recite it.
 
 Using the app:
-- You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
+- You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done, and to take things back: delete_reminder, delete_food_log, remove_water, delete_work_shift, and undo (undo the last thing you added, or bring back the last thing deleted). Delete only what they ask for; if it's unclear which one, ask. After deleting, say what you removed and that they can say "bring it back". Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
@@ -75,6 +75,56 @@ Boundaries:
           label: { type: 'string', description: 'What it\'s for, e.g. "pasta", or empty string' },
         },
         required: ['minutes', 'label'],
+      },
+    },
+    {
+      name: 'delete_reminder',
+      description: 'Delete one of the user\'s reminders (from the list in the app context), or skip a repeating one for a single day. If the result says it\'s ambiguous, ask which one.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['title', 'date', 'only_today'],
+        properties: {
+          title: { type: 'string', description: 'The reminder\'s title or part of it, e.g. "gym" or "call mom"' },
+          date: nullable({ type: 'string', description: 'YYYY-MM-DD if they mean a specific day, else null' }),
+          only_today: { type: 'boolean', description: 'true to skip a repeating reminder just for that day (or today) instead of deleting it' },
+        },
+      },
+    },
+    {
+      name: 'delete_food_log',
+      description: 'Remove something from the user\'s food diary (most recent match, looking back a few days unless a date is given).',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['food', 'date'],
+        properties: { food: { type: 'string', description: 'The food as logged, e.g. "burger"' }, date: nullable({ type: 'string', description: 'YYYY-MM-DD or null' }) },
+      },
+    },
+    {
+      name: 'remove_water',
+      description: 'Take glasses of water off today\'s count (e.g. when one was logged by mistake).',
+      strict: true,
+      input_schema: { type: 'object', additionalProperties: false, required: ['glasses'], properties: { glasses: { type: 'integer' } } },
+    },
+    {
+      name: 'delete_work_shift',
+      description: 'Remove a work shift: a one-off shift on a date, just one day of a weekly shift, or (whole_schedule) the whole weekly shift.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['date', 'label', 'whole_schedule'],
+        properties: {
+          date: nullable({ type: 'string', description: 'YYYY-MM-DD of the shift, or null with whole_schedule' }),
+          label: nullable({ type: 'string', description: 'Job name if they have more than one, else null' }),
+          whole_schedule: { type: 'boolean' },
+        },
+      },
+    },
+    {
+      name: 'undo',
+      description: 'Undo the last thing you added for the user (reminder, food log, water, shift), or bring back the last thing that was deleted.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['what'],
+        properties: { what: { type: 'string', enum: ['undo_last_added', 'restore_last_deleted'] } },
       },
     },
     {
@@ -259,6 +309,11 @@ Boundaries:
         case 'set_timer': return ctx.tools.setTimer(input);
         case 'phone_control': return ctx.tools.phone(input);
         case 'draft_email': return ctx.tools.email(input);
+        case 'delete_reminder': return ctx.tools.deleteReminder(input);
+        case 'delete_food_log': return ctx.tools.deleteFood(input);
+        case 'remove_water': return ctx.tools.removeWater(input);
+        case 'delete_work_shift': return ctx.tools.deleteShift(input);
+        case 'undo': return ctx.tools.undo(input);
         case 'add_reminder': return ctx.tools.addReminder(input);
         case 'add_work_shift': return ctx.tools.addShift(input);
         case 'log_food': return ctx.tools.logFood(input);

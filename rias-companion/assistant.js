@@ -289,6 +289,53 @@ window.createAssistant = function createAssistant(ctx) {
       return [say('Okay, I won\'t send it.')];
     }
 
+    // Taking things back: undo, restore, delete a reminder / food log / water.
+    const ch = ctx.changes;
+    if (ch) {
+      const aiOn = ctx.aiOn && ctx.aiOn();
+      const tell = (res, ok) => {
+        if (res.ambiguous) return aiOn ? null : [say(`Which one, {name}? ${res.ambiguous.join(' · ')}`)];
+        if (res.error) return aiOn ? null : [say(res.error.split('. Their reminders')[0])];
+        return [say(ok(res))];
+      };
+      if (/^(undo( that| it| the last one)?|take (that|it) back|delete (that|it)|remove (that|it)|scratch that)$/.test(t)) {
+        const r = ch.undoLast();
+        return r.error ? [say(r.error)] : [say(`Undone: I removed ${r.undone}. Say “bring it back” if you change your mind.`)];
+      }
+      if (/^(bring (it|that) back|restore( it| that)?|undo (the |that )?delet(e|ion)|put (it|that) back)$/.test(t)) {
+        const r = ch.restoreLast();
+        return r.error ? [say(r.error)] : [say(`It's back: ${r.restored}~`)];
+      }
+      let mm = t.match(/^(?:skip|cancel) (?:my |the )?(.+?) (?:reminder )?(?:just )?(?:for )?today$/);
+      if (mm && !/\btimer\b/.test(mm[1])) {
+        const out = tell(ch.deleteReminder({ title: mm[1], only_today: true }), (r) => (r.skipped ? `Okay, skipping ${r.skipped}.` : `Done, I deleted “${r.deleted}”.`));
+        if (out) return out;
+      }
+      mm = t.match(/^(?:delete|remove|cancel|turn off|get rid of) (?:my |the )?(?:(tomorrow's|today's) )?(?:wake ?up )?alarm$/);
+      if (mm) {
+        const date = mm[1] === "tomorrow's" ? ctx.dateKey(new Date(Date.now() + 86400000)) : mm[1] === "today's" ? ctx.dateKey() : null;
+        const out = tell(ch.deleteReminder({ title: 'alarm', date }), (r) => `Done, I deleted your alarm (${r.deleted}). Say “bring it back” if you need it.`);
+        if (out) return out;
+      }
+      mm = t.match(/^(?:delete|remove|cancel|get rid of) (?:my |the )?(?:(tomorrow's|today's) )?(.+?) reminder$/) || t.match(/^(?:delete|remove|cancel) (?:my |the )?reminder (?:to |for |about )?(.+)$/);
+      if (mm) {
+        const title = mm[2] || mm[1];
+        const date = mm[2] && mm[1] === "tomorrow's" ? ctx.dateKey(new Date(Date.now() + 86400000)) : mm[2] && mm[1] === "today's" ? ctx.dateKey() : null;
+        const out = tell(ch.deleteReminder({ title, date }), (r) => `Done, I deleted “${r.deleted}”. Say “bring it back” if you change your mind.`);
+        if (out) return out;
+      }
+      mm = t.match(/^(?:delete|remove) (?:the |my |that )?(.+?) (?:i (?:logged|ate|had)|from (?:my )?(?:food|diary|food diary|log))(?: today| yesterday)?$/);
+      if (mm) {
+        const out = tell(ch.deleteFood({ food: mm[1] }), (r) => `Done, I took ${r.deleted} out of your food diary.`);
+        if (out) return out;
+      }
+      mm = t.match(/^(?:remove|delete|take off|undo) (a|one|\d+) glass(?:es)?(?: of water)?$/);
+      if (mm) {
+        const r = ch.removeWater({ glasses: /^\d+$/.test(mm[1]) ? Number(mm[1]) : 1 });
+        return [say(r.error || `Okay, ${r.removed} off. You're at ${r.glassesToday} glass${r.glassesToday === 1 ? '' : 'es'} today.`)];
+      }
+    }
+
     // Timers
     if (/\btimer\b/.test(t) || /^(start )?(a )?\d/.test(t) && /\b(minute|second|hour)s?\b.*\btimer\b/.test(t)) {
       if (/\b(cancel|stop|delete|remove|clear|end|turn off)\b/.test(t)) {

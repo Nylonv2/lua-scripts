@@ -3965,7 +3965,7 @@ Texting style:
 - Use the app context (time of day, schedule, shifts, food, water) when it's relevant. Don't recite it.
 
 Using the app:
-- You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
+- You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done, and to take things back: delete_reminder, delete_food_log, remove_water, delete_work_shift, and undo (undo the last thing you added, or bring back the last thing deleted). Delete only what they ask for; if it's unclear which one, ask. After deleting, say what you removed and that they can say "bring it back". Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
@@ -4016,6 +4016,56 @@ Boundaries:
           label: { type: 'string', description: 'What it\'s for, e.g. "pasta", or empty string' },
         },
         required: ['minutes', 'label'],
+      },
+    },
+    {
+      name: 'delete_reminder',
+      description: 'Delete one of the user\'s reminders (from the list in the app context), or skip a repeating one for a single day. If the result says it\'s ambiguous, ask which one.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['title', 'date', 'only_today'],
+        properties: {
+          title: { type: 'string', description: 'The reminder\'s title or part of it, e.g. "gym" or "call mom"' },
+          date: nullable({ type: 'string', description: 'YYYY-MM-DD if they mean a specific day, else null' }),
+          only_today: { type: 'boolean', description: 'true to skip a repeating reminder just for that day (or today) instead of deleting it' },
+        },
+      },
+    },
+    {
+      name: 'delete_food_log',
+      description: 'Remove something from the user\'s food diary (most recent match, looking back a few days unless a date is given).',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['food', 'date'],
+        properties: { food: { type: 'string', description: 'The food as logged, e.g. "burger"' }, date: nullable({ type: 'string', description: 'YYYY-MM-DD or null' }) },
+      },
+    },
+    {
+      name: 'remove_water',
+      description: 'Take glasses of water off today\'s count (e.g. when one was logged by mistake).',
+      strict: true,
+      input_schema: { type: 'object', additionalProperties: false, required: ['glasses'], properties: { glasses: { type: 'integer' } } },
+    },
+    {
+      name: 'delete_work_shift',
+      description: 'Remove a work shift: a one-off shift on a date, just one day of a weekly shift, or (whole_schedule) the whole weekly shift.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['date', 'label', 'whole_schedule'],
+        properties: {
+          date: nullable({ type: 'string', description: 'YYYY-MM-DD of the shift, or null with whole_schedule' }),
+          label: nullable({ type: 'string', description: 'Job name if they have more than one, else null' }),
+          whole_schedule: { type: 'boolean' },
+        },
+      },
+    },
+    {
+      name: 'undo',
+      description: 'Undo the last thing you added for the user (reminder, food log, water, shift), or bring back the last thing that was deleted.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['what'],
+        properties: { what: { type: 'string', enum: ['undo_last_added', 'restore_last_deleted'] } },
       },
     },
     {
@@ -4200,6 +4250,11 @@ Boundaries:
         case 'set_timer': return ctx.tools.setTimer(input);
         case 'phone_control': return ctx.tools.phone(input);
         case 'draft_email': return ctx.tools.email(input);
+        case 'delete_reminder': return ctx.tools.deleteReminder(input);
+        case 'delete_food_log': return ctx.tools.deleteFood(input);
+        case 'remove_water': return ctx.tools.removeWater(input);
+        case 'delete_work_shift': return ctx.tools.deleteShift(input);
+        case 'undo': return ctx.tools.undo(input);
         case 'add_reminder': return ctx.tools.addReminder(input);
         case 'add_work_shift': return ctx.tools.addShift(input);
         case 'log_food': return ctx.tools.logFood(input);
@@ -5727,6 +5782,53 @@ window.createAssistant = function createAssistant(ctx) {
       pendingText = null;
       if (!/^(never ?mind|cancel|forget it|nothing)$/.test(t)) return one(run('text', to, rawText.trim()));
       return [say('Okay, I won\'t send it.')];
+    }
+
+    // Taking things back: undo, restore, delete a reminder / food log / water.
+    const ch = ctx.changes;
+    if (ch) {
+      const aiOn = ctx.aiOn && ctx.aiOn();
+      const tell = (res, ok) => {
+        if (res.ambiguous) return aiOn ? null : [say(`Which one, {name}? ${res.ambiguous.join(' · ')}`)];
+        if (res.error) return aiOn ? null : [say(res.error.split('. Their reminders')[0])];
+        return [say(ok(res))];
+      };
+      if (/^(undo( that| it| the last one)?|take (that|it) back|delete (that|it)|remove (that|it)|scratch that)$/.test(t)) {
+        const r = ch.undoLast();
+        return r.error ? [say(r.error)] : [say(`Undone: I removed ${r.undone}. Say “bring it back” if you change your mind.`)];
+      }
+      if (/^(bring (it|that) back|restore( it| that)?|undo (the |that )?delet(e|ion)|put (it|that) back)$/.test(t)) {
+        const r = ch.restoreLast();
+        return r.error ? [say(r.error)] : [say(`It's back: ${r.restored}~`)];
+      }
+      let mm = t.match(/^(?:skip|cancel) (?:my |the )?(.+?) (?:reminder )?(?:just )?(?:for )?today$/);
+      if (mm && !/\btimer\b/.test(mm[1])) {
+        const out = tell(ch.deleteReminder({ title: mm[1], only_today: true }), (r) => (r.skipped ? `Okay, skipping ${r.skipped}.` : `Done, I deleted “${r.deleted}”.`));
+        if (out) return out;
+      }
+      mm = t.match(/^(?:delete|remove|cancel|turn off|get rid of) (?:my |the )?(?:(tomorrow's|today's) )?(?:wake ?up )?alarm$/);
+      if (mm) {
+        const date = mm[1] === "tomorrow's" ? ctx.dateKey(new Date(Date.now() + 86400000)) : mm[1] === "today's" ? ctx.dateKey() : null;
+        const out = tell(ch.deleteReminder({ title: 'alarm', date }), (r) => `Done, I deleted your alarm (${r.deleted}). Say “bring it back” if you need it.`);
+        if (out) return out;
+      }
+      mm = t.match(/^(?:delete|remove|cancel|get rid of) (?:my |the )?(?:(tomorrow's|today's) )?(.+?) reminder$/) || t.match(/^(?:delete|remove|cancel) (?:my |the )?reminder (?:to |for |about )?(.+)$/);
+      if (mm) {
+        const title = mm[2] || mm[1];
+        const date = mm[2] && mm[1] === "tomorrow's" ? ctx.dateKey(new Date(Date.now() + 86400000)) : mm[2] && mm[1] === "today's" ? ctx.dateKey() : null;
+        const out = tell(ch.deleteReminder({ title, date }), (r) => `Done, I deleted “${r.deleted}”. Say “bring it back” if you change your mind.`);
+        if (out) return out;
+      }
+      mm = t.match(/^(?:delete|remove) (?:the |my |that )?(.+?) (?:i (?:logged|ate|had)|from (?:my )?(?:food|diary|food diary|log))(?: today| yesterday)?$/);
+      if (mm) {
+        const out = tell(ch.deleteFood({ food: mm[1] }), (r) => `Done, I took ${r.deleted} out of your food diary.`);
+        if (out) return out;
+      }
+      mm = t.match(/^(?:remove|delete|take off|undo) (a|one|\d+) glass(?:es)?(?: of water)?$/);
+      if (mm) {
+        const r = ch.removeWater({ glasses: /^\d+$/.test(mm[1]) ? Number(mm[1]) : 1 });
+        return [say(r.error || `Okay, ${r.removed} off. You're at ${r.glassesToday} glass${r.glassesToday === 1 ? '' : 'es'} today.`)];
+      }
     }
 
     // Timers
@@ -8018,6 +8120,7 @@ window.createReplyHelper = function createReplyHelper(ctx) {
       `Now: ${now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}, ${fmtClock(now)} (date ${dateKey(now)}, time ${minToTime(nm)}).`,
       `User: ${state.profile.name}. Praise word: "${praiseWord()}". Wakes ${fmtTime(state.profile.wake)}, bedtime ${fmtTime(state.profile.sleep)}. Right now it is ${period(nm)}.`,
       `Today's schedule: ${items.length ? items.join('; ') : 'nothing scheduled'}.`,
+      `All their reminders: ${state.items.slice(0, 40).map(remLabel).join('; ') || 'none'}.`,
       allDay.length ? `All-day calendar events today: ${allDay.join(', ')}.` : '',
       `Work shifts, next 7 days: ${Work.summary()}.`,
       `Food diary today: ${Food.summary()}`,
@@ -8067,6 +8170,161 @@ window.createReplyHelper = function createReplyHelper(ctx) {
       + (overLimit() ? ' · Limit reached: she uses her own words until next month.' : lim ? ` · limit $${lim}` : '') + '. An estimate from list prices; your Anthropic bill is the real number.';
   }
 
+  // ---------- deleting, undo and restore: Rias can take back what she added ----------
+  // state.undo.added: what she added for you (newest last); state.undo.trash: what was deleted, to bring back.
+  const undoBox = () => (state.undo ||= { added: [], trash: [] });
+  function noteAdded(rec) { const u = undoBox(); u.added.push({ ...rec, at: Date.now() }); u.added = u.added.slice(-15); }
+  function toTrash(rec) { const u = undoBox(); u.trash.push({ ...rec, at: Date.now() }); u.trash = u.trash.slice(-15); }
+  const words = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter((w) => w.length > 1 && !/^(my|the|a|an|to|for|reminder|reminders|at|on|of|and|please)$/.test(w));
+  const remLabel = (it) => `${it.title} at ${fmtTime(it.time)}${it.repeat === 'once' ? ` on ${it.date}` : ` (${repeatLabel(it) || 'daily'})`}`;
+  function findReminders(q) {
+    const want = words(q);
+    const alarm = /\b(alarm|wake)\b/i.test(q);
+    // Whole words count most; "walk" also finds "walking", but "breakfast" doesn't find "break".
+    const wordScore = (w, h) => (w === h ? 2 : (h.startsWith(w) && w.length >= 3) || (w.startsWith(h) && h.length >= 4 && w.length - h.length <= 3) ? 1 : 0);
+    const scored = state.items.map((it) => {
+      const have = words(it.title);
+      let score = want.reduce((sum, w) => sum + Math.max(0, ...have.map((h) => wordScore(w, h))), 0);
+      // "Cancel my alarm": the wake-up alarms, and one she set for a single day before the daily one.
+      if (alarm && it.category === 'wake') score += it.repeat === 'once' ? 3 : 2;
+      return { it, score };
+    }).filter((x) => x.score > 0).sort((a, b) => b.score - a.score);
+    return scored.length ? scored.filter((x) => x.score === scored[0].score).map((x) => x.it) : [];
+  }
+  /** { title, date (YYYY-MM-DD or null), only_today } → { ok, deleted } | { ambiguous: [...] } | { error } */
+  function deleteReminder({ title, date = null, only_today = false }) {
+    let matches = findReminders(title);
+    if (date) {
+      const d = new Date(`${date}T12:00`);
+      const onDay = matches.filter((it) => appliesOn(it, d));
+      if (onDay.length) matches = onDay;
+    }
+    if (!matches.length) return { error: `No reminder matching "${title}". Their reminders: ${state.items.slice(0, 25).map(remLabel).join('; ')}` };
+    if (matches.length > 1) return { ambiguous: matches.slice(0, 6).map(remLabel), note: 'Ask which one they mean.' };
+    const it = matches[0];
+    const k = date || dateKey();
+    if (only_today && it.repeat !== 'once') {
+      (state.log[k] ||= {})[it.id] = 'skipped';
+      toTrash({ kind: 'skip', id: it.id, date: k, label: `${it.title} on ${k}` });
+      refresh(); save();
+      return { ok: true, skipped: `${it.title} just for ${k === dateKey() ? 'today' : k}` };
+    }
+    state.items = state.items.filter((x) => x.id !== it.id);
+    toTrash({ kind: 'reminder', item: it, label: remLabel(it) });
+    refresh(); save();
+    return { ok: true, deleted: remLabel(it) };
+  }
+  /** { food, date } → removes the most recent matching food entry (looks back 3 days without a date). */
+  function deleteFood({ food, date = null }) {
+    const want = words(food);
+    const keys = date ? [date] : [0, 1, 2].map((n) => dateKey(new Date(Date.now() - n * 86400000)));
+    for (const k of keys) {
+      const list = state.food[k] || [];
+      for (let i = list.length - 1; i >= 0; i--) {
+        const have = words(list[i].text);
+        if (want.length && want.every((w) => have.some((h) => h.startsWith(w) || w.startsWith(h)))) {
+          const [entry] = list.splice(i, 1);
+          toTrash({ kind: 'food', date: k, entry, label: `${entry.text} (${entry.meal})` });
+          save(); if (!$('#view-food').hidden) Food.render();
+          return { ok: true, deleted: `${entry.text} from ${entry.meal}${k === dateKey() ? ' today' : ` on ${k}`}`, today: Food.summary() };
+        }
+      }
+    }
+    return { error: `No food entry matching "${food}" in the last few days.` };
+  }
+  function removeWater({ glasses = 1 }) {
+    const k = dateKey();
+    const n = Math.max(1, Math.min(state.water[k] || 0, Math.round(glasses)));
+    if (!(state.water[k] > 0)) return { error: 'No water logged today.' };
+    Food.addWater(-n, false, k);
+    toTrash({ kind: 'water', date: k, glasses: n, label: `${n} glass${n === 1 ? '' : 'es'} of water` });
+    return { ok: true, removed: n, glassesToday: state.water[k] || 0 };
+  }
+  /** { date, label, whole_schedule } → removes a one-off shift, skips one day of a weekly shift, or the whole weekly shift. */
+  function deleteShift({ date = null, label = null, whole_schedule = false }) {
+    const job = (sh) => (sh.label || 'Work').toLowerCase();
+    const fits = (sh) => !label || job(sh).includes(String(label).toLowerCase());
+    if (date) {
+      const on = shiftsOn(new Date(`${date}T12:00`)).filter(fits);
+      if (!on.length) return { error: `No shift on ${date}.` };
+      const sh = on[0];
+      if (sh.date) {
+        state.shifts = state.shifts.filter((x) => x.id !== sh.id);
+        toTrash({ kind: 'shift', shift: sh, label: `${sh.label || 'Work'} on ${date}` });
+      } else if (whole_schedule) {
+        state.shifts = state.shifts.filter((x) => x.id !== sh.id);
+        toTrash({ kind: 'shift', shift: sh, label: `weekly ${sh.label || 'Work'} shift` });
+      } else {
+        sh.skip = (sh.skip || []).concat(date);
+        toTrash({ kind: 'shiftskip', id: sh.id, date, label: `${sh.label || 'Work'} on ${date}` });
+      }
+      refresh(); save();
+      return { ok: true, removed: `${sh.label || 'Work'} ${fmtTime(sh.start)}–${fmtTime(sh.end)} on ${date}${!sh.date && !whole_schedule ? ' (just that day; the weekly shift stays)' : ''}` };
+    }
+    const weekly = state.shifts.filter((sh) => !sh.date && fits(sh));
+    if (whole_schedule && weekly.length === 1) {
+      state.shifts = state.shifts.filter((x) => x.id !== weekly[0].id);
+      toTrash({ kind: 'shift', shift: weekly[0], label: `weekly ${weekly[0].label || 'Work'} shift` });
+      refresh(); save();
+      return { ok: true, removed: 'the weekly shift' };
+    }
+    return { error: 'Which day? Give a date, or say to remove the whole weekly schedule.' };
+  }
+  /** Removes the last thing Rias added (reminder, food, water, shift). */
+  function undoLast() {
+    const u = undoBox();
+    while (u.added.length) {
+      const a = u.added.pop();
+      if (a.kind === 'reminder') {
+        const it = state.items.find((x) => x.id === a.id);
+        if (!it) continue;
+        state.items = state.items.filter((x) => x.id !== a.id);
+        toTrash({ kind: 'reminder', item: it, label: remLabel(it) });
+        refresh(); save();
+        return { ok: true, undone: `the reminder "${it.title}"` };
+      }
+      if (a.kind === 'food') {
+        const list = state.food[a.date] || [];
+        const i = list.findIndex((e) => e.id === a.id);
+        if (i < 0) continue;
+        const [entry] = list.splice(i, 1);
+        toTrash({ kind: 'food', date: a.date, entry, label: entry.text });
+        save(); if (!$('#view-food').hidden) Food.render();
+        return { ok: true, undone: `${entry.text} from your food diary` };
+      }
+      if (a.kind === 'water') {
+        Food.addWater(-a.glasses, false, a.date);
+        toTrash({ kind: 'water', date: a.date, glasses: a.glasses, label: `${a.glasses} glass${a.glasses === 1 ? '' : 'es'} of water` });
+        return { ok: true, undone: `${a.glasses} glass${a.glasses === 1 ? '' : 'es'} of water` };
+      }
+      if (a.kind === 'shift') {
+        const sh = state.shifts.find((x) => x.id === a.id);
+        if (!sh) continue;
+        state.shifts = state.shifts.filter((x) => x.id !== a.id);
+        toTrash({ kind: 'shift', shift: sh, label: `${sh.label || 'Work'} shift` });
+        refresh(); save();
+        return { ok: true, undone: `the ${sh.label || 'work'} shift` };
+      }
+    }
+    save();
+    return { error: 'There\'s nothing I added recently to undo.' };
+  }
+  /** Brings back the last thing that was deleted. */
+  function restoreLast() {
+    const u = undoBox();
+    const t = u.trash.pop();
+    if (!t) return { error: 'Nothing deleted recently to bring back.' };
+    if (t.kind === 'reminder') state.items.push(t.item);
+    else if (t.kind === 'skip') { if (state.log[t.date]) delete state.log[t.date][t.id]; }
+    else if (t.kind === 'food') { (state.food[t.date] ||= []).push(t.entry); if (!$('#view-food').hidden) Food.render(); }
+    else if (t.kind === 'water') Food.addWater(t.glasses, false, t.date);
+    else if (t.kind === 'shift') state.shifts.push(t.shift);
+    else if (t.kind === 'shiftskip') { const sh = state.shifts.find((x) => x.id === t.id); if (sh) sh.skip = (sh.skip || []).filter((d) => d !== t.date); }
+    refresh(); save();
+    return { ok: true, restored: t.label };
+  }
+  const changes = { deleteReminder, deleteFood, removeWater, deleteShift, undoLast, restoreLast, findReminders };
+
   // ---------- assistant (Alexa-style commands: timers, calls, phone controls…) ----------
   const PAGES = [[/^(chat|messages?)$/, 'chat'], [/^(reminders?|today|to ?do( list)?|tasks?|calendar)$/, 'today'], [/^(food|diary|food diary|meals?)$/, 'food'],
     [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home'],
@@ -8075,6 +8333,7 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     get state() { return state; },
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     aiOn: () => AI.enabled(),
+    changes,
     // "Help me reply to Jake": the Assistant tab's reply helper.
     replyHelp(name) {
       if (HEADLESS || !Replies) return null;
@@ -8090,6 +8349,7 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     addItem(it) {
       const item = { id: uid(), enabled: true, ...it };
       state.items.push(item);
+      noteAdded({ kind: 'reminder', id: item.id });
       refresh(); save();
       return item;
     },
@@ -8117,6 +8377,7 @@ window.createReplyHelper = function createReplyHelper(ctx) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
         state.items.push(item);
+        noteAdded({ kind: 'reminder', id: item.id });
         if (item.repeat !== 'once' || item.date === dateKey()) { if (toMin(time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'skip'; }
         refresh(); save();
         return { ok: true, added: `${title} at ${time}${item.date ? ` on ${item.date}` : ` (${repeat})`}` };
@@ -8126,18 +8387,29 @@ window.createReplyHelper = function createReplyHelper(ctx) {
         if (!date && !(weekdays && weekdays.length)) return { error: 'give a date or weekdays' };
         // Re-sending a schedule shouldn't double it: replace that day's shift for the same job.
         if (date) state.shifts = state.shifts.filter((sh) => !(sh.date === date && (sh.label || 'Work') === (label || 'Work')));
-        Work.addShift({ label, date: date || null, days: date ? null : weekdays, start, end });
+        const sh = Work.addShift({ label, date: date || null, days: date ? null : weekdays, start, end });
+        noteAdded({ kind: 'shift', id: sh.id });
         refresh();
         return { ok: true };
       },
       logFood({ meal, food, kind, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g }) {
         const r = (v) => (typeof v === 'number' && v >= 0 ? Math.round(v) : undefined);
         const n = r(calories) == null ? undefined : { kcal: r(calories), p: r(protein_g), c: r(carbs_g), f: r(fat_g), fiber: r(fiber_g), sugar: r(sugar_g) };
-        Food.logFood(meal, food, kind, new Date(), n);
+        const entry = Food.logFood(meal, food, kind, new Date(), n);
+        noteAdded({ kind: 'food', id: entry.id, date: dateKey() });
         if (!$('#view-food').hidden) Food.render();
         return { ok: true, today: Food.summary() };
       },
-      logWater({ glasses }) { return { ok: true, glassesToday: Food.addWater(Math.max(1, Math.min(10, glasses)), false, dateKey()) }; },
+      logWater({ glasses }) {
+        const n = Math.max(1, Math.min(10, glasses));
+        noteAdded({ kind: 'water', glasses: n, date: dateKey() });
+        return { ok: true, glassesToday: Food.addWater(n, false, dateKey()) };
+      },
+      deleteReminder: (i) => changes.deleteReminder(i),
+      deleteFood: (i) => changes.deleteFood(i),
+      removeWater: (i) => changes.removeWater(i),
+      deleteShift: (i) => changes.deleteShift(i),
+      undo: ({ what }) => (what === 'restore_last_deleted' ? changes.restoreLast() : changes.undoLast()),
       getWeather: weatherTool,
       remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
       forget({ fact }) { return { ok: true, removed: forget(fact) }; },
