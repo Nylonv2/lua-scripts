@@ -2307,6 +2307,7 @@
     $('#assist-pic-choose').hidden = mode !== 'own';
   }
   function initAssistPic() {
+    sf.elements.assistStyle.addEventListener('change', () => { state.settings.assistStyle = sf.elements.assistStyle.value; save(); pushLook(); });
     sf.elements.assistChar.addEventListener('change', () => {
       state.settings.assistChar = sf.elements.assistChar.value;
       save(); pushLook(); refreshPicPreviews();
@@ -2522,6 +2523,7 @@
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
+    sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
     sf.elements.musicApp.value = state.settings.musicApp || '';
     sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
@@ -2644,6 +2646,7 @@
     try {
       N.setPref('homeChar', state.settings.homeChar !== 'picture' || !loadPicture() ? 'animated' : 'picture');
       N.setPref('assistChar', state.settings.assistChar || 'same');
+      N.setPref('assistStyle', state.settings.assistStyle || 'quiet');
       N.setPref('outfit', outfitNow());
     } catch { /* older app */ }
   }

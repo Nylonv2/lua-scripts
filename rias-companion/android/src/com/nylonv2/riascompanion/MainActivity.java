@@ -658,7 +658,7 @@ public class MainActivity extends Activity {
         /** Look settings the assistant sheet uses: homeChar (animated / picture), outfit. */
         @JavascriptInterface
         public void setPref(String key, String value) {
-            if (!"homeChar".equals(key) && !"outfit".equals(key) && !"assistChar".equals(key)) return;
+            if (!"homeChar".equals(key) && !"outfit".equals(key) && !"assistChar".equals(key) && !"assistStyle".equals(key)) return;
             ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString(key, value == null ? "" : value).apply();
         }
 

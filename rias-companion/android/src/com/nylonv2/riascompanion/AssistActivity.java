@@ -50,6 +50,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
     private SpeechRecognizer rec;
     private boolean listening, waiting, userTouched, started;
     private String lastAnswer = "";
+    private boolean quiet; // small bubble, voice only (Settings → Assistant → Pop-up style)
     private long doneAt;
     private final Runnable closeRun = new Runnable() {
         @Override
@@ -72,6 +73,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
             }
             // She asked you something: keep the conversation going.
             if (lastAnswer.trim().endsWith("?")) startListening();
+            else if (quiet) leave();
             else {
                 update(o("state", "idle", "status", "Tap the mic to keep talking"));
                 main.postDelayed(closeRun, 6000);
@@ -103,6 +105,17 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         WakeService.pause();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         RiasReplyService.assist = this;
+        quiet = !"full".equals(getSharedPreferences("rias", MODE_PRIVATE).getString("assistStyle", "quiet"));
+        if (quiet) {
+            // A small window near the bottom; the rest of the screen stays usable.
+            getWindow().setLayout(dp(170), dp(170));
+            getWindow().setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.y = dp(70);
+            getWindow().setAttributes(lp);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL);
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        }
         try {
             buildWeb();
         } catch (Exception e) {
@@ -128,6 +141,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                 try {
                     j.put("theme", p.getString("theme", "crimson"));
                     j.put("outfit", p.getString("outfit", ""));
+                    j.put("style", quiet ? "quiet" : "full");
                     // Settings → Assistant → Pop-up look: same as Home, animated, her picture, or one just for here.
                     String mode = p.getString("assistChar", "same");
                     String mine = AlarmActivity.dataUrl(Scheduler.pictureFile(AssistActivity.this));
@@ -196,6 +210,19 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
             }
 
             @JavascriptInterface
+            public void tap() {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (listening) stopListening();
+                        else if (waiting) return;
+                        else if (DeviceActions.pcmPlaying() || RiasVoice.speaking()) { DeviceActions.stopPcm(); RiasVoice.stop(); leave(); }
+                        else startListening();
+                    }
+                });
+            }
+
+            @JavascriptInterface
             public void touch() {
                 main.post(new Runnable() {
                     @Override
@@ -215,6 +242,32 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                 begin();
             }
         }, 2500);
+    }
+
+    /** Quiet bubble: shrink away, then close. */
+    private void leave() {
+        update(o("state", "leaving"));
+        main.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                finish();
+            }
+        }, 320);
+    }
+
+    /** No answer coming (nothing heard, an error): close soon in quiet style, later in full. */
+    private void closeSoon(long fullDelay) {
+        main.removeCallbacks(closeRun);
+        if (quiet) {
+            main.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (!listening && !waiting) leave();
+                }
+            }, 1200);
+        } else {
+            main.postDelayed(closeRun, fullDelay);
+        }
     }
 
     private void begin() {
@@ -358,7 +411,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         if (resultCode == RESULT_OK && r != null && !r.isEmpty()) send(r.get(0));
         else {
             update(o("state", "idle", "status", "Tap the mic to talk"));
-            main.postDelayed(closeRun, 6000);
+            closeSoon(6000);
         }
     }
 
@@ -400,7 +453,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         if (r != null && !r.isEmpty() && !r.get(0).trim().isEmpty()) send(r.get(0).trim());
         else {
             update(o("state", "idle", "status", "I didn't catch that. Tap the mic to try again."));
-            main.postDelayed(closeRun, 6000);
+            closeSoon(6000);
         }
     }
 
@@ -409,7 +462,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         listening = false;
         update(o("state", "idle", "status", error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
                 ? "I didn't catch that. Tap the mic to try again." : "Couldn't listen just now. Tap the mic to try again."));
-        main.postDelayed(closeRun, 7000);
+        closeSoon(7000);
     }
 
     @Override public void onRmsChanged(float rmsdB) { update(o("level", (double) rmsdB)); }

@@ -1631,7 +1631,13 @@ button:active, .chip:active span { transform: scale(.97); }
           </section>
           <section class="set-group" data-cat="assist">
           <h2>Pop-up look</h2>
-          <p class="muted small">How she appears in the pop-up when you long-press home.</p>
+          <label>Style
+            <select name="assistStyle">
+              <option value="quiet">Quiet: a small Rias bubble, she just answers out loud</option>
+              <option value="full">Full: a panel showing what you said and her words</option>
+            </select>
+          </label>
+          <p class="muted small">How she appears when you long-press home. In Quiet, tap the bubble to stop talking early, or to hush her.</p>
           <div class="pic-row">
             <img class="pic-preview" id="assist-pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="How she looks in the pop-up">
             <div class="stack grow">
@@ -7704,6 +7710,7 @@ window.createAssistant = function createAssistant(ctx) {
     $('#assist-pic-choose').hidden = mode !== 'own';
   }
   function initAssistPic() {
+    sf.elements.assistStyle.addEventListener('change', () => { state.settings.assistStyle = sf.elements.assistStyle.value; save(); pushLook(); });
     sf.elements.assistChar.addEventListener('change', () => {
       state.settings.assistChar = sf.elements.assistChar.value;
       save(); pushLook(); refreshPicPreviews();
@@ -7919,6 +7926,7 @@ window.createAssistant = function createAssistant(ctx) {
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
+    sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
     sf.elements.musicApp.value = state.settings.musicApp || '';
     sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
@@ -8041,6 +8049,7 @@ window.createAssistant = function createAssistant(ctx) {
     try {
       N.setPref('homeChar', state.settings.homeChar !== 'picture' || !loadPicture() ? 'animated' : 'picture');
       N.setPref('assistChar', state.settings.assistChar || 'same');
+      N.setPref('assistStyle', state.settings.assistStyle || 'quiet');
       N.setPref('outfit', outfitNow());
     } catch { /* older app */ }
   }
