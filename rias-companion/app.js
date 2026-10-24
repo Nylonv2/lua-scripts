@@ -614,18 +614,35 @@
     const c = j && j.results && j.results[0];
     return c ? { place: [c.name, c.admin1].filter(Boolean).join(', '), lat: c.latitude, lon: c.longitude } : null;
   }
+  async function fetchForecast(lat, lon) {
+    const unit = useFahrenheit() ? '&temperature_unit=fahrenheit' : '';
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7${unit}`);
+    const dl = (await r.json()).daily;
+    if (!dl || !dl.time) return null;
+    return dl.time.map((date, i) => ({ date, code: dl.weather_code[i], max: Math.round(dl.temperature_2m_max[i]), min: Math.round(dl.temperature_2m_min[i]), rain: dl.precipitation_probability_max[i] || 0 }));
+  }
+  // Her AI's get_weather tool: any place, or your saved city.
+  async function weatherTool({ place, date }) {
+    const name = String(place || '').trim();
+    const loc = name ? await findCity(name) : state.weather && state.weather.lat != null ? state.weather : null;
+    if (!loc) return { error: name ? `Couldn't find a place called "${name}".` : 'No saved city yet: ask which city, or tell them to set one in Settings → Your day with Rias.' };
+    const days = await fetchForecast(loc.lat, loc.lon);
+    if (!days) return { error: 'The weather service didn\'t answer.' };
+    const pickDays = date ? days.filter((x) => x.date === date) : days;
+    return {
+      place: loc.place, unit: useFahrenheit() ? '°F' : '°C',
+      days: (pickDays.length ? pickDays : days).map((x) => ({ date: x.date, conditions: (WX[x.code] || ['mixed weather'])[0], high: x.max, low: x.min, chanceOfRainPercent: x.rain })),
+    };
+  }
   async function refreshWeather(force) {
     const w = state.weather;
     if (!w || w.lat == null) return;
     const fresh = w.at && Date.now() - w.at < 3 * 3600000 && (w.days || []).some((x) => x.date === dateKey());
     if (fresh && !force) return;
     try {
-      const unit = useFahrenheit() ? '&temperature_unit=fahrenheit' : '';
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${w.lat}&longitude=${w.lon}`
-        + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7${unit}`);
-      const dl = (await r.json()).daily;
-      if (!dl || !dl.time) return;
-      const days = dl.time.map((date, i) => ({ date, code: dl.weather_code[i], max: Math.round(dl.temperature_2m_max[i]), min: Math.round(dl.temperature_2m_min[i]), rain: dl.precipitation_probability_max[i] || 0 }));
+      const days = await fetchForecast(w.lat, w.lon);
+      if (!days) return;
       state.weather = { ...w, days, unit: useFahrenheit() ? 'F' : 'C', at: Date.now() };
       save();
     } catch { /* offline: keep the last forecast */ }
@@ -1479,6 +1496,7 @@
         return { ok: true, today: Food.summary() };
       },
       logWater({ glasses }) { return { ok: true, glassesToday: Food.addWater(Math.max(1, Math.min(10, glasses)), false, dateKey()) }; },
+      getWeather: weatherTool,
       remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
       forget({ fact }) { return { ok: true, removed: forget(fact) }; },
       completeTask({ title }) {

@@ -25,6 +25,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
+- You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
 - When you log food, estimate its nutrition for the portion they describe (assume a typical portion if they don't say, and mention any big assumption in a few words). Use the user's own words for the food name. If they send a photo of a meal, work out what and how much it is, then log it the same way. After logging, react in character and, when it's useful, mention their day's totals against their goals from the app context (for example how much protein is left). Never shame them about food.
@@ -119,6 +120,20 @@ Boundaries:
       },
     },
     {
+      name: 'get_weather',
+      description: 'Weather forecast (daily high/low, conditions, chance of rain) for a place, today through 6 days ahead.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          place: { type: 'string', description: 'City or town, e.g. "Dallas" or "Paris, France". Empty string for the user\'s saved city.' },
+          date: { type: 'string', description: 'YYYY-MM-DD, or empty string for the whole week' },
+        },
+        required: ['place', 'date'],
+      },
+    },
+    {
       name: 'remember',
       description: 'Save a lasting fact about the user so you remember it in future conversations, e.g. "Works night shifts at the hospital", "Girlfriend is named Mia", "Trying to cut down on soda".',
       strict: true,
@@ -189,9 +204,10 @@ Boundaries:
     return turns;
   }
 
-  function runTool(name, input) {
+  async function runTool(name, input) {
     try {
       switch (name) {
+        case 'get_weather': return await ctx.tools.getWeather(input);
         case 'add_reminder': return ctx.tools.addReminder(input);
         case 'add_work_shift': return ctx.tools.addShift(input);
         case 'log_food': return ctx.tools.logFood(input);
@@ -233,7 +249,8 @@ Boundaries:
       max_tokens: image ? 8000 : 2000,
       // Breakpoint on the persona caches tools + persona together (tools render first).
       system: [{ type: 'text', text: PERSONA, cache_control: { type: 'ephemeral' } }],
-      tools: TOOLS,
+      // Web search runs on Anthropic's side (billed per search); a few per message is plenty.
+      tools: TOOLS.concat({ type: model === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: 3 }),
       output_config: { effort: image ? 'medium' : 'low' }, // chat: quick replies; reading a photo needs more care
       messages,
     };
@@ -246,13 +263,17 @@ Boundaries:
         const res = MODELS[model].fallbacks ? await api.beta.messages.create(params) : await api.messages.create(params);
         if (res.stop_reason === 'refusal') return null;
         if (res.stop_reason === 'tool_use') {
-          const results = res.content.filter((b) => b.type === 'tool_use').map((b) => ({
-            type: 'tool_result', tool_use_id: b.id, content: JSON.stringify(runTool(b.name, b.input)),
-          }));
+          const results = await Promise.all(res.content.filter((b) => b.type === 'tool_use').map(async (b) => ({
+            type: 'tool_result', tool_use_id: b.id, content: JSON.stringify(await runTool(b.name, b.input)),
+          })));
           messages.push({ role: 'assistant', content: echoable(res.content) }, { role: 'user', content: results });
           continue;
         }
-        const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n').trim();
+        // A long web search can pause the turn: send it back as-is to let it finish.
+        if (res.stop_reason === 'pause_turn') { messages.push({ role: 'assistant', content: res.content }); continue; }
+        // Search answers come split into cited pieces; join them back into plain sentences.
+        const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
+          .replace(/([.!?~])(?=[A-Z])/g, '$1 ').trim();
         if (!text) return null;
         return { lines: splitLines(text, image ? 4 : 3) };
       }
@@ -404,13 +425,13 @@ Boundaries:
           contents.push(cand.content);
           contents.push({
             role: 'user',
-            parts: calls.map((p) => ({
+            parts: await Promise.all(calls.map(async (p) => ({
               functionResponse: {
                 ...(p.functionCall.id ? { id: p.functionCall.id } : {}),
                 name: p.functionCall.name,
-                response: { result: runTool(p.functionCall.name, p.functionCall.args || {}) },
+                response: { result: await runTool(p.functionCall.name, p.functionCall.args || {}) },
               },
-            })),
+            }))),
           });
           continue;
         }

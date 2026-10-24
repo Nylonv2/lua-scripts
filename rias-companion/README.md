@@ -215,6 +215,11 @@ hair in a breeze, lifts a little and glows while she talks, and catches the ligh
 stands in the chat scene and fills the alarm card's art window when a photo is chosen there. Phones without WebGL
 get the plain picture with a gentle float.
 
+**Looking things up (4.5):** with her AI on, Rias has a `get_weather` tool (Open-Meteo, any city or your saved one,
+today through 6 days ahead) with both Claude and Gemini, and with Claude she can also **search the web** (Anthropic's
+`web_search` server tool, up to 3 searches per message) for news, scores, opening hours and other current facts. Web
+searches are billed by Anthropic per search on top of tokens.
+
 ## Daily life with Rias (4.0)
 
 - **Backup & restore** (Settings → Backup & updates): *Save backup* writes one file with everything (reminders,
