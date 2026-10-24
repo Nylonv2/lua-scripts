@@ -703,5 +703,55 @@ Rules:
     }
   }
 
-  return { enabled, reply, test, provider, estimate, findClients, writeOutreach };
+  // ---------- Reply helper: suggest replies to a text (the user always sends it themselves) ----------
+  const REPLIES_SCHEMA = {
+    type: 'object', additionalProperties: false, required: ['replies'],
+    properties: { replies: { type: 'array', items: { type: 'string' }, description: 'Exactly 3 different reply options' } },
+  };
+  const repliesPrompt = ({ who, app, thread, instruction, tone, me, facts }) => `Suggest 3 replies the user could send in a text conversation. Write them AS THE USER (first person), in a natural texting style: short, casual, like a real person, matching the vibe of the conversation. Not as an AI or assistant, and not as Rias.
+
+The user: ${me || 'the user'}${facts ? `\nThings to know about the user: ${facts}` : ''}
+Chat with: ${who || 'someone'}${app ? ` (on ${app})` : ''}
+Recent messages, oldest first ("Me" is the user):
+${thread.map((m) => `${m.from || who}: ${m.text}`).join('\n')}
+
+${instruction ? `What the user wants to say: ${instruction}\n` : ''}${tone ? `Tone: ${tone}\n` : ''}Rules:
+- Reply to their latest message. Each option should take a different approach (e.g. yes / maybe / no, or warm / quick / playful), unless the user said exactly what to say, then give 3 phrasings of it.
+- Keep each under 40 words. Plain text, no quotes around them, no labels. Emoji only if the conversation uses them.
+- Never invent plans, facts, times or promises the user didn't give. If a detail is needed (like a time), keep it general or ask.`;
+
+  /** { who, app, thread: [{from, text}], instruction, tone, me, facts } → { replies: [3] } or { error }. */
+  async function suggestReplies(opts) {
+    if (!enabled()) return { error: 'no-ai' };
+    try {
+      let out;
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: repliesPrompt(opts) }] }],
+          generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json', responseSchema: geminiSchema(REPLIES_SCHEMA) },
+        });
+        const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        out = JSON.parse(parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''));
+      } else {
+        const api = getClient();
+        if (!api) return { error: 'Add your Claude key first.' };
+        const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+        const res = await api.messages.create({
+          model,
+          max_tokens: 1500,
+          output_config: { effort: 'low', format: { type: 'json_schema', schema: REPLIES_SCHEMA } },
+          messages: [{ role: 'user', content: repliesPrompt(opts) }],
+        });
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (res.stop_reason === 'refusal') return { error: 'I can\'t help with that one.' };
+        out = JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+      }
+      return { replies: (out.replies || []).map((r) => String(r).trim().replace(/^["“]|["”]$/g, '')).filter(Boolean).slice(0, 3) };
+    } catch {
+      return { error: 'Couldn\'t come up with replies just now. Check your internet and try again.' };
+    }
+  }
+
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, suggestReplies };
 };

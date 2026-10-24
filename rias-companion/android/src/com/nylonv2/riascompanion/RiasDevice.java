@@ -32,6 +32,20 @@ final class RiasDevice {
     @JavascriptInterface public String directions(String place) { return DeviceActions.directions(ctx, place); }
     @JavascriptInterface public String email(String to, String subject, String body) { return DeviceActions.email(ctx, to, subject, body); }
     @JavascriptInterface public String notifications(double since) { return RiasNotifications.since((long) since); }
+    @JavascriptInterface public String messages() { return RiasNotifications.messages(); }
+    @JavascriptInterface public String openChat(String key) { return RiasNotifications.open(ctx, key); }
+    @JavascriptInterface public String sendReply(String key, String text) { return RiasNotifications.reply(ctx, key, text); }
+
+    @JavascriptInterface
+    public boolean copy(String text) {
+        try {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("Rias", text));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
     @JavascriptInterface public void playPcm(String base64, int rate) { DeviceActions.playPcm(base64, rate); }
     @JavascriptInterface public void stopPcm() { DeviceActions.stopPcm(); }
     @JavascriptInterface public boolean pcmPlaying() { return DeviceActions.pcmPlaying(); }

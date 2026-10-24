@@ -251,6 +251,26 @@
 
       <!-- Assistant: find clients and write to them -->
       <section class="view pad" id="view-biz" hidden>
+        <div class="segmented rem-mode biz-seg" id="biz-seg" role="tablist" aria-label="Assistant">
+          <button type="button" role="tab" data-pane="msgs" class="active">💬 Replies</button>
+          <button type="button" role="tab" data-pane="clients">💼 Clients</button>
+        </div>
+        <div id="pane-msgs">
+          <div class="card holo biz-hero">
+            <p class="eyebrow">Your assistant</p>
+            <h2 class="biz-title">Help me reply.</h2>
+            <p class="muted small">Tap a message and I'll suggest replies that sound like you. Nothing is sent unless you send it.</p>
+            <div class="biz-actions one"><button type="button" id="rp-paste">✍️ Paste a message</button></div>
+          </div>
+          <div class="card biz-setup" id="rp-perm" hidden>
+            <b>Let me see your new messages</b>
+            <p class="muted small">Allow Rias to read notifications, and texts, WhatsApp, Instagram and other messages show up here. They stay on your phone; only the one you ask about goes to her AI.</p>
+            <button type="button" class="btn-primary" id="rp-allow">Allow</button>
+          </div>
+          <div class="row-between biz-list-head"><p class="group-title">Recent messages</p><button type="button" class="link" id="rp-refresh">↻ Refresh</button></div>
+          <div id="rp-list"></div>
+        </div>
+        <div id="pane-clients" hidden>
         <div class="card holo biz-hero">
           <p class="eyebrow">Your assistant</p>
           <h2 class="biz-title">Find clients. I'll write to them.</h2>
@@ -274,6 +294,7 @@
         <div class="row-between biz-list-head"><p class="group-title">Your clients</p><button type="button" class="link" id="biz-add">＋ Add one</button></div>
         <div class="biz-filter" id="biz-filter"></div>
         <div id="biz-list"></div>
+        </div>
         <div class="biz-snack" id="biz-snack" role="status" hidden></div>
       </section>
       <!-- Settings -->
@@ -641,6 +662,39 @@
     </nav>
   </div>
 
+  <!-- Assistant: reply to a message -->
+  <dialog id="rp-sheet" class="sheet">
+    <form method="dialog" id="rp-form" class="stack">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <h2 id="rp-title">Reply</h2>
+      <div class="rp-paste-fields" id="rp-paste-fields" hidden>
+        <label>Who it's from <input name="who" maxlength="60" placeholder="e.g. Jake"></label>
+        <label>Their message <textarea name="theirs" rows="3" maxlength="1500" placeholder="Paste or type what they said"></textarea></label>
+      </div>
+      <div class="rp-thread" id="rp-thread"></div>
+      <label>What do you want to say? <input name="instruction" maxlength="200" placeholder="Optional, e.g. tell him I can't tonight but maybe Sunday"></label>
+      <div class="biz-tweaks" id="rp-tones">
+        <button type="button" data-tone="short and simple">Short</button>
+        <button type="button" data-tone="warm and friendly">Friendly</button>
+        <button type="button" data-tone="funny and playful">Funny</button>
+        <button type="button" data-tone="a polite no">Polite no</button>
+        <button type="button" data-tone="excited yes">Yes!</button>
+        <button type="button" data-tone="calm and professional">Professional</button>
+      </div>
+      <button type="button" class="btn-primary" id="rp-suggest">✨ Suggest replies</button>
+      <p class="small voice-hint" id="rp-status" aria-live="polite"></p>
+      <div class="rp-options" id="rp-options"></div>
+      <label>Your reply <textarea name="reply" rows="3" maxlength="1000" placeholder="Pick one above or write your own"></textarea></label>
+      <p class="muted small" id="rp-note">Nothing is sent unless you tap Send.</p>
+      <div class="row">
+        <button type="submit" value="cancel" formnovalidate>Close</button>
+        <button type="button" id="rp-copy">Copy</button>
+        <button type="button" class="primary" id="rp-open">Copy &amp; open chat</button>
+      </div>
+      <button type="button" id="rp-send" class="rp-send" hidden>Send</button>
+    </form>
+  </dialog>
+
   <!-- Assistant: my business -->
   <dialog id="biz-profile" class="sheet">
     <form method="dialog" id="biz-profile-form" class="stack">
@@ -989,6 +1043,7 @@
   <script src="natural-voice.js"></script>
   <script src="assistant.js"></script>
   <script src="biz.js"></script>
+  <script src="replies.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1324,6 +1324,29 @@ button:active, .chip:active span { transform: scale(.97); }
   padding: 10px 16px; border-radius: 14px; background: rgba(20, 10, 15, .95); border: 1px solid rgba(240, 207, 133, .35); font-size: .88rem; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
 .biz-actions button { border-radius: 16px; }
 .biz-actions button:not(.btn-primary) { background: rgba(255, 255, 255, .07); border: 1px solid rgba(240, 207, 133, .4); color: var(--text); font-weight: 600; }
+
+/* ---------- Assistant tab → Replies ---------- */
+.biz-seg { grid-template-columns: 1fr 1fr; }
+.biz-actions.one { grid-template-columns: 1fr; }
+.rp-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; margin-bottom: 8px; color: var(--text);
+  border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .58); }
+.rp-av { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; font-weight: 700; color: #fff;
+  background: linear-gradient(140deg, var(--g1), var(--g2)); box-shadow: 0 0 0 2px rgba(240, 207, 133, .35); }
+.rp-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rp-txt small { color: var(--muted); font-size: .84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.rp-side small { color: var(--muted); font-size: .74rem; }
+.rp-side em { font-style: normal; font-size: .7rem; color: #f0cf85; }
+.rp-thread { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 16px; background: rgba(0, 0, 0, .18); max-height: 30vh; overflow-y: auto; }
+.rp-bub { align-self: flex-start; max-width: 85%; padding: 7px 11px; border-radius: 16px 16px 16px 5px; background: rgba(var(--glass2), .95); font-size: .92rem; line-height: 1.35; }
+.rp-bub small { display: block; font-size: .7rem; color: #f0cf85; margin-bottom: 1px; }
+.rp-bub.me { align-self: flex-end; border-radius: 16px 16px 5px 16px; background: linear-gradient(135deg, var(--g1), var(--g2)); }
+.rp-bub.me small { color: rgba(255, 255, 255, .8); }
+.rp-options { display: flex; flex-direction: column; gap: 8px; }
+.rp-opt { text-align: left; padding: 11px 14px; border-radius: 16px; border: 1px solid rgba(240, 207, 133, .3); background: rgba(240, 207, 133, .06); color: var(--text); font-size: .95rem; line-height: 1.35; }
+.rp-opt.on { border-color: rgba(240, 207, 133, .8); background: linear-gradient(140deg, rgba(239, 69, 112, .3), rgba(var(--a3), .16)); }
+#rp-tones button.on { border-color: rgba(240, 207, 133, .7); color: #f0cf85; }
+.rp-send { width: 100%; padding: 12px; border-radius: 14px; font-weight: 600; border: 1px solid rgba(80, 200, 140, .5); background: rgba(80, 200, 140, .15); color: #c6f5dc; }
 </style>
 </head>
 <body>
@@ -1564,6 +1587,26 @@ button:active, .chip:active span { transform: scale(.97); }
 
       <!-- Assistant: find clients and write to them -->
       <section class="view pad" id="view-biz" hidden>
+        <div class="segmented rem-mode biz-seg" id="biz-seg" role="tablist" aria-label="Assistant">
+          <button type="button" role="tab" data-pane="msgs" class="active">💬 Replies</button>
+          <button type="button" role="tab" data-pane="clients">💼 Clients</button>
+        </div>
+        <div id="pane-msgs">
+          <div class="card holo biz-hero">
+            <p class="eyebrow">Your assistant</p>
+            <h2 class="biz-title">Help me reply.</h2>
+            <p class="muted small">Tap a message and I'll suggest replies that sound like you. Nothing is sent unless you send it.</p>
+            <div class="biz-actions one"><button type="button" id="rp-paste">✍️ Paste a message</button></div>
+          </div>
+          <div class="card biz-setup" id="rp-perm" hidden>
+            <b>Let me see your new messages</b>
+            <p class="muted small">Allow Rias to read notifications, and texts, WhatsApp, Instagram and other messages show up here. They stay on your phone; only the one you ask about goes to her AI.</p>
+            <button type="button" class="btn-primary" id="rp-allow">Allow</button>
+          </div>
+          <div class="row-between biz-list-head"><p class="group-title">Recent messages</p><button type="button" class="link" id="rp-refresh">↻ Refresh</button></div>
+          <div id="rp-list"></div>
+        </div>
+        <div id="pane-clients" hidden>
         <div class="card holo biz-hero">
           <p class="eyebrow">Your assistant</p>
           <h2 class="biz-title">Find clients. I'll write to them.</h2>
@@ -1587,6 +1630,7 @@ button:active, .chip:active span { transform: scale(.97); }
         <div class="row-between biz-list-head"><p class="group-title">Your clients</p><button type="button" class="link" id="biz-add">＋ Add one</button></div>
         <div class="biz-filter" id="biz-filter"></div>
         <div id="biz-list"></div>
+        </div>
         <div class="biz-snack" id="biz-snack" role="status" hidden></div>
       </section>
       <!-- Settings -->
@@ -1953,6 +1997,39 @@ button:active, .chip:active span { transform: scale(.97); }
       <button type="button" data-view="biz"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="tab-lbl">Assistant</span></button>
     </nav>
   </div>
+
+  <!-- Assistant: reply to a message -->
+  <dialog id="rp-sheet" class="sheet">
+    <form method="dialog" id="rp-form" class="stack">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <h2 id="rp-title">Reply</h2>
+      <div class="rp-paste-fields" id="rp-paste-fields" hidden>
+        <label>Who it's from <input name="who" maxlength="60" placeholder="e.g. Jake"></label>
+        <label>Their message <textarea name="theirs" rows="3" maxlength="1500" placeholder="Paste or type what they said"></textarea></label>
+      </div>
+      <div class="rp-thread" id="rp-thread"></div>
+      <label>What do you want to say? <input name="instruction" maxlength="200" placeholder="Optional, e.g. tell him I can't tonight but maybe Sunday"></label>
+      <div class="biz-tweaks" id="rp-tones">
+        <button type="button" data-tone="short and simple">Short</button>
+        <button type="button" data-tone="warm and friendly">Friendly</button>
+        <button type="button" data-tone="funny and playful">Funny</button>
+        <button type="button" data-tone="a polite no">Polite no</button>
+        <button type="button" data-tone="excited yes">Yes!</button>
+        <button type="button" data-tone="calm and professional">Professional</button>
+      </div>
+      <button type="button" class="btn-primary" id="rp-suggest">✨ Suggest replies</button>
+      <p class="small voice-hint" id="rp-status" aria-live="polite"></p>
+      <div class="rp-options" id="rp-options"></div>
+      <label>Your reply <textarea name="reply" rows="3" maxlength="1000" placeholder="Pick one above or write your own"></textarea></label>
+      <p class="muted small" id="rp-note">Nothing is sent unless you tap Send.</p>
+      <div class="row">
+        <button type="submit" value="cancel" formnovalidate>Close</button>
+        <button type="button" id="rp-copy">Copy</button>
+        <button type="button" class="primary" id="rp-open">Copy &amp; open chat</button>
+      </div>
+      <button type="button" id="rp-send" class="rp-send" hidden>Send</button>
+    </form>
+  </dialog>
 
   <!-- Assistant: my business -->
   <dialog id="biz-profile" class="sheet">
@@ -4567,7 +4644,57 @@ Rules:
     }
   }
 
-  return { enabled, reply, test, provider, estimate, findClients, writeOutreach };
+  // ---------- Reply helper: suggest replies to a text (the user always sends it themselves) ----------
+  const REPLIES_SCHEMA = {
+    type: 'object', additionalProperties: false, required: ['replies'],
+    properties: { replies: { type: 'array', items: { type: 'string' }, description: 'Exactly 3 different reply options' } },
+  };
+  const repliesPrompt = ({ who, app, thread, instruction, tone, me, facts }) => `Suggest 3 replies the user could send in a text conversation. Write them AS THE USER (first person), in a natural texting style: short, casual, like a real person, matching the vibe of the conversation. Not as an AI or assistant, and not as Rias.
+
+The user: ${me || 'the user'}${facts ? `\nThings to know about the user: ${facts}` : ''}
+Chat with: ${who || 'someone'}${app ? ` (on ${app})` : ''}
+Recent messages, oldest first ("Me" is the user):
+${thread.map((m) => `${m.from || who}: ${m.text}`).join('\n')}
+
+${instruction ? `What the user wants to say: ${instruction}\n` : ''}${tone ? `Tone: ${tone}\n` : ''}Rules:
+- Reply to their latest message. Each option should take a different approach (e.g. yes / maybe / no, or warm / quick / playful), unless the user said exactly what to say, then give 3 phrasings of it.
+- Keep each under 40 words. Plain text, no quotes around them, no labels. Emoji only if the conversation uses them.
+- Never invent plans, facts, times or promises the user didn't give. If a detail is needed (like a time), keep it general or ask.`;
+
+  /** { who, app, thread: [{from, text}], instruction, tone, me, facts } → { replies: [3] } or { error }. */
+  async function suggestReplies(opts) {
+    if (!enabled()) return { error: 'no-ai' };
+    try {
+      let out;
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: repliesPrompt(opts) }] }],
+          generationConfig: { maxOutputTokens: 1024, responseMimeType: 'application/json', responseSchema: geminiSchema(REPLIES_SCHEMA) },
+        });
+        const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        out = JSON.parse(parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''));
+      } else {
+        const api = getClient();
+        if (!api) return { error: 'Add your Claude key first.' };
+        const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+        const res = await api.messages.create({
+          model,
+          max_tokens: 1500,
+          output_config: { effort: 'low', format: { type: 'json_schema', schema: REPLIES_SCHEMA } },
+          messages: [{ role: 'user', content: repliesPrompt(opts) }],
+        });
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (res.stop_reason === 'refusal') return { error: 'I can\'t help with that one.' };
+        out = JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+      }
+      return { replies: (out.replies || []).map((r) => String(r).trim().replace(/^["“]|["”]$/g, '')).filter(Boolean).slice(0, 3) };
+    } catch {
+      return { error: 'Couldn\'t come up with replies just now. Check your internet and try again.' };
+    }
+  }
+
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, suggestReplies };
 };
 </script>
   <script>
@@ -5651,6 +5778,14 @@ window.createAssistant = function createAssistant(ctx) {
     // Do Not Disturb
     if (/\b(do not disturb|don't disturb|dnd)\b/.test(t)) return one(run(/\b(off|disable|stop|end|turn off|deactivate)\b/.test(t) ? 'dnd_off' : 'dnd_on'));
 
+    // "Help me reply to Jake" → the Assistant tab's reply helper (she suggests, you send).
+    m = t.match(/^(?:(?:can you )?help me (?:reply|respond|write back|text back)(?: to)?|(?:reply|respond|write back|text back) to)\s*(.*)$/);
+    if (m && !/:/.test(rawText) && !/^(me|you|this|that|it)$/.test(m[1].trim()) && ctx.replyHelp) {
+      const who = m[1].replace(/^(my |the )?(last |latest )?(text|message)s?( from)?\s*/, '').trim();
+      const line = ctx.replyHelp(who);
+      if (line) return [line];
+    }
+
     // "Find me clients" → the Assistant tab's client search.
     if (/^(?:find|get|look for|search for|hunt for)\b.*\b(?:clients|customers|leads|prospects)\b/.test(t)) {
       const line = ctx.findClients && ctx.findClients();
@@ -6086,6 +6221,213 @@ window.createBizAssistant = function createBizAssistant(ctx) {
   }
 
   return { render, openFind, openProfile, summary, followDue: () => clients().filter(followDue).length };
+};
+</script>
+  <script>
+// Assistant tab → Replies: Rias suggests replies to your texts (Messages, WhatsApp, Instagram…),
+// read from your notifications. She never sends anything herself: you pick a reply, then copy it
+// and open the chat, or tap Send (through that app's own notification reply).
+// Also owns the Replies / Clients switch at the top of the tab.
+window.createReplyHelper = function createReplyHelper(ctx) {
+  'use strict';
+  const { state, $ } = ctx;
+  const D = () => window.RiasDevice || null;
+  let pane = 'msgs';
+  let current = null; // the conversation open in the sheet: { key, title, app, canReply, thread, paste }
+  let tone = '';
+
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const when = (ts) => {
+    const m = Math.round((Date.now() - ts) / 60000);
+    return m < 1 ? 'now' : m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : 'yesterday';
+  };
+  function snack(text) {
+    const el = $('#biz-snack');
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(snack.t);
+    snack.t = setTimeout(() => { el.hidden = true; }, 3800);
+  }
+  function copy(text) {
+    const d = D();
+    if (d && d.copy) { try { return d.copy(text); } catch { /* fall through */ } }
+    try { navigator.clipboard.writeText(text); return true; } catch { return false; }
+  }
+
+  // ---------- Replies / Clients switch ----------
+  function setPane(p) {
+    pane = p;
+    for (const b of $('#biz-seg').querySelectorAll('button')) b.classList.toggle('active', b.dataset.pane === p);
+    $('#pane-msgs').hidden = p !== 'msgs';
+    $('#pane-clients').hidden = p !== 'clients';
+    if (p === 'msgs') render(); else ctx.renderClients();
+  }
+  $('#biz-seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-pane]'); if (b) setPane(b.dataset.pane); });
+
+  // ---------- recent messages ----------
+  function list() {
+    const d = D();
+    if (!d || !d.messages) return null;
+    try { return JSON.parse(d.messages()); } catch { return []; }
+  }
+  function allowed() {
+    const d = D();
+    if (!d || !d.status) return false;
+    try { return !!JSON.parse(d.status()).notifications; } catch { return false; }
+  }
+  function render() {
+    const box = $('#rp-list');
+    const d = D();
+    if (!d || !d.messages) {
+      $('#rp-perm').hidden = true;
+      box.innerHTML = '<div class="biz-empty"><div class="biz-empty-ic">💬</div><b>Paste a message to get replies</b><span>In the Android app, your new texts and messages show up here by themselves.</span></div>';
+      return;
+    }
+    const ok = allowed();
+    $('#rp-perm').hidden = ok;
+    const msgs = ok ? list() || [] : [];
+    if (!msgs.length) {
+      box.innerHTML = ok
+        ? '<div class="biz-empty"><div class="biz-empty-ic">💬</div><b>No new messages</b><span>When someone texts you, it shows up here. Or tap <i>Paste a message</i>.</span></div>'
+        : '';
+      return;
+    }
+    box.innerHTML = msgs.map((m) => {
+      const name = m.convo || m.title || m.app;
+      return `<button type="button" class="rp-item" data-key="${esc(m.key)}">
+        <span class="rp-av">${esc(name.trim().charAt(0).toUpperCase() || '?')}</span>
+        <span class="rp-txt"><b>${esc(name)}</b><small>${esc(m.text)}</small></span>
+        <span class="rp-side"><small>${when(m.ts)}</small><em>${esc(m.app)}</em></span>
+      </button>`;
+    }).join('');
+  }
+  $('#rp-list').addEventListener('click', (e) => {
+    const b = e.target.closest('.rp-item');
+    if (!b) return;
+    const m = (list() || []).find((x) => x.key === b.dataset.key);
+    if (m) openConvo(m);
+  });
+  $('#rp-refresh').addEventListener('click', () => { render(); snack('Up to date.'); });
+  $('#rp-allow').addEventListener('click', () => { const d = D(); if (d && d.openSettings) d.openSettings('notifications'); });
+  $('#rp-paste').addEventListener('click', () => openConvo(null));
+
+  // ---------- the reply sheet ----------
+  function threadOf(m) {
+    const name = m.convo || m.title || 'Them';
+    const hist = (m.history || []).map((h) => ({ from: h.from ? h.from : 'Me', text: h.text }));
+    if (hist.length) return hist;
+    return [{ from: m.title || name, text: m.text }];
+  }
+  function openConvo(m) {
+    const f = $('#rp-form');
+    f.reset();
+    tone = '';
+    for (const b of $('#rp-tones').querySelectorAll('button')) b.classList.remove('on');
+    $('#rp-options').innerHTML = '';
+    $('#rp-status').textContent = '';
+    if (m) {
+      current = { key: m.key, title: m.convo || m.title || m.app, app: m.app, canReply: !!m.canReply, thread: threadOf(m) };
+      $('#rp-title').textContent = `Reply to ${current.title}`;
+      $('#rp-paste-fields').hidden = true;
+      $('#rp-thread').hidden = false;
+      $('#rp-thread').innerHTML = current.thread.slice(-5).map((t) => `<div class="rp-bub${t.from === 'Me' ? ' me' : ''}"><small>${esc(t.from === 'Me' ? 'You' : t.from)}</small>${esc(t.text)}</div>`).join('');
+      $('#rp-open').textContent = 'Copy & open chat';
+      $('#rp-send').hidden = !current.canReply;
+      $('#rp-send').textContent = `Send to ${current.title}`;
+      $('#rp-note').textContent = current.canReply
+        ? `Nothing is sent unless you tap Send. "Copy & open chat" opens ${current.app} so you can paste it yourself.`
+        : `Copy & open chat opens ${current.app}; paste and send it there. Nothing is sent by Rias.`;
+    } else {
+      current = { key: null, title: '', app: '', canReply: false, thread: [], paste: true };
+      $('#rp-title').textContent = 'Reply to a message';
+      $('#rp-paste-fields').hidden = false;
+      $('#rp-thread').hidden = true;
+      $('#rp-send').hidden = true;
+      $('#rp-open').textContent = 'Copy';
+      $('#rp-note').textContent = 'Copy your reply, then paste it in the chat.';
+    }
+    $('#rp-copy').hidden = !!current.paste;
+    $('#rp-suggest').hidden = false;
+    $('#rp-sheet').showModal();
+    // A message from the shade: suggest right away.
+    if (m && ctx.ai.enabled()) suggest();
+    else if (!ctx.ai.enabled()) $('#rp-status').textContent = 'Turn on her AI (Settings → Rias\'s mind) for suggested replies. You can still write one here.';
+  }
+  async function suggest() {
+    const f = $('#rp-form');
+    if (!current) return;
+    let thread = current.thread;
+    if (current.paste) {
+      const theirs = f.elements.theirs.value.trim();
+      if (!theirs) { $('#rp-status').textContent = 'Paste their message first.'; return; }
+      current.title = f.elements.who.value.trim() || 'them';
+      thread = [{ from: current.title, text: theirs }];
+    }
+    if (!ctx.ai.enabled()) { $('#rp-status').textContent = 'Turn on her AI (Settings → Rias\'s mind) for suggested replies.'; return; }
+    $('#rp-status').textContent = 'Thinking of replies…';
+    $('#rp-suggest').disabled = true;
+    const facts = (state.memory || []).slice(-12).map((x) => x.text).join('; ');
+    const res = await ctx.ai.suggestReplies({
+      who: current.title, app: current.app, thread, instruction: f.elements.instruction.value.trim(), tone,
+      me: state.profile ? state.profile.name : '', facts,
+    });
+    $('#rp-suggest').disabled = false;
+    if (res.error) { $('#rp-status').textContent = res.error === 'no-ai' ? 'Turn on her AI for suggestions.' : res.error; return; }
+    $('#rp-status').textContent = 'Tap one to use it (you can edit it).';
+    $('#rp-options').innerHTML = res.replies.map((r) => `<button type="button" class="rp-opt">${esc(r)}</button>`).join('');
+  }
+  $('#rp-suggest').addEventListener('click', suggest);
+  $('#rp-tones').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tone]');
+    if (!b) return;
+    const on = !b.classList.contains('on');
+    for (const x of $('#rp-tones').querySelectorAll('button')) x.classList.remove('on');
+    b.classList.toggle('on', on);
+    tone = on ? b.dataset.tone : '';
+    suggest();
+  });
+  $('#rp-options').addEventListener('click', (e) => {
+    const b = e.target.closest('.rp-opt');
+    if (!b) return;
+    for (const x of $('#rp-options').querySelectorAll('.rp-opt')) x.classList.toggle('on', x === b);
+    $('#rp-form').elements.reply.value = b.textContent;
+  });
+  const replyText = () => $('#rp-form').elements.reply.value.trim();
+  $('#rp-copy').addEventListener('click', () => {
+    if (!replyText()) { $('#rp-status').textContent = 'Pick or write a reply first.'; return; }
+    snack(copy(replyText()) ? 'Copied.' : 'Couldn\'t copy on this phone.');
+  });
+  $('#rp-open').addEventListener('click', () => {
+    const text = replyText();
+    if (!text) { $('#rp-status').textContent = 'Pick or write a reply first.'; return; }
+    const copied = copy(text);
+    if (current.paste || !current.key) { snack(copied ? 'Copied. Paste it in the chat.' : 'Couldn\'t copy on this phone.'); return; }
+    const d = D();
+    const r = d && d.openChat ? String(d.openChat(current.key)) : 'gone';
+    $('#rp-sheet').close();
+    if (r !== 'ok') snack(`Copied. Open ${current.app} and paste it (that notification is gone).`);
+    else snack('Copied. Paste it and send~');
+  });
+  // Only ever runs when you tap Send yourself.
+  $('#rp-send').addEventListener('click', () => {
+    const text = replyText();
+    if (!text) { $('#rp-status').textContent = 'Pick or write a reply first.'; return; }
+    const d = D();
+    const r = d && d.sendReply && current.key ? String(d.sendReply(current.key, text)) : 'no-reply';
+    if (r === 'ok') { $('#rp-sheet').close(); snack(`Sent to ${current.title}.`); return; }
+    $('#rp-status').textContent = r === 'no-reply' ? `${current.app} doesn't allow replying from here. Use Copy & open chat.` : 'That message notification is gone, so I can\'t reply from here. Use Copy & open chat.';
+  });
+
+  /** "Help me reply to Jake": open the Replies section, and Jake's chat if it's there. */
+  function helpWith(name) {
+    setPane('msgs');
+    const n = String(name || '').toLowerCase().trim();
+    const m = n && (list() || []).find((x) => (x.convo || x.title || '').toLowerCase().includes(n));
+    if (m) setTimeout(() => openConvo(m), 300);
+    return !!m;
+  }
+
+  return { render, setPane, helpWith, get pane() { return pane; } };
 };
 </script>
   <script>
@@ -7453,7 +7795,7 @@ window.createBizAssistant = function createBizAssistant(ctx) {
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
     if (view === 'work') Work.render();
-    if (view === 'biz' && Biz) Biz.render();
+    if (view === 'biz' && Replies) { if (Replies.pane === 'msgs') Replies.render(); else Biz.render(); }
     if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
@@ -7733,10 +8075,16 @@ window.createBizAssistant = function createBizAssistant(ctx) {
     get state() { return state; },
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     aiOn: () => AI.enabled(),
+    // "Help me reply to Jake": the Assistant tab's reply helper.
+    replyHelp(name) {
+      if (HEADLESS || !Replies) return null;
+      setTimeout(() => { show('biz'); Replies.helpWith(name); }, 400);
+      return say(name ? `Let's answer ${name} together~` : 'Pick a message and I\'ll suggest replies~');
+    },
     // "Find me clients": open the Assistant tab's search.
     findClients() {
       if (HEADLESS || !Biz) return null;
-      setTimeout(() => { show('biz'); Biz.openFind(); }, 500);
+      setTimeout(() => { show('biz'); Replies.setPane('clients'); Biz.openFind(); }, 500);
       return say('Let\'s find you some clients. Pick who I should look for~');
     },
     addItem(it) {
@@ -7810,6 +8158,7 @@ window.createBizAssistant = function createBizAssistant(ctx) {
     say: (text) => addMessage('rias', say(text)),
     sendEmail: (opts) => Assistant.email(opts),
   });
+  const Replies = HEADLESS ? null : window.createReplyHelper({ ...modCtx, ai: AI, renderClients: () => Biz.render() });
 
   // Phone calendar (Android app only): events from Samsung/Google Calendar.
   function syncCalendar() {
@@ -9394,6 +9743,7 @@ window.createBizAssistant = function createBizAssistant(ctx) {
     // You talked to her from the widget while the app was in the background: show that conversation.
     if (changedElsewhere()) { restoring = true; location.reload(); return; }
     housekeeping();
+    if (currentView === 'biz' && Replies && Replies.pane === 'msgs') Replies.render();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
     if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); renderAssist(); }
   });

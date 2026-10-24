@@ -73,8 +73,17 @@ A **morning briefing** (shifts, reminders, calendar, weather, how you slept), ch
 at bedtime, "goodnight" to log your sleep, and a **weekly recap** on Sunday evening. Connect your **phone calendar** to see
 its events and be reminded of them. **Share → Rias** from any app turns a note or screenshot into a reminder.
 
-### Assistant (find clients and email them)
-Rias as a small office manager for your videography business:
+### Assistant
+Two sections at the top: **Replies** and **Clients**.
+
+**Replies (help with texts).** Your recent messages from Messages, WhatsApp, Instagram, Messenger and other apps show up
+here (it uses the *Read notifications* permission; they stay on your phone, and only the one you ask about goes to her
+AI). Tap one and she suggests **3 replies written like you**, not like her. Tap a tone (Short, Friendly, Funny, Polite
+no, Yes!, Professional) or tell her what you want to say, pick one and edit it. **Nothing is ever sent by itself:** tap
+**Copy & open chat** to paste it in the app, or **Send** yourself (for apps that allow replying from a notification).
+*Paste a message* works for anything else. "Help me reply to Jake" in the chat opens it.
+
+**Clients (find clients and email them)** turns Rias into a small office manager for your videography business:
 1. **My business:** fill in once what you shoot, the clients you want, your area, portfolio, prices and how your emails
    should sound.
 2. **Find clients:** pick who to look for (suggested from what you shoot, or describe them), where, and how many. She
@@ -170,7 +179,8 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 | `dialogue.js`, `talk.js`, `chat.js` | Her written lines and the matching for chat without AI |
 | `ai.js` | Claude (bundled SDK, streaming, tools, web search) and Gemini |
 | `assistant.js` | Voice-assistant commands (timers, calls, emails, phone controls…) |
-| `biz.js` | The Assistant tab: business profile, client finder, outreach emails, follow-ups |
+| `biz.js` | Assistant tab → Clients: business profile, client finder, outreach emails, follow-ups |
+| `replies.js` | Assistant tab → Replies: suggested replies to your texts (you always send them) |
 | `natural-voice.js` | Gemini text-to-speech |
 | `food.js`, `work.js` | Food diary, work schedule |
 | `rias-avatar.js`, `living-photo.js`, `alarm-card.js`, `photo-cutout.js` | Animated Rias, living photo, alarm card, on-device cutout |

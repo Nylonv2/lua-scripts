@@ -338,6 +338,14 @@ window.createAssistant = function createAssistant(ctx) {
     // Do Not Disturb
     if (/\b(do not disturb|don't disturb|dnd)\b/.test(t)) return one(run(/\b(off|disable|stop|end|turn off|deactivate)\b/.test(t) ? 'dnd_off' : 'dnd_on'));
 
+    // "Help me reply to Jake" → the Assistant tab's reply helper (she suggests, you send).
+    m = t.match(/^(?:(?:can you )?help me (?:reply|respond|write back|text back)(?: to)?|(?:reply|respond|write back|text back) to)\s*(.*)$/);
+    if (m && !/:/.test(rawText) && !/^(me|you|this|that|it)$/.test(m[1].trim()) && ctx.replyHelp) {
+      const who = m[1].replace(/^(my |the )?(last |latest )?(text|message)s?( from)?\s*/, '').trim();
+      const line = ctx.replyHelp(who);
+      if (line) return [line];
+    }
+
     // "Find me clients" → the Assistant tab's client search.
     if (/^(?:find|get|look for|search for|hunt for)\b.*\b(?:clients|customers|leads|prospects)\b/.test(t)) {
       const line = ctx.findClients && ctx.findClients();

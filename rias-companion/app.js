@@ -1362,7 +1362,7 @@
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
     if (view === 'work') Work.render();
-    if (view === 'biz' && Biz) Biz.render();
+    if (view === 'biz' && Replies) { if (Replies.pane === 'msgs') Replies.render(); else Biz.render(); }
     if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
@@ -1642,10 +1642,16 @@
     get state() { return state; },
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     aiOn: () => AI.enabled(),
+    // "Help me reply to Jake": the Assistant tab's reply helper.
+    replyHelp(name) {
+      if (HEADLESS || !Replies) return null;
+      setTimeout(() => { show('biz'); Replies.helpWith(name); }, 400);
+      return say(name ? `Let's answer ${name} together~` : 'Pick a message and I\'ll suggest replies~');
+    },
     // "Find me clients": open the Assistant tab's search.
     findClients() {
       if (HEADLESS || !Biz) return null;
-      setTimeout(() => { show('biz'); Biz.openFind(); }, 500);
+      setTimeout(() => { show('biz'); Replies.setPane('clients'); Biz.openFind(); }, 500);
       return say('Let\'s find you some clients. Pick who I should look for~');
     },
     addItem(it) {
@@ -1719,6 +1725,7 @@
     say: (text) => addMessage('rias', say(text)),
     sendEmail: (opts) => Assistant.email(opts),
   });
+  const Replies = HEADLESS ? null : window.createReplyHelper({ ...modCtx, ai: AI, renderClients: () => Biz.render() });
 
   // Phone calendar (Android app only): events from Samsung/Google Calendar.
   function syncCalendar() {
@@ -3303,6 +3310,7 @@
     // You talked to her from the widget while the app was in the background: show that conversation.
     if (changedElsewhere()) { restoring = true; location.reload(); return; }
     housekeeping();
+    if (currentView === 'biz' && Replies && Replies.pane === 'msgs') Replies.render();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
     if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); renderAssist(); }
   });
