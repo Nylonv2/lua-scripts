@@ -24,6 +24,10 @@
     break: 'Break', hygiene: 'Hygiene', meds: 'Medication', social: 'Social', chores: 'Chores', wind: 'Wind down', sleep: 'Sleep',
     workLeave: '💼 Work', workStart: '💼 Work', workEnd: '💼 Work', calendar: '📅 Phone calendar',
   };
+  const CATEGORY_ICON = {
+    custom: '📌', wake: '⏰', water: '💧', meal: '🍽️', exercise: '🏃', work: '📚', break: '☕', hygiene: '🪥', meds: '💊',
+    social: '💬', chores: '🧹', wind: '🌙', sleep: '😴', workLeave: '💼', workStart: '💼', workEnd: '💼', calendar: '📅',
+  };
   const mealFor = (nm) => (nm < 11 * 60 ? 'breakfast' : nm < 16 * 60 ? 'lunch' : nm < 21 * 60 ? 'dinner' : 'snack');
 
   function defaultItems(wake, sleep) {
@@ -61,7 +65,7 @@
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       autoBackup: true, briefing: true, city: '', recap: true, windDown: true,
-      alarmSound: 'chime', alarmSoundUri: '', alarmSoundTitle: '', alarmRing: true,
+      alarmSound: 'chime', alarmSoundUri: '', alarmSoundTitle: '', alarmRing: true, alarmArt: 'auto',
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
@@ -409,11 +413,16 @@
   function showAlarmCard(item, text) {
     if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
     alarmItem = item;
-    $('#alarm-time').textContent = fmtClock(Date.now());
-    $('#alarm-title').textContent = item.title;
-    $('#alarm-text').textContent = text;
-    $('#alarm-done').hidden = $('#alarm-snooze').hidden = !item.id; // tests only get Dismiss
+    const art = alarmArt();
+    const pic = art === 'photo' ? loadAlarmPicture() : art === 'mine' ? loadPicture() : '';
+    // The animated Rias steps into the card's art window while it's up.
+    if (art === 'animated') { $('.ac-stage').append($('#stage')); $('#stage').hidden = false; Avatar.setMood('happy'); }
+    window.AlarmCard.fill({
+      time: fmtClock(Date.now()), title: item.title, text, icon: CATEGORY_ICON[item.category] || '⏰',
+      pic, bg: pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+    });
     alarmDlg.showModal();
+    if (art === 'animated') setTimeout(() => Avatar.talk(text.length * 55), 700);
     const key = item.sound || state.settings.alarmSound || 'chime';
     startSound(key, state.settings.alarmRing !== false);
     // "Chime + Rias says it": she reads it out even if her voice is off for chat.
@@ -422,6 +431,7 @@
   function closeAlarm() {
     stopSound();
     if (alarmDlg.open) alarmDlg.close();
+    if ($('.ac-stage #stage')) { placeRias(currentView === 'chat' ? 'chat' : 'home'); renderHome(); }
     alarmItem = null;
     const next = alarmQueue.shift();
     if (next) setTimeout(() => showAlarmCard(...next), 300);
@@ -1944,6 +1954,7 @@
         events.push({
           at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${withBrief ? `\n${brief}` : ''}`,
           itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}),
+          icon: CATEGORY_ICON[it.category] || '⏰',
         });
       }
       if (brief && !briefed && at(d, w) > now) events.push({ at: at(d, w), text: `${say(pick(R.greet.morning))}\n${brief}` });
@@ -2055,6 +2066,7 @@
     $('#city-hint').textContent = weatherFor(new Date()) ? `Today: ${weatherLine(new Date(), true)}` : state.weather ? '' : 'Set your city and Rias tells you the weather each morning.';
     renderMemory();
     renderSounds();
+    renderArt();
     sf.elements.alarmRing.checked = state.settings.alarmRing !== false;
     backupHint();
     renderUpdate();
@@ -2108,6 +2120,63 @@
     startSound('custom', false);
   };
   sf.elements.alarmRing.addEventListener('change', () => { state.settings.alarmRing = sf.elements.alarmRing.checked; save(); pushSound(); });
+
+  // Settings → Alarm card picture: the animated Rias, her picture, or a photo just for the card.
+  const ALARM_PIC_KEY = 'rias-alarm-picture';
+  function loadAlarmPicture() { try { return localStorage.getItem(ALARM_PIC_KEY) || ''; } catch { return ''; } }
+  function alarmArt() {
+    const a = state.settings.alarmArt || 'auto';
+    if (a === 'photo' && loadAlarmPicture()) return 'photo';
+    if (a === 'mine' && loadPicture()) return 'mine';
+    if (a === 'animated') return 'animated';
+    return loadAlarmPicture() ? 'photo' : loadPicture() ? 'mine' : 'animated';
+  }
+  const ART = [['animated', '✨ Animated Rias'], ['mine', '🖼️ Rias\'s picture'], ['photo', '📷 My photo']];
+  function renderArt() {
+    const box = $('#art-list');
+    box.textContent = '';
+    const cur = alarmArt();
+    for (const [k, label] of ART) {
+      if (k === 'mine' && !loadPicture()) continue;
+      if (k === 'photo' && !loadAlarmPicture()) continue;
+      const l = document.createElement('label');
+      l.className = 'chip';
+      l.innerHTML = '<input type="radio" name="alarmArt"><span></span>';
+      l.querySelector('input').value = k;
+      l.querySelector('input').checked = k === cur;
+      l.querySelector('span').textContent = label;
+      box.append(l);
+    }
+    $('#art-photo').textContent = loadAlarmPicture() ? '📷 Change the card photo' : '📷 Choose a photo for the card';
+  }
+  function pushArt() {
+    const N = window.RiasNative;
+    if (N && N.setAlarmArt) { try { N.setAlarmArt(alarmArt()); } catch { /* older app */ } }
+  }
+  $('#art-list').addEventListener('change', (e) => {
+    if (e.target.name !== 'alarmArt') return;
+    state.settings.alarmArt = e.target.value;
+    save(); pushArt();
+  });
+  $('#art-photo').addEventListener('click', () => $('#art-file').click());
+  $('#art-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = await shrinkPhoto(file, 900);
+      localStorage.setItem(ALARM_PIC_KEY, `data:image/jpeg;base64,${data.full}`);
+      state.settings.alarmArt = 'photo';
+      save();
+      const N = window.RiasNative;
+      if (N && N.setAlarmPicture) { try { N.setAlarmPicture(data.full); } catch { /* older app */ } }
+      pushArt(); renderArt();
+      $('#art-hint').textContent = 'Card photo set. It stays on this phone.';
+    } catch {
+      $('#art-hint').textContent = 'That file couldn’t be opened as a picture, or the phone’s storage is full.';
+    }
+  });
+  $('#art-preview').addEventListener('click', () => showAlarmCard({ id: '', title: 'Preview', category: 'custom' }, say('This is how I\'ll call you, {name}. Tilt your phone~')));
 
   // Settings → Things Rias remembers.
   function renderMemory() {
@@ -2338,7 +2407,7 @@
   function backupData() {
     const copy = JSON.parse(JSON.stringify(state));
     if (copy.ai) { copy.ai.key = ''; copy.ai.geminiKey = ''; }
-    return JSON.stringify({ app: 'rias-companion', format: 1, savedAt: new Date().toISOString(), state: copy, picture: loadPicture() || '' });
+    return JSON.stringify({ app: 'rias-companion', format: 1, savedAt: new Date().toISOString(), state: copy, picture: loadPicture() || '', alarmPicture: loadAlarmPicture() });
   }
   function backupHint() {
     const parts = [];
@@ -2386,11 +2455,13 @@
     try {
       localStorage.setItem(KEY, JSON.stringify(next));
       if (data.picture) localStorage.setItem(PIC_KEY, data.picture); else localStorage.removeItem(PIC_KEY);
+      if (data.alarmPicture) localStorage.setItem(ALARM_PIC_KEY, data.alarmPicture); else localStorage.removeItem(ALARM_PIC_KEY);
     } catch {
       $('#backup-hint').textContent = 'Couldn’t restore: the phone’s storage is full.';
       return;
     }
-    if (data.picture && Native && Native.setPicture) { try { Native.setPicture(data.picture); } catch { /* ignore */ } }
+    if (data.picture && Native && Native.setPicture) { try { Native.setPicture(data.picture.split(',')[1]); } catch { /* ignore */ } }
+    if (data.alarmPicture && Native && Native.setAlarmPicture) { try { Native.setAlarmPicture(data.alarmPicture.split(',')[1]); } catch { /* ignore */ } }
     restoring = true;
     location.reload();
   });
@@ -2499,6 +2570,7 @@
   const housekeeping = () => { maybeAutoBackup(); maybeCheckUpdate(); refreshWeather().then(() => { if (currentView === 'home') renderHome(); }); };
   setTimeout(housekeeping, 1500);
   pushSound();
+  pushArt();
   $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;

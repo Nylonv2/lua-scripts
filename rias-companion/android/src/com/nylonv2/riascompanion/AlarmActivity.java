@@ -33,6 +33,8 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_AT = "at";
     static final String EXTRA_NOTIFICATION = "notificationId";
     static final String EXTRA_SOUND = "sound";
+    static final String EXTRA_ICON = "icon";
+    private android.webkit.WebView web;
 
     private static final int CRIMSON = 0xFFC8173A;
     private static final int GOLD = 0xFFE3B866;
@@ -68,7 +70,113 @@ public class AlarmActivity extends Activity {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
     }
 
+    /** The holographic card (alarm.html, same as the app's pop-up); the plain screen below if WebView fails. */
     private void show(Intent in) {
+        try {
+            showCard(in);
+        } catch (Throwable t) {
+            showClassic(in);
+        }
+    }
+
+    private void showCard(Intent in) {
+        final String text = in.getStringExtra(EXTRA_TEXT) == null ? "" : in.getStringExtra(EXTRA_TEXT);
+        final String title = in.getStringExtra(EXTRA_TITLE);
+        final String itemId = in.getStringExtra(EXTRA_ITEM);
+        final long at = in.getLongExtra(EXTRA_AT, System.currentTimeMillis());
+        final int notificationId = in.getIntExtra(EXTRA_NOTIFICATION, 0);
+        final String icon = in.getStringExtra(EXTRA_ICON);
+        if ("voice".equals(in.getStringExtra(EXTRA_SOUND))) RiasVoice.sayLater(this, text, 1200);
+        if (web == null) {
+            web = new android.webkit.WebView(this);
+            web.setBackgroundColor(0xFF0B0608);
+            android.webkit.WebSettings ws = web.getSettings();
+            ws.setJavaScriptEnabled(true);
+            ws.setAllowFileAccess(true);
+            setContentView(web);
+        }
+        final Activity self = this;
+        web.removeJavascriptInterface("AlarmNative");
+        web.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public String data() {
+                org.json.JSONObject o = new org.json.JSONObject();
+                try {
+                    o.put("text", text);
+                    o.put("title", title == null ? "" : title);
+                    o.put("itemId", itemId == null ? "" : itemId);
+                    o.put("at", at);
+                    o.put("icon", icon == null || icon.isEmpty() ? "⏰" : icon);
+                    String art = getSharedPreferences("rias", MODE_PRIVATE).getString("alarmArt", "auto");
+                    String photo = dataUrl(Scheduler.alarmPictureFile(self));
+                    String mine = dataUrl(Scheduler.pictureFile(self));
+                    String pic = "animated".equals(art) ? "" : "mine".equals(art) ? mine : "photo".equals(art) ? photo
+                            : !photo.isEmpty() ? photo : mine;
+                    o.put("art", pic.isEmpty() ? "animated" : art);
+                    o.put("pic", pic);
+                    o.put("bg", mine);
+                } catch (Exception ignored) {
+                }
+                return o.toString();
+            }
+
+            @android.webkit.JavascriptInterface
+            public void done() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (itemId != null && !itemId.isEmpty()) Scheduler.recordAction(self, itemId, "done", at, 0);
+                        close(notificationId);
+                    }
+                });
+            }
+
+            @android.webkit.JavascriptInterface
+            public void snooze(final int mins) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (itemId != null && !itemId.isEmpty()) {
+                            long until = System.currentTimeMillis() + Math.max(1, mins) * 60 * 1000L;
+                            Scheduler.recordAction(self, itemId, "snooze", at, until);
+                            Scheduler.addEvent(self, until, text, itemId, title);
+                        }
+                        close(notificationId);
+                    }
+                });
+            }
+
+            @android.webkit.JavascriptInterface
+            public void dismiss() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        close(notificationId);
+                    }
+                });
+            }
+        }, "AlarmNative");
+        web.loadUrl("file:///android_asset/www/alarm.html");
+    }
+
+    private static String dataUrl(java.io.File f) {
+        if (!f.exists()) return "";
+        try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
+            byte[] b = new byte[(int) f.length()];
+            int n = 0;
+            while (n < b.length) {
+                int r = in.read(b, n, b.length - n);
+                if (r < 0) break;
+                n += r;
+            }
+            return "data:image/jpeg;base64," + android.util.Base64.encodeToString(b, 0, n, android.util.Base64.NO_WRAP);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private void showClassic(Intent in) {
+        web = null;
         final String text = in.getStringExtra(EXTRA_TEXT) == null ? "" : in.getStringExtra(EXTRA_TEXT);
         final String title = in.getStringExtra(EXTRA_TITLE);
         final String itemId = in.getStringExtra(EXTRA_ITEM);
@@ -202,6 +310,11 @@ public class AlarmActivity extends Activity {
 
     private void close(int notificationId) {
         RiasVoice.stop();
+        if (web != null) {
+            web.removeJavascriptInterface("AlarmNative");
+            web.destroy();
+            web = null;
+        }
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null && notificationId != 0) nm.cancel(notificationId);
         finish();

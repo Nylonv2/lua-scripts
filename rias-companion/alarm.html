@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rias</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<!-- The Android alarm screen (over the lock screen or the app you're using). AlarmActivity hosts it. -->
+<body class="alarm-page">
+  <div class="alarm-root" id="alarm"></div>
+  <script src="rias-avatar.js"></script>
+  <script src="alarm-card.js"></script>
+  <script>
+    (() => {
+      const N = window.AlarmNative;
+      let d = {};
+      try { d = JSON.parse(N.data()); } catch { /* opened without the app */ }
+      const animated = d.art === 'animated' || !d.pic;
+      let avatar = null;
+      if (animated && window.createRiasAvatar) {
+        const stage = document.createElement('div');
+        stage.className = 'stage';
+        document.querySelector('.ac-stage').append(stage);
+        avatar = window.createRiasAvatar(stage);
+      }
+      if (avatar) avatar.setMood('happy');
+      window.AlarmCard.fill({
+        time: new Date(d.at || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        title: d.title, text: d.text, icon: d.icon, pic: d.pic || '', bg: d.pic || d.bg || '', animated, hasItem: !!d.itemId,
+      });
+      if (avatar) setTimeout(() => avatar.talk((d.text || '').length * 60), 1200);
+      document.getElementById('alarm-done').onclick = () => N.done();
+      document.getElementById('alarm-dismiss').onclick = () => N.dismiss();
+      document.getElementById('alarm-snooze').onclick = (e) => {
+        const b = e.target.closest('[data-snooze]');
+        if (b) N.snooze(Number(b.dataset.snooze));
+      };
+    })();
+  </script>
+</body>
+</html>

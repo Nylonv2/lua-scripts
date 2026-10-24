@@ -127,6 +127,15 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   outside the app (notifications allowed, pop-up alerts set to sound/pop on screen, *Appear on top*, full screen over
   the lock screen, not put to sleep by battery saving, exact alarms), each with a **Fix** button that opens the
   right Android settings page. If reminders don't show up outside the app, fix everything here first.
+- **The alarm card:** alarm-style reminders pop up as a holographic trading card floating in a dark, sparkling scene,
+  in the app and on the Android alarm screen (over the lock screen or the app you're using). The art window shows
+  the animated Rias (she smiles and talks), Rias's picture, or **your own photo** (Settings → Notifications →
+  *Alarm card picture* → *Choose a photo for the card*); the photo slowly breathes and shifts, and a blurred copy
+  drifts behind the card. Tilt your phone or drag the card and it turns in 3D with a rainbow holo sheen and glare;
+  left alone it sways by itself. The reminder is the card's name, her line is printed like an ability, the badge
+  shows the reminder type. Done, Snooze 5/10/30 and Dismiss sit under the card. *👀 Preview* shows it any time.
+  (`alarm-card.js` builds the card; `alarm.html` is the Android alarm screen; the plain native screen is kept as a
+  fallback.)
 - **Alarm sounds** (Settings → Notifications → *Alarm sound*, tap one to hear it): six original sounds made for the
   app (🔔 Crimson Chime, 🎼 Harp, 🎶 Music Box, ✨ Magic Circle, ⏰ Classic Beep, 💗 Soft Pulse), 📱 your phone's own
   alarm sound, 🎵 any alarm/ringtone/notification sound on your phone (Android's sound picker), 🗣️ *Chime + Rias says

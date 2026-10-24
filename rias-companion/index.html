@@ -15,21 +15,8 @@
 </head>
 <body>
   <!-- Alarm-style reminder pop-up in the middle of the screen -->
-  <dialog id="alarm" class="alarm" aria-labelledby="alarm-title">
-    <img class="avatar alarm-pic" src="icons/icon.svg" alt="">
-    <div class="alarm-name">Rias Gremory</div>
-    <div class="alarm-time" id="alarm-time"></div>
-    <div class="alarm-title" id="alarm-title"></div>
-    <p class="alarm-text" id="alarm-text"></p>
-    <button type="button" class="alarm-btn primary" id="alarm-done">Done ✓</button>
-    <div class="snooze-row" id="alarm-snooze">
-      <span>Snooze</span>
-      <button type="button" class="alarm-btn" data-snooze="5">5 min</button>
-      <button type="button" class="alarm-btn" data-snooze="10">10 min</button>
-      <button type="button" class="alarm-btn" data-snooze="30">30 min</button>
-    </div>
-    <button type="button" class="alarm-btn ghost" id="alarm-dismiss">Dismiss</button>
-  </dialog>
+  <!-- Filled by alarm-card.js: a holographic card with your picture -->
+  <dialog id="alarm" class="alarm" aria-labelledby="alarm-title"></dialog>
 
   <!-- Pop-up when Rias messages you while you're on another tab -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden>
@@ -417,6 +404,13 @@
             <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
             <p class="small voice-hint" id="sound-hint"></p>
           </div>
+          <div class="field">
+            <span class="field-label">Alarm card picture</span>
+            <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
+            <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
+            <input type="file" id="art-file" accept="image/*" hidden>
+            <p class="small voice-hint" id="art-hint"></p>
+          </div>
           <label class="switch"><input name="alarmRing" type="checkbox"> Keep ringing until I answer (stops after 3 minutes)</label>
           <p class="test-label">Try them out</p>
           <div class="test-row">
@@ -697,6 +691,7 @@
   <script src="vendor/anthropic-sdk.js"></script>
   <script src="ai.js"></script>
   <script src="rias-avatar.js"></script>
+  <script src="alarm-card.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

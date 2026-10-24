@@ -94,7 +94,7 @@ final class Scheduler {
             if (at > last && at <= now + 5000 && now - at <= STALE_MS) {
                 String text = o.optString("text", "Rias is calling for you.");
                 if (o.optBoolean("alarm", false)) {
-                    showAlarm(c, text, o.optString("title", ""), o.optString("itemId", ""), at, o.optString("sound", ""), false);
+                    showAlarm(c, text, o.optString("title", ""), o.optString("itemId", ""), at, o.optString("sound", ""), o.optString("icon", ""), false);
                 } else {
                     show(c, text, (int) (at / 1000), false);
                 }
@@ -203,7 +203,7 @@ final class Scheduler {
     }
 
     /** After RING_MS, an alarm nobody answered stops ringing but stays in the notifications. */
-    private static void scheduleQuiet(Context c, int id, String text, String title, String itemId, long at, String sound) {
+    private static void scheduleQuiet(Context c, int id, String text, String title, String itemId, long at, String sound, String icon) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
         Intent i = new Intent(c, AlarmReceiver.class).setAction(AlarmReceiver.ACTION_QUIET)
@@ -212,7 +212,8 @@ final class Scheduler {
                 .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
                 .putExtra(AlarmActivity.EXTRA_AT, at)
                 .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id)
-                .putExtra(AlarmActivity.EXTRA_SOUND, sound);
+                .putExtra(AlarmActivity.EXTRA_SOUND, sound)
+                .putExtra(AlarmActivity.EXTRA_ICON, icon);
         PendingIntent pi = PendingIntent.getBroadcast(c, id * 4 + 3, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + RING_MS, pi);
     }
@@ -225,7 +226,7 @@ final class Scheduler {
             if (sb.getId() != id) continue;
             showAlarm(c, in.getStringExtra(AlarmActivity.EXTRA_TEXT), in.getStringExtra(AlarmActivity.EXTRA_TITLE),
                     in.getStringExtra(AlarmActivity.EXTRA_ITEM), in.getLongExtra(AlarmActivity.EXTRA_AT, 0),
-                    in.getStringExtra(AlarmActivity.EXTRA_SOUND), true);
+                    in.getStringExtra(AlarmActivity.EXTRA_SOUND), in.getStringExtra(AlarmActivity.EXTRA_ICON), true);
             return;
         }
     }
@@ -239,7 +240,7 @@ final class Scheduler {
 
     /** A reminder as an alarm: full-screen pop-up when locked, heads-up pop-up when in use. */
     @SuppressWarnings("deprecation")
-    static void showAlarm(Context c, String text, String title, String itemId, long at, String sound, boolean quiet) {
+    static void showAlarm(Context c, String text, String title, String itemId, long at, String sound, String icon, boolean quiet) {
         if (MainActivity.visible) return; // the app shows its own pop-up
         String key = soundKey(c, sound);
         String channel = alarmChannel(c, key);
@@ -253,10 +254,11 @@ final class Scheduler {
                 .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
                 .putExtra(AlarmActivity.EXTRA_AT, at)
                 .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id)
-                .putExtra(AlarmActivity.EXTRA_SOUND, key);
+                .putExtra(AlarmActivity.EXTRA_SOUND, key)
+                .putExtra(AlarmActivity.EXTRA_ICON, icon);
         PendingIntent pop = PendingIntent.getActivity(c, id, alarm,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        int icon = c.getResources().getIdentifier("ic_stat_rias", "drawable", c.getPackageName());
+        int smallIcon = c.getResources().getIdentifier("ic_stat_rias", "drawable", c.getPackageName());
         Notification.Builder b;
         if (Build.VERSION.SDK_INT >= 26) {
             b = new Notification.Builder(c, channel);
@@ -265,7 +267,7 @@ final class Scheduler {
                     .setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS)
                     .setSound(soundUri(c, key), android.media.AudioManager.STREAM_ALARM);
         }
-        b.setSmallIcon(icon != 0 ? icon : android.R.drawable.ic_popup_reminder)
+        b.setSmallIcon(smallIcon != 0 ? smallIcon : android.R.drawable.ic_popup_reminder)
                 .setContentTitle(title == null || title.isEmpty() ? "Rias" : "Rias · " + title)
                 .setContentText(text)
                 .setStyle(new Notification.BigTextStyle().bigText(text))
@@ -290,7 +292,7 @@ final class Scheduler {
         boolean ring = !quiet && soundPrefs(c).optBoolean("ring", true) && !"voice".equals(key) && !"silent".equals(key);
         if (ring) n.flags |= Notification.FLAG_INSISTENT;
         nm.notify(id, n);
-        if (ring) scheduleQuiet(c, id, text, title, itemId, at, sound);
+        if (ring) scheduleQuiet(c, id, text, title, itemId, at, sound, icon);
         if (quiet) return;
         // Unlocked and in use: Android shrinks the alarm to a banner. With "Appear on top" allowed,
         // draw the card over the current app, then open the full alarm screen on top of it
@@ -396,6 +398,11 @@ final class Scheduler {
             scheduleNext(c);
         } catch (Exception ignored) {
         }
+    }
+
+    /** The photo chosen just for the alarm card (Settings → Alarm card picture). */
+    static java.io.File alarmPictureFile(Context c) {
+        return new java.io.File(c.getFilesDir(), "alarm-picture.jpg");
     }
 
     static java.io.File pictureFile(Context c) {

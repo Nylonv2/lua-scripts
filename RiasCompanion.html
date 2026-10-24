@@ -831,25 +831,101 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
   background: linear-gradient(135deg, #1d1838, #120e22); color: #e6e4ff; font-size: 1rem; font-weight: 600; }
 .goodnight-btn[hidden] { display: none; }
 .fab { z-index: 5; }
+
+/* =================== Alarm pop-up: a holographic card in a dark, sparkling scene =================== */
+dialog.alarm { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; overflow: hidden; }
+dialog.alarm[open] { display: block; animation: ac-fade .35s ease-out; }
+dialog.alarm::backdrop { background: rgba(8, 3, 6, .6); backdrop-filter: blur(6px); }
+@keyframes ac-fade { from { opacity: 0; } to { opacity: 1; } }
+.alarm-page { margin: 0; height: 100dvh; overflow: hidden; background: #0b0608; }
+.alarm-page .alarm-root { position: fixed; inset: 0; }
+
+.ac-scene { --cw: min(76vw, 35dvh, 330px); position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2dvh;
+  padding: calc(env(safe-area-inset-top) + 2dvh) 18px calc(env(safe-area-inset-bottom) + 2dvh); overflow: hidden; color: var(--text);
+  background: radial-gradient(70% 45% at 50% 45%, rgba(216, 30, 74, .32), transparent 72%), radial-gradient(60% 30% at 50% 100%, rgba(120, 30, 160, .18), transparent 70%), #0b0608; }
+.ac-bg-pic { position: absolute; inset: -12%; width: 124%; height: 124%; object-fit: cover; filter: blur(26px) saturate(1.35) brightness(.42); opacity: .9; animation: ac-drift 20s ease-in-out infinite alternate; }
+@keyframes ac-drift { from { transform: scale(1.05) translate(-2%, -1%); } to { transform: scale(1.18) translate(2%, 2%); } }
+.ac-motes { position: absolute; inset: 0; pointer-events: none; }
+.ac-motes i { position: absolute; bottom: -10px; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 190, 210, .7); filter: blur(1px); animation: mote 16s linear infinite; opacity: 0; }
+.ac-motes i:nth-child(odd) { background: rgba(227, 184, 102, .75); }
+.ac-motes i:nth-child(1) { left: 6%; animation-delay: -1s; } .ac-motes i:nth-child(2) { left: 14%; animation-delay: -7s; width: 3px; height: 3px; }
+.ac-motes i:nth-child(3) { left: 22%; animation-delay: -12s; } .ac-motes i:nth-child(4) { left: 31%; animation-delay: -4s; width: 8px; height: 8px; filter: blur(3px); }
+.ac-motes i:nth-child(5) { left: 40%; animation-delay: -9s; } .ac-motes i:nth-child(6) { left: 48%; animation-delay: -14s; width: 3px; height: 3px; }
+.ac-motes i:nth-child(7) { left: 56%; animation-delay: -2s; } .ac-motes i:nth-child(8) { left: 63%; animation-delay: -10s; width: 7px; height: 7px; filter: blur(3px); }
+.ac-motes i:nth-child(9) { left: 70%; animation-delay: -5s; } .ac-motes i:nth-child(10) { left: 77%; animation-delay: -13s; width: 3px; height: 3px; }
+.ac-motes i:nth-child(11) { left: 84%; animation-delay: -8s; } .ac-motes i:nth-child(12) { left: 91%; animation-delay: -3s; width: 6px; height: 6px; }
+.ac-motes i:nth-child(13) { left: 36%; animation-delay: -11s; } .ac-motes i:nth-child(14) { left: 66%; animation-delay: -15s; }
+
+.ac-top { position: relative; text-align: center; line-height: 1; }
+.ac-calling { display: block; font-family: Georgia, serif; font-style: italic; font-size: .82rem; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+.ac-big-time { font-size: clamp(2.2rem, 7dvh, 3.4rem); font-weight: 200; letter-spacing: .02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 30px rgba(236, 61, 102, .5); }
+
+/* The card. --rx/--ry tilt it; --mx/--my move the shine; --px/--py shift the art (parallax). */
+.ac-card-wrap { position: relative; perspective: 900px; touch-action: none; }
+.ac-card { --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%; --px: 0; --py: 0;
+  position: relative; width: var(--cw); aspect-ratio: 63 / 88; border-radius: calc(var(--cw) * .055); padding: calc(var(--cw) * .035);
+  background: linear-gradient(140deg, #f6dc9a 0%, #b9862f 22%, #fff0c4 45%, #a87420 68%, #f0cf85 100%);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, .55), 0 0 50px rgba(216, 30, 74, .35);
+  transform: rotateX(var(--rx)) rotateY(var(--ry)); transform-style: preserve-3d; transition: transform .12s linear; }
+.ac-card.enter { animation: ac-reveal .9s cubic-bezier(.2, .8, .25, 1.15); }
+@keyframes ac-reveal { 0% { opacity: 0; transform: translateY(40px) scale(.7) rotateY(180deg); } 60% { opacity: 1; } 100% { transform: rotateX(var(--rx)) rotateY(var(--ry)); } }
+.ac-inner { position: relative; height: 100%; display: flex; flex-direction: column; gap: calc(var(--cw) * .025); padding: calc(var(--cw) * .035); border-radius: calc(var(--cw) * .035); overflow: hidden;
+  background: linear-gradient(170deg, #5a0f24 0%, #2a0812 55%, #1a0710 100%); color: #fff3f6; }
+.ac-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ac-name { font-family: Georgia, serif; font-weight: bold; font-size: calc(var(--cw) * .068); letter-spacing: .01em; text-shadow: 0 1px 0 rgba(0, 0, 0, .5); }
+.ac-type { display: grid; place-items: center; width: calc(var(--cw) * .11); height: calc(var(--cw) * .11); border-radius: 50%; font-size: calc(var(--cw) * .06);
+  background: radial-gradient(circle at 35% 30%, #fff6dc, #e3b866 55%, #9a6a1f); box-shadow: 0 0 10px rgba(227, 184, 102, .6); }
+.ac-art { position: relative; flex: 0 0 auto; aspect-ratio: 5 / 4; border-radius: calc(var(--cw) * .02); overflow: hidden; border: calc(var(--cw) * .012) solid #e8c477;
+  background: radial-gradient(80% 70% at 50% 40%, #b31d44, #4a0b1d 70%, #22060f); box-shadow: inset 0 0 20px rgba(0, 0, 0, .5); }
+.ac-pic { position: absolute; inset: -8%; width: 116%; height: 116%; object-fit: cover;
+  transform: translate(calc(var(--px) * -10px), calc(var(--py) * -10px)); animation: ac-breathe 9s ease-in-out infinite alternate; }
+@keyframes ac-breathe { from { scale: 1; } to { scale: 1.09; } }
+.ac-stage { position: absolute; inset: 0; display: flex; justify-content: center; transform: translate(calc(var(--px) * -8px), calc(var(--py) * -6px)); }
+.ac-stage .stage { width: auto; height: 118%; margin-top: 2%; }
+.ac-stage .stage .circle { opacity: .25; }
+.ac-art-sparks i { position: absolute; font-style: normal; color: #fff3c9; text-shadow: 0 0 8px #ffd77a; font-size: calc(var(--cw) * .05); animation: ac-twinkle 2.8s ease-in-out infinite; opacity: 0; }
+.ac-art-sparks i:nth-child(1) { left: 8%; top: 12%; } .ac-art-sparks i:nth-child(2) { left: 82%; top: 18%; animation-delay: .5s; }
+.ac-art-sparks i:nth-child(3) { left: 70%; top: 72%; animation-delay: 1.1s; } .ac-art-sparks i:nth-child(4) { left: 16%; top: 66%; animation-delay: 1.6s; }
+.ac-art-sparks i:nth-child(5) { left: 46%; top: 8%; animation-delay: 2.1s; } .ac-art-sparks i:nth-child(6) { left: 90%; top: 50%; animation-delay: .9s; }
+@keyframes ac-twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+.ac-title { font-weight: 700; font-size: calc(var(--cw) * .062); line-height: 1.15; padding: calc(var(--cw) * .012) calc(var(--cw) * .03); border-radius: 999px;
+  background: linear-gradient(90deg, rgba(227, 184, 102, .28), rgba(227, 184, 102, .05)); border-left: 3px solid #e8c477;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-ability { flex: 1; min-height: 0; padding: calc(var(--cw) * .025) calc(var(--cw) * .035); border-radius: calc(var(--cw) * .025); background: rgba(255, 240, 220, .08); border: 1px solid rgba(232, 196, 119, .3); overflow: hidden; }
+.ac-ability-label { display: block; font-family: Georgia, serif; font-style: italic; font-size: calc(var(--cw) * .036); color: #e8c477; letter-spacing: .06em; }
+.ac-text { margin: 2px 0 0; font-size: calc(var(--cw) * .047); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.long-text .ac-text { font-size: calc(var(--cw) * .041); -webkit-line-clamp: 6; }
+.ac-foot { display: flex; justify-content: space-between; font-size: calc(var(--cw) * .03); color: rgba(255, 230, 200, .55); letter-spacing: .04em; }
+
+/* Holo foil and glare, moving with the tilt */
+.ac-holo { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; mix-blend-mode: color-dodge; opacity: .38;
+  background: repeating-linear-gradient(115deg, #ff3c78 0%, #ffd23c 7%, #3cffb4 14%, #3cb4ff 21%, #b43cff 28%, #ff3c78 35%);
+  background-size: 260% 260%; background-position: var(--mx) var(--my);
+  -webkit-mask-image: radial-gradient(circle at var(--mx) var(--my), #000 0%, rgba(0, 0, 0, .35) 45%, rgba(0, 0, 0, .1) 80%);
+          mask-image: radial-gradient(circle at var(--mx) var(--my), #000 0%, rgba(0, 0, 0, .35) 45%, rgba(0, 0, 0, .1) 80%); }
+.ac-glare { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; mix-blend-mode: overlay;
+  background: radial-gradient(circle at var(--mx) var(--my), rgba(255, 255, 255, .75), rgba(255, 255, 255, 0) 42%); }
+
+/* Buttons under the card */
+.ac-actions { position: relative; width: min(100%, 360px); display: flex; flex-direction: column; gap: 10px; }
+.ac-done { width: 100%; padding: 15px; border: 0; border-radius: 999px; font-size: 1.08rem; font-weight: 700; color: #fff;
+  background: linear-gradient(140deg, #ef4570, #c8173a); box-shadow: 0 10px 30px rgba(216, 30, 74, .5); animation: ac-pulse 2s ease-in-out infinite; }
+@keyframes ac-pulse { 50% { box-shadow: 0 10px 30px rgba(216, 30, 74, .5), 0 0 0 8px rgba(236, 61, 102, .15); } }
+.ac-snooze { display: flex; align-items: center; gap: 8px; }
+.ac-snooze[hidden], .ac-done[hidden] { display: none; }
+.ac-snooze span { font-size: .8rem; color: rgba(246, 233, 238, .65); }
+.ac-snooze button { flex: 1; padding: 11px 4px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(30, 14, 22, .55); color: var(--text);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-weight: 600; font-size: .9rem; }
+.ac-dismiss { align-self: center; padding: 8px 18px; border: 0; background: none; color: rgba(246, 233, 238, .6); font-size: .9rem; }
+@media (prefers-reduced-motion: reduce) {
+  .ac-bg-pic, .ac-motes i, .ac-pic, .ac-art-sparks i, .ac-done, .ac-card.enter { animation: none; }
+}
 </style>
 </head>
 <body>
   <!-- Alarm-style reminder pop-up in the middle of the screen -->
-  <dialog id="alarm" class="alarm" aria-labelledby="alarm-title">
-    <img class="avatar alarm-pic" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="">
-    <div class="alarm-name">Rias Gremory</div>
-    <div class="alarm-time" id="alarm-time"></div>
-    <div class="alarm-title" id="alarm-title"></div>
-    <p class="alarm-text" id="alarm-text"></p>
-    <button type="button" class="alarm-btn primary" id="alarm-done">Done ✓</button>
-    <div class="snooze-row" id="alarm-snooze">
-      <span>Snooze</span>
-      <button type="button" class="alarm-btn" data-snooze="5">5 min</button>
-      <button type="button" class="alarm-btn" data-snooze="10">10 min</button>
-      <button type="button" class="alarm-btn" data-snooze="30">30 min</button>
-    </div>
-    <button type="button" class="alarm-btn ghost" id="alarm-dismiss">Dismiss</button>
-  </dialog>
+  <!-- Filled by alarm-card.js: a holographic card with your picture -->
+  <dialog id="alarm" class="alarm" aria-labelledby="alarm-title"></dialog>
 
   <!-- Pop-up when Rias messages you while you're on another tab -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden>
@@ -1236,6 +1312,13 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
             <span class="field-label">Alarm sound <small>· tap one to hear it</small></span>
             <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
             <p class="small voice-hint" id="sound-hint"></p>
+          </div>
+          <div class="field">
+            <span class="field-label">Alarm card picture</span>
+            <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
+            <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
+            <input type="file" id="art-file" accept="image/*" hidden>
+            <p class="small voice-hint" id="art-hint"></p>
           </div>
           <label class="switch"><input name="alarmRing" type="checkbox"> Keep ringing until I answer (stops after 3 minutes)</label>
           <p class="test-label">Try them out</p>
@@ -3728,6 +3811,136 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
 };
 </script>
   <script>
+// The alarm pop-up as a holographic trading card floating in a dark, sparkling scene:
+// your photo (or the animated Rias) in the art window, drifting behind the card too,
+// a rainbow sheen and glare that follow the tilt (phone motion, a drag, or a gentle
+// idle sway), and the reminder printed on the card. Used by the in-app pop-up
+// (index.html) and by the Android alarm screen (alarm.html).
+window.AlarmCard = (() => {
+  'use strict';
+
+  const HTML = `
+  <div class="ac-scene">
+    <img class="ac-bg-pic" alt="" hidden>
+    <div class="ac-motes" aria-hidden="true">${'<i></i>'.repeat(14)}</div>
+    <div class="ac-top">
+      <span class="ac-calling">Rias is calling you</span>
+      <div class="ac-big-time" id="alarm-time"></div>
+    </div>
+    <div class="ac-card-wrap">
+      <div class="ac-card">
+        <div class="ac-inner">
+          <div class="ac-head">
+            <span class="ac-name">Rias Gremory</span>
+            <span class="ac-type" aria-hidden="true"></span>
+          </div>
+          <div class="ac-art">
+            <img class="ac-pic" alt="" hidden>
+            <div class="ac-stage"></div>
+            <div class="ac-art-sparks" aria-hidden="true">${'<i>✦</i>'.repeat(6)}</div>
+          </div>
+          <div class="ac-title" id="alarm-title"></div>
+          <div class="ac-ability">
+            <span class="ac-ability-label">✦ Rias says</span>
+            <p class="ac-text" id="alarm-text"></p>
+          </div>
+          <div class="ac-foot"><span>Gremory · Occult Research Club</span><span class="ac-no"></span></div>
+        </div>
+        <div class="ac-holo" aria-hidden="true"></div>
+        <div class="ac-glare" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="ac-actions">
+      <button type="button" class="ac-done" id="alarm-done">Done ✓</button>
+      <div class="ac-snooze" id="alarm-snooze">
+        <span>Snooze</span>
+        <button type="button" data-snooze="5">5 min</button>
+        <button type="button" data-snooze="10">10 min</button>
+        <button type="button" data-snooze="30">30 min</button>
+      </div>
+      <button type="button" class="ac-dismiss" id="alarm-dismiss">Dismiss</button>
+    </div>
+  </div>`;
+
+  let root = null, card = null, raf = 0, lastInput = 0;
+
+  function tilt(x, y) {
+    x = Math.max(-1, Math.min(1, x));
+    y = Math.max(-1, Math.min(1, y));
+    const s = card.style;
+    s.setProperty('--rx', `${(-y * 12).toFixed(2)}deg`);
+    s.setProperty('--ry', `${(x * 16).toFixed(2)}deg`);
+    s.setProperty('--mx', `${(50 + x * 50).toFixed(1)}%`);
+    s.setProperty('--my', `${(50 + y * 50).toFixed(1)}%`);
+    s.setProperty('--px', x.toFixed(3));
+    s.setProperty('--py', y.toFixed(3));
+  }
+  // With no finger or phone motion, the card sways on its own.
+  function loop(t) {
+    if (!root || !root.isConnected) { raf = 0; return; }
+    if (Date.now() - lastInput > 2500) tilt(Math.sin(t / 1900) * 0.55, Math.cos(t / 2600) * 0.4);
+    raf = requestAnimationFrame(loop);
+  }
+  function onPointer(e) {
+    const r = card.getBoundingClientRect();
+    lastInput = Date.now();
+    tilt(((e.clientX - r.left) / r.width) * 2 - 1, ((e.clientY - r.top) / r.height) * 2 - 1);
+  }
+  function onOrientation(e) {
+    if (e.gamma == null || e.beta == null) return;
+    lastInput = Date.now();
+    tilt(e.gamma / 25, (e.beta - 45) / 25);
+  }
+
+  function mount(el) {
+    root = el;
+    root.innerHTML = HTML;
+    card = root.querySelector('.ac-card');
+    const wrap = root.querySelector('.ac-card-wrap');
+    wrap.addEventListener('pointermove', onPointer);
+    wrap.addEventListener('pointerdown', onPointer);
+    window.addEventListener('deviceorientation', onOrientation);
+    tilt(0, 0);
+    return { stage: root.querySelector('.ac-stage') };
+  }
+
+  /**
+   * opts: { time, title, text, icon, pic (data URL or ''), bg (data URL or ''), animated, hasItem }
+   * Call each time the alarm shows; it replays the card's entrance.
+   */
+  function fill(opts) {
+    if (!root) return;
+    const q = (s) => root.querySelector(s);
+    q('#alarm-time').textContent = opts.time || '';
+    q('#alarm-title').textContent = opts.title || 'Reminder';
+    q('#alarm-text').textContent = opts.text || '';
+    q('.ac-type').textContent = opts.icon || '⏰';
+    q('.ac-no').textContent = `No. ${String(new Date().getDate()).padStart(2, '0')}${String(new Date().getHours()).padStart(2, '0')}`;
+    const pic = q('.ac-pic');
+    pic.hidden = !!opts.animated || !opts.pic;
+    if (!pic.hidden) pic.src = opts.pic;
+    q('.ac-stage').hidden = !opts.animated;
+    const bg = q('.ac-bg-pic');
+    bg.hidden = !opts.bg;
+    if (opts.bg) bg.src = opts.bg;
+    q('#alarm-done').hidden = q('#alarm-snooze').hidden = !opts.hasItem;
+    root.classList.toggle('long-text', (opts.text || '').length > 140);
+    card.classList.remove('enter');
+    void card.offsetWidth;
+    card.classList.add('enter');
+    lastInput = 0;
+    if (!raf) raf = requestAnimationFrame(loop);
+  }
+
+  return { mount, fill };
+})();
+
+// In the app the pop-up lives in <dialog id="alarm">: build it now, before app.js wires its buttons.
+if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scene')) {
+  window.AlarmCard.mount(document.getElementById('alarm'));
+}
+</script>
+  <script>
 (() => {
   'use strict';
 
@@ -3753,6 +3966,10 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     custom: 'Other', wake: 'Wake up', water: 'Water', meal: 'Meal', exercise: 'Exercise', work: 'Work / study',
     break: 'Break', hygiene: 'Hygiene', meds: 'Medication', social: 'Social', chores: 'Chores', wind: 'Wind down', sleep: 'Sleep',
     workLeave: '💼 Work', workStart: '💼 Work', workEnd: '💼 Work', calendar: '📅 Phone calendar',
+  };
+  const CATEGORY_ICON = {
+    custom: '📌', wake: '⏰', water: '💧', meal: '🍽️', exercise: '🏃', work: '📚', break: '☕', hygiene: '🪥', meds: '💊',
+    social: '💬', chores: '🧹', wind: '🌙', sleep: '😴', workLeave: '💼', workStart: '💼', workEnd: '💼', calendar: '📅',
   };
   const mealFor = (nm) => (nm < 11 * 60 ? 'breakfast' : nm < 16 * 60 ? 'lunch' : nm < 21 * 60 ? 'dinner' : 'snack');
 
@@ -3791,7 +4008,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       autoBackup: true, briefing: true, city: '', recap: true, windDown: true,
-      alarmSound: 'chime', alarmSoundUri: '', alarmSoundTitle: '', alarmRing: true,
+      alarmSound: 'chime', alarmSoundUri: '', alarmSoundTitle: '', alarmRing: true, alarmArt: 'auto',
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
@@ -4139,11 +4356,16 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   function showAlarmCard(item, text) {
     if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
     alarmItem = item;
-    $('#alarm-time').textContent = fmtClock(Date.now());
-    $('#alarm-title').textContent = item.title;
-    $('#alarm-text').textContent = text;
-    $('#alarm-done').hidden = $('#alarm-snooze').hidden = !item.id; // tests only get Dismiss
+    const art = alarmArt();
+    const pic = art === 'photo' ? loadAlarmPicture() : art === 'mine' ? loadPicture() : '';
+    // The animated Rias steps into the card's art window while it's up.
+    if (art === 'animated') { $('.ac-stage').append($('#stage')); $('#stage').hidden = false; Avatar.setMood('happy'); }
+    window.AlarmCard.fill({
+      time: fmtClock(Date.now()), title: item.title, text, icon: CATEGORY_ICON[item.category] || '⏰',
+      pic, bg: pic || loadPicture(), animated: art === 'animated', hasItem: !!item.id, // tests only get Dismiss
+    });
     alarmDlg.showModal();
+    if (art === 'animated') setTimeout(() => Avatar.talk(text.length * 55), 700);
     const key = item.sound || state.settings.alarmSound || 'chime';
     startSound(key, state.settings.alarmRing !== false);
     // "Chime + Rias says it": she reads it out even if her voice is off for chat.
@@ -4152,6 +4374,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   function closeAlarm() {
     stopSound();
     if (alarmDlg.open) alarmDlg.close();
+    if ($('.ac-stage #stage')) { placeRias(currentView === 'chat' ? 'chat' : 'home'); renderHome(); }
     alarmItem = null;
     const next = alarmQueue.shift();
     if (next) setTimeout(() => showAlarmCard(...next), 300);
@@ -5674,6 +5897,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
         events.push({
           at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${withBrief ? `\n${brief}` : ''}`,
           itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}),
+          icon: CATEGORY_ICON[it.category] || '⏰',
         });
       }
       if (brief && !briefed && at(d, w) > now) events.push({ at: at(d, w), text: `${say(pick(R.greet.morning))}\n${brief}` });
@@ -5785,6 +6009,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     $('#city-hint').textContent = weatherFor(new Date()) ? `Today: ${weatherLine(new Date(), true)}` : state.weather ? '' : 'Set your city and Rias tells you the weather each morning.';
     renderMemory();
     renderSounds();
+    renderArt();
     sf.elements.alarmRing.checked = state.settings.alarmRing !== false;
     backupHint();
     renderUpdate();
@@ -5838,6 +6063,63 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     startSound('custom', false);
   };
   sf.elements.alarmRing.addEventListener('change', () => { state.settings.alarmRing = sf.elements.alarmRing.checked; save(); pushSound(); });
+
+  // Settings → Alarm card picture: the animated Rias, her picture, or a photo just for the card.
+  const ALARM_PIC_KEY = 'rias-alarm-picture';
+  function loadAlarmPicture() { try { return localStorage.getItem(ALARM_PIC_KEY) || ''; } catch { return ''; } }
+  function alarmArt() {
+    const a = state.settings.alarmArt || 'auto';
+    if (a === 'photo' && loadAlarmPicture()) return 'photo';
+    if (a === 'mine' && loadPicture()) return 'mine';
+    if (a === 'animated') return 'animated';
+    return loadAlarmPicture() ? 'photo' : loadPicture() ? 'mine' : 'animated';
+  }
+  const ART = [['animated', '✨ Animated Rias'], ['mine', '🖼️ Rias\'s picture'], ['photo', '📷 My photo']];
+  function renderArt() {
+    const box = $('#art-list');
+    box.textContent = '';
+    const cur = alarmArt();
+    for (const [k, label] of ART) {
+      if (k === 'mine' && !loadPicture()) continue;
+      if (k === 'photo' && !loadAlarmPicture()) continue;
+      const l = document.createElement('label');
+      l.className = 'chip';
+      l.innerHTML = '<input type="radio" name="alarmArt"><span></span>';
+      l.querySelector('input').value = k;
+      l.querySelector('input').checked = k === cur;
+      l.querySelector('span').textContent = label;
+      box.append(l);
+    }
+    $('#art-photo').textContent = loadAlarmPicture() ? '📷 Change the card photo' : '📷 Choose a photo for the card';
+  }
+  function pushArt() {
+    const N = window.RiasNative;
+    if (N && N.setAlarmArt) { try { N.setAlarmArt(alarmArt()); } catch { /* older app */ } }
+  }
+  $('#art-list').addEventListener('change', (e) => {
+    if (e.target.name !== 'alarmArt') return;
+    state.settings.alarmArt = e.target.value;
+    save(); pushArt();
+  });
+  $('#art-photo').addEventListener('click', () => $('#art-file').click());
+  $('#art-file').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const data = await shrinkPhoto(file, 900);
+      localStorage.setItem(ALARM_PIC_KEY, `data:image/jpeg;base64,${data.full}`);
+      state.settings.alarmArt = 'photo';
+      save();
+      const N = window.RiasNative;
+      if (N && N.setAlarmPicture) { try { N.setAlarmPicture(data.full); } catch { /* older app */ } }
+      pushArt(); renderArt();
+      $('#art-hint').textContent = 'Card photo set. It stays on this phone.';
+    } catch {
+      $('#art-hint').textContent = 'That file couldn’t be opened as a picture, or the phone’s storage is full.';
+    }
+  });
+  $('#art-preview').addEventListener('click', () => showAlarmCard({ id: '', title: 'Preview', category: 'custom' }, say('This is how I\'ll call you, {name}. Tilt your phone~')));
 
   // Settings → Things Rias remembers.
   function renderMemory() {
@@ -6068,7 +6350,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   function backupData() {
     const copy = JSON.parse(JSON.stringify(state));
     if (copy.ai) { copy.ai.key = ''; copy.ai.geminiKey = ''; }
-    return JSON.stringify({ app: 'rias-companion', format: 1, savedAt: new Date().toISOString(), state: copy, picture: loadPicture() || '' });
+    return JSON.stringify({ app: 'rias-companion', format: 1, savedAt: new Date().toISOString(), state: copy, picture: loadPicture() || '', alarmPicture: loadAlarmPicture() });
   }
   function backupHint() {
     const parts = [];
@@ -6116,11 +6398,13 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     try {
       localStorage.setItem(KEY, JSON.stringify(next));
       if (data.picture) localStorage.setItem(PIC_KEY, data.picture); else localStorage.removeItem(PIC_KEY);
+      if (data.alarmPicture) localStorage.setItem(ALARM_PIC_KEY, data.alarmPicture); else localStorage.removeItem(ALARM_PIC_KEY);
     } catch {
       $('#backup-hint').textContent = 'Couldn’t restore: the phone’s storage is full.';
       return;
     }
-    if (data.picture && Native && Native.setPicture) { try { Native.setPicture(data.picture); } catch { /* ignore */ } }
+    if (data.picture && Native && Native.setPicture) { try { Native.setPicture(data.picture.split(',')[1]); } catch { /* ignore */ } }
+    if (data.alarmPicture && Native && Native.setAlarmPicture) { try { Native.setAlarmPicture(data.alarmPicture.split(',')[1]); } catch { /* ignore */ } }
     restoring = true;
     location.reload();
   });
@@ -6229,6 +6513,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   const housekeeping = () => { maybeAutoBackup(); maybeCheckUpdate(); refreshWeather().then(() => { if (currentView === 'home') renderHome(); }); };
   setTimeout(housekeeping, 1500);
   pushSound();
+  pushArt();
   $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;

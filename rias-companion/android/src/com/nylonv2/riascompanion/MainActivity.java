@@ -644,6 +644,26 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** Settings → Alarm card picture: "animated", "mine" or "photo". */
+        @JavascriptInterface
+        public void setAlarmArt(String art) {
+            ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString("alarmArt", art).apply();
+        }
+
+        /** The photo for the alarm card (base64 JPEG). */
+        @JavascriptInterface
+        public void setAlarmPicture(String base64) {
+            java.io.File f = Scheduler.alarmPictureFile(ctx);
+            if (base64 == null || base64.isEmpty()) {
+                f.delete();
+                return;
+            }
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) {
+                out.write(android.util.Base64.decode(base64, android.util.Base64.DEFAULT));
+            } catch (Exception ignored) {
+            }
+        }
+
         /** Home screen widget data: upcoming items and her lines. */
         @JavascriptInterface
         public void setWidget(String json) {
