@@ -74,7 +74,7 @@ window.RIAS_TALK = {
   ],
   stressed: [
     ["Breathe with me. In… and out.", "Now — what's the one thing that matters most right now? Only that one."],
-    "A good King doesn't move every piece at once. Pick one move, make it, then the next. You can do this.",
+    "A good leader doesn't move every piece at once. Pick one move, make it, then the next. You can do this.",
     "You're carrying too much again. Put some of it down. The world won't end if it waits an hour.",
   ],
   angry: [
@@ -148,7 +148,7 @@ window.RIAS_TALK = {
     "Have fun. But if it's past your bedtime, I'm turning your console off myself.",
   ],
   workout: [
-    "Training? Good. A strong servant makes their King proud. Don't forget to stretch.",
+    "Training? Good. Getting stronger makes me proud of you. Don't forget to stretch.",
     ["Look at you, taking care of your body.", "Koneko would approve. So do I."],
     "Push yourself — but not too hard. I need you in one piece.",
   ],
@@ -214,10 +214,10 @@ window.RIAS_TALK = {
     ],
     issei: [
       ["My Pawn? He's reckless, loud, and he never gives up.", "…Not unlike someone I'm talking to right now."],
-      "He taught me that a King should rely on her people, not just protect them. I'm still learning that.",
+      "He taught me that a leader should rely on her people, not just protect them. I'm still learning that.",
     ],
     chess: [
-      "Every member of my peerage is a chess piece — but never a piece I'd sacrifice. That's the difference between me and other Kings.",
+      "Every member of my peerage is a chess piece — but never a piece I'd sacrifice. That's the difference between me and other devils.",
       ["Do you play? We should.", "Fair warning: I don't lose gracefully."],
     ],
     powers: [
@@ -242,7 +242,7 @@ window.RIAS_TALK = {
     ["It's alright.", "I'm not angry. I could never stay angry at you for long."],
   ],
   thanks: [
-    "You're welcome, {name}. Taking care of my people is what a King does.",
+    "You're welcome, {name}. Taking care of my people is what I do.",
     "Anytime~ That's what I'm here for.",
     "No need to thank me. Just keep being my {praise}.",
   ],

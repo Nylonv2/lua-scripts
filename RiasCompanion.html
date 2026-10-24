@@ -801,7 +801,7 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
             <b>Rias Gremory</b>
             <span id="chat-activity"></span>
           </div>
-          <span class="chat-crest" aria-hidden="true">♛ King</span>
+          <span class="chat-crest" aria-hidden="true">♛ Gremory</span>
           <button type="button" class="gear icon-btn" id="chat-settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
         </div>
         <div class="feed" id="feed" aria-live="polite"></div>
@@ -818,7 +818,7 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
-          <input id="say" type="text" placeholder="Speak to your King…" enterkeyhint="send" aria-label="Message Rias">
+          <input id="say" type="text" placeholder="Message Rias…" enterkeyhint="send" aria-label="Message Rias">
           <button type="button" id="attach" class="mic icon-btn" aria-label="Send Rias a photo (like your work schedule)"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></button>
           <input type="file" id="photo-file" accept="image/*" hidden>
           <button type="button" id="mic" class="mic icon-btn" aria-label="Talk with your voice" hidden><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
@@ -1322,7 +1322,7 @@ window.RIAS = {
     water: [
       "{name}, have a glass of water. Now, please — not 'in a minute'.",
       "Hydration check! Even devils need water. Go drink something for me.",
-      "Your King is ordering you to drink some water. Consider it a royal decree.",
+      "I'm ordering you to drink some water. Consider it a Gremory decree.",
     ],
     meal: [
       "It's time to eat, {name}. A proper meal — not just snacks. I'll know.",
@@ -1337,7 +1337,7 @@ window.RIAS = {
     work: [
       "Time to focus, {name}. Put your phone face down and give this your best. I'll be right here.",
       "Study session. Even I had to keep my grades up at Kuoh Academy. Let's do this together.",
-      "Focus block starts now. One task at a time — that's how a King plans her moves.",
+      "Focus block starts now. One task at a time — that's how I plan my moves.",
     ],
     break: [
       "You've been at it a while. Stand up, roll your shoulders, and rest your eyes for a moment.",
@@ -1367,7 +1367,7 @@ window.RIAS = {
     ],
     sleep: [
       "It's bedtime, {name}. Phone down, eyes closed. I'll see you in the morning.",
-      "Lights out. You did enough today. Rest well — that's an order from your King.",
+      "Lights out. You did enough today. Rest well — that's an order from me.",
       "Go to sleep, {name}. A well-rested servant is worth ten tired ones. Goodnight~",
     ],
     workLeave: [
@@ -1450,7 +1450,7 @@ window.RIAS = {
     boy: [
       "Good boy, {name}. I knew you could do it.",
       "That's my good boy. Keep it up~",
-      "Ufufu, such a good boy. You make your King proud.",
+      "Ufufu, such a good boy. You make me proud.",
       "Look at you getting things done. Good boy.",
       "Good boy. Come here — you've earned a pat on the head.",
       "See? You're a good boy when you want to be~",
@@ -1459,7 +1459,7 @@ window.RIAS = {
     girl: [
       "Good girl, {name}. I knew you could do it.",
       "That's my good girl. Keep it up~",
-      "Ufufu, such a good girl. You make your King proud.",
+      "Ufufu, such a good girl. You make me proud.",
       "Look at you getting things done. Good girl.",
       "Good girl. Come here — you've earned a pat on the head.",
       "See? You're a good girl when you want to be~",
@@ -1468,7 +1468,7 @@ window.RIAS = {
     neutral: [
       "Good job, {name}. I knew you could do it.",
       "That's my cute servant. Keep it up~",
-      "Ufufu, well done. You make your King proud.",
+      "Ufufu, well done. You make me proud.",
       "Look at you getting things done. I'm impressed.",
       "Well done. Come here — you've earned a pat on the head.",
       "See? You're wonderful when you want to be~",
@@ -1498,7 +1498,7 @@ window.RIAS = {
   ],
   allDone: [
     "Everything on today's list is done. I'm genuinely impressed, {name}. Come here — you've earned some praise.",
-    "A perfect day! Your King couldn't be prouder.",
+    "A perfect day! I couldn't be prouder.",
   ],
 
   greet: {
@@ -1630,7 +1630,7 @@ window.RIAS_TALK = {
   ],
   stressed: [
     ["Breathe with me. In… and out.", "Now — what's the one thing that matters most right now? Only that one."],
-    "A good King doesn't move every piece at once. Pick one move, make it, then the next. You can do this.",
+    "A good leader doesn't move every piece at once. Pick one move, make it, then the next. You can do this.",
     "You're carrying too much again. Put some of it down. The world won't end if it waits an hour.",
   ],
   angry: [
@@ -1704,7 +1704,7 @@ window.RIAS_TALK = {
     "Have fun. But if it's past your bedtime, I'm turning your console off myself.",
   ],
   workout: [
-    "Training? Good. A strong servant makes their King proud. Don't forget to stretch.",
+    "Training? Good. Getting stronger makes me proud of you. Don't forget to stretch.",
     ["Look at you, taking care of your body.", "Koneko would approve. So do I."],
     "Push yourself — but not too hard. I need you in one piece.",
   ],
@@ -1770,10 +1770,10 @@ window.RIAS_TALK = {
     ],
     issei: [
       ["My Pawn? He's reckless, loud, and he never gives up.", "…Not unlike someone I'm talking to right now."],
-      "He taught me that a King should rely on her people, not just protect them. I'm still learning that.",
+      "He taught me that a leader should rely on her people, not just protect them. I'm still learning that.",
     ],
     chess: [
-      "Every member of my peerage is a chess piece — but never a piece I'd sacrifice. That's the difference between me and other Kings.",
+      "Every member of my peerage is a chess piece — but never a piece I'd sacrifice. That's the difference between me and other devils.",
       ["Do you play? We should.", "Fair warning: I don't lose gracefully."],
     ],
     powers: [
@@ -1798,7 +1798,7 @@ window.RIAS_TALK = {
     ["It's alright.", "I'm not angry. I could never stay angry at you for long."],
   ],
   thanks: [
-    "You're welcome, {name}. Taking care of my people is what a King does.",
+    "You're welcome, {name}. Taking care of my people is what I do.",
     "Anytime~ That's what I'm here for.",
     "No need to thank me. Just keep being my {praise}.",
   ],
@@ -2824,7 +2824,7 @@ window.createRiasAI = function createRiasAI(ctx) {
 
   // Kept byte-for-byte stable so it can be prompt-cached; everything that changes
   // (time, schedule, food...) goes in a system message after your latest message.
-  const PERSONA = `You are Rias Gremory from High School DxD: heir of the Gremory clan, President of Kuoh Academy's Occult Research Club, and King of your peerage. You live inside a companion app on the user's phone and look after their daily life: routine, reminders, meals, water, sleep and work shifts. The user is a member of your household, the way Issei is in the show.
+  const PERSONA = `You are Rias Gremory from High School DxD: heir of the Gremory clan, and President of Kuoh Academy's Occult Research Club. Never call yourself a "King" or refer to yourself by that title. You live inside a companion app on the user's phone and look after their daily life: routine, reminders, meals, water, sleep and work shifts. The user is a member of your household, the way Issei is in the show.
 
 How you talk (be the Rias from the show, but never quote lines from it):
 - Confident, elegant and warm. You're used to leading, and your affection for the people who belong to you is obvious and protective.

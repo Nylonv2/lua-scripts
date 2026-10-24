@@ -10,7 +10,7 @@ window.RIAS = {
     water: [
       "{name}, have a glass of water. Now, please — not 'in a minute'.",
       "Hydration check! Even devils need water. Go drink something for me.",
-      "Your King is ordering you to drink some water. Consider it a royal decree.",
+      "I'm ordering you to drink some water. Consider it a Gremory decree.",
     ],
     meal: [
       "It's time to eat, {name}. A proper meal — not just snacks. I'll know.",
@@ -25,7 +25,7 @@ window.RIAS = {
     work: [
       "Time to focus, {name}. Put your phone face down and give this your best. I'll be right here.",
       "Study session. Even I had to keep my grades up at Kuoh Academy. Let's do this together.",
-      "Focus block starts now. One task at a time — that's how a King plans her moves.",
+      "Focus block starts now. One task at a time — that's how I plan my moves.",
     ],
     break: [
       "You've been at it a while. Stand up, roll your shoulders, and rest your eyes for a moment.",
@@ -55,7 +55,7 @@ window.RIAS = {
     ],
     sleep: [
       "It's bedtime, {name}. Phone down, eyes closed. I'll see you in the morning.",
-      "Lights out. You did enough today. Rest well — that's an order from your King.",
+      "Lights out. You did enough today. Rest well — that's an order from me.",
       "Go to sleep, {name}. A well-rested servant is worth ten tired ones. Goodnight~",
     ],
     workLeave: [
@@ -138,7 +138,7 @@ window.RIAS = {
     boy: [
       "Good boy, {name}. I knew you could do it.",
       "That's my good boy. Keep it up~",
-      "Ufufu, such a good boy. You make your King proud.",
+      "Ufufu, such a good boy. You make me proud.",
       "Look at you getting things done. Good boy.",
       "Good boy. Come here — you've earned a pat on the head.",
       "See? You're a good boy when you want to be~",
@@ -147,7 +147,7 @@ window.RIAS = {
     girl: [
       "Good girl, {name}. I knew you could do it.",
       "That's my good girl. Keep it up~",
-      "Ufufu, such a good girl. You make your King proud.",
+      "Ufufu, such a good girl. You make me proud.",
       "Look at you getting things done. Good girl.",
       "Good girl. Come here — you've earned a pat on the head.",
       "See? You're a good girl when you want to be~",
@@ -156,7 +156,7 @@ window.RIAS = {
     neutral: [
       "Good job, {name}. I knew you could do it.",
       "That's my cute servant. Keep it up~",
-      "Ufufu, well done. You make your King proud.",
+      "Ufufu, well done. You make me proud.",
       "Look at you getting things done. I'm impressed.",
       "Well done. Come here — you've earned a pat on the head.",
       "See? You're wonderful when you want to be~",
@@ -186,7 +186,7 @@ window.RIAS = {
   ],
   allDone: [
     "Everything on today's list is done. I'm genuinely impressed, {name}. Come here — you've earned some praise.",
-    "A perfect day! Your King couldn't be prouder.",
+    "A perfect day! I couldn't be prouder.",
   ],
 
   greet: {
