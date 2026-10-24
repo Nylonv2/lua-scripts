@@ -568,20 +568,14 @@
         const sep = document.createElement('div');
         sep.className = 'day-sep';
         sep.innerHTML = '<span></span>';
-        sep.firstChild.textContent = `✦ ${dayLabel(m.ts)} ✦`;
+        sep.firstChild.textContent = dayLabel(m.ts);
         feed.append(sep);
       }
       // Rias's messages in a row form a group: name on the first, her picture on the last.
       const sameAsPrev = prev && prev.from === m.from && m.ts - prev.ts < 5 * 60000 && dayLabel(prev.ts) === dayLabel(m.ts);
       const sameAsNext = next && next.from === m.from && next.ts - m.ts < 5 * 60000 && dayLabel(next.ts) === dayLabel(m.ts);
       const el = document.createElement('div');
-      el.className = `msg ${m.from}`;
-      if (m.from === 'rias' && !sameAsPrev) {
-        const nm = document.createElement('span');
-        nm.className = 'msg-name';
-        nm.textContent = 'Rias';
-        el.append(nm);
-      }
+      el.className = `msg ${m.from}${sameAsPrev ? '' : ' first'}`;
       if (feedPrimed && !seenMsgs.has(m.id)) el.classList.add('fresh');
       seenMsgs.add(m.id);
       if (m.photo) {
@@ -627,7 +621,7 @@
       }
       if (m.from === 'rias') {
         const row = document.createElement('div');
-        row.className = `msg-row${sameAsNext ? ' grouped' : ''}`;
+        row.className = `msg-row${sameAsNext ? ' grouped' : ''}${sameAsPrev ? '' : ' first'}`;
         const av = document.createElement('img');
         av.className = 'avatar msg-av';
         av.src = pic;
@@ -668,7 +662,7 @@
   function showTyping() {
     const row = document.createElement('div');
     row.className = 'msg-row typing-row';
-    row.innerHTML = '<img class="avatar msg-av" alt=""><div class="msg rias typing"><span class="dots"><i></i><i></i><i></i></span><span class="typing-text">Rias is writing…</span></div>';
+    row.innerHTML = '<img class="avatar msg-av" alt=""><div class="msg rias typing"><span class="dots"><i></i><i></i><i></i></span></div>';
     row.querySelector('img').src = loadPicture() || DEFAULT_PIC;
     feed.append(row);
     feed.scrollTop = feed.scrollHeight;

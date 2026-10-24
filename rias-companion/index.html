@@ -112,7 +112,6 @@
             <b>Rias Gremory</b>
             <span id="chat-activity"></span>
           </div>
-          <span class="chat-crest" aria-hidden="true">♛ Gremory</span>
           <button type="button" class="gear icon-btn" id="chat-settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
         </div>
         <div class="feed" id="feed" aria-live="polite"></div>
@@ -129,10 +128,12 @@
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
-          <input id="say" type="text" placeholder="Message Rias…" enterkeyhint="send" aria-label="Message Rias">
-          <button type="button" id="attach" class="mic icon-btn" aria-label="Send Rias a photo (like your work schedule)"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></button>
-          <input type="file" id="photo-file" accept="image/*" hidden>
-          <button type="button" id="mic" class="mic icon-btn" aria-label="Talk with your voice" hidden><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
+          <div class="composer-box">
+            <button type="button" id="attach" class="mic icon-btn" aria-label="Send Rias a photo (like your work schedule)"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></button>
+            <input id="say" type="text" placeholder="Message Rias…" enterkeyhint="send" aria-label="Message Rias">
+            <input type="file" id="photo-file" accept="image/*" hidden>
+            <button type="button" id="mic" class="mic icon-btn" aria-label="Talk with your voice" hidden><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
+          </div>
           <button type="submit" class="send" aria-label="Send"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg></button>
         </form>
       </section>

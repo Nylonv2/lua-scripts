@@ -182,11 +182,12 @@ Rias (with AI on) and she'll add them herself.
 
 ## The chat
 
-The Chat tab is Rias's club room: her picture inside a turning Gremory magic circle with a live status of what she's
-doing (tea with Akeno, chess with Kiba, stargazing, asleep at night; her AI knows it too), a faint magic circle and
-drifting sparks behind the messages, her messages grouped with her name in gold and her picture beside them, a
-"Rias is writing…" indicator, ✦ day dividers ✦, hearts when she praises you, a crimson flash at the Power of
-Destruction, and DxD quick replies (How's Akeno?, Your peerage, Play chess, Motivate me).
+The Chat tab looks like a modern messenger: a frosted header with her picture, an online dot and a live status of
+what she's doing (tea with Akeno, chess with Kiba, stargazing, asleep at night; her AI knows it too). Messages sit
+in tight groups with her picture beside the last one, small times tucked inside the bubble, typing dots while she
+writes, and pill-shaped day dividers over a faint Gremory circle. Hearts float up when she praises you and the
+screen flashes crimson at the Power of Destruction. DxD quick replies (How's Akeno?, Your peerage, Play chess,
+Motivate me) sit above a single rounded message bar with the camera and mic inside it.
 
 ## Talking to Rias (written lines)
 
