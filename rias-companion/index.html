@@ -49,6 +49,8 @@
   </svg>
 
   <div class="app">
+    <!-- The room behind every screen: crimson glow and drifting motes, lit by the time of day -->
+    <div class="app-bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <header class="top">
       <img class="avatar" src="icons/icon.svg" alt="">
       <div class="who">
@@ -75,7 +77,7 @@
           <div><b id="update-title">A new version of Rias is ready</b><span>Tap to download, then open the file to install. Your data stays.</span></div>
           <button type="button" class="btn-primary sm" id="update-get">Update</button>
         </div>
-        <div class="card next-card" id="next-card"></div>
+        <div class="card next-card holo" id="next-card"></div>
         <div class="tiles">
           <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
           <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
@@ -164,7 +166,7 @@
           <b id="food-date">Today</b>
           <button type="button" id="food-next" aria-label="Next day">›</button>
         </div>
-        <div class="card nutri">
+        <div class="card nutri holo">
           <div class="row-between"><b>Calories</b><button type="button" class="link" id="goals-btn">Goals</button></div>
           <div class="kcal-line"><span class="kcal-big" id="kcal-now">0</span> <span class="muted" id="kcal-goal"></span><span class="kcal-left" id="kcal-left"></span></div>
           <div class="meter" id="kcal-meter"></div>
@@ -203,7 +205,7 @@
               <span id="week-shifts">0 shifts</span>
             </div>
           </div>
-          <div class="next-shift" id="next-shift"></div>
+          <div class="next-shift holo" id="next-shift"></div>
           <div class="timeline" id="week"></div>
           <div class="tl-scale" aria-hidden="true"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
           <p class="sr-only" id="week-hours"></p>

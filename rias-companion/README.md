@@ -200,6 +200,13 @@ In the Android app, **Connect** in **Settings → Phone calendar & other apps** 
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
 
+## The look (4.3)
+
+The whole app shares the scene from the chat and the alarm card: a dark crimson room behind every screen with
+drifting motes of light (stars at night), lit by the time of day; frosted-glass cards with a thin gold-to-crimson
+edge; a slow holo-foil sweep on the cards that matter right now (*Up next* on Home, your next shift, today's
+calories); gold serif labels like the alarm card; glowing crimson main buttons and a glass header and tab bar.
+
 ## Daily life with Rias (4.0)
 
 - **Backup & restore** (Settings → Backup & updates): *Save backup* writes one file with everything (reminders,

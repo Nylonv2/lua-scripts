@@ -908,3 +908,115 @@ dialog.alarm::backdrop { background: rgba(8, 3, 6, .6); backdrop-filter: blur(6p
 @media (prefers-reduced-motion: reduce) {
   .ac-bg-pic, .ac-motes i, .ac-pic, .ac-art-sparks i, .ac-done, .ac-card.enter { animation: none; }
 }
+
+/* =====================================================================
+   Scene theme for the whole app (same feel as the chat and alarm card):
+   a dark crimson room with drifting motes, glass cards with a gold edge,
+   holo foil on the key cards, gold serif labels, glowing buttons.
+   ===================================================================== */
+:root {
+  --panel: rgba(34, 14, 25, .58);
+  --panel-2: rgba(56, 24, 39, .6);
+  --panel-solid: #1b0c14;
+  --line: rgba(255, 255, 255, .09);
+  --line-strong: rgba(255, 255, 255, .16);
+  --muted: #b9a1ad;
+  --glass-blur: blur(16px) saturate(1.25);
+}
+body { background: #0b0608; }
+.app { position: relative; isolation: isolate; }
+.app > .top, .app > main, .app > .tabs { position: relative; z-index: 1; }
+.app-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background:
+    radial-gradient(80% 45% at 50% 18%, rgba(216, 30, 74, .30), transparent 72%),
+    radial-gradient(60% 35% at 10% 0%, rgba(255, 186, 150, .10), transparent 70%),
+    radial-gradient(70% 40% at 90% 100%, rgba(120, 30, 160, .16), transparent 70%),
+    linear-gradient(180deg, #1c0b15 0%, #12080e 55%, #0b0608 100%);
+  transition: background 1.2s; }
+.app[data-period="morning"] .app-bg { background:
+    radial-gradient(80% 45% at 50% 18%, rgba(255, 130, 110, .26), transparent 72%),
+    radial-gradient(60% 38% at 12% 0%, rgba(255, 214, 160, .22), transparent 70%),
+    radial-gradient(70% 40% at 90% 100%, rgba(200, 60, 120, .12), transparent 70%),
+    linear-gradient(180deg, #2a1418 0%, #170b10 55%, #0d0709 100%); }
+.app[data-period="evening"] .app-bg { background:
+    radial-gradient(80% 45% at 50% 18%, rgba(216, 30, 74, .36), transparent 72%),
+    radial-gradient(70% 34% at 50% 0%, rgba(255, 120, 70, .16), transparent 70%),
+    radial-gradient(70% 40% at 90% 100%, rgba(120, 30, 160, .18), transparent 70%),
+    linear-gradient(180deg, #240a17 0%, #14070e 55%, #0b0608 100%); }
+.app[data-period="night"] .app-bg { background:
+    radial-gradient(80% 45% at 50% 18%, rgba(150, 40, 110, .26), transparent 72%),
+    radial-gradient(45% 28% at 85% 4%, rgba(170, 180, 255, .12), transparent 70%),
+    radial-gradient(70% 40% at 10% 100%, rgba(80, 40, 160, .16), transparent 70%),
+    linear-gradient(180deg, #120a1c 0%, #0c0812 55%, #08060a 100%); }
+.app-bg i { position: absolute; bottom: -12px; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 175, 195, .6); filter: blur(1.3px); animation: mote 24s linear infinite; opacity: 0; }
+.app-bg i:nth-child(3n) { background: rgba(233, 184, 102, .65); }
+.app-bg i:nth-child(1) { left: 5%; animation-delay: -2s; } .app-bg i:nth-child(2) { left: 13%; animation-delay: -11s; width: 3px; height: 3px; }
+.app-bg i:nth-child(3) { left: 22%; animation-delay: -17s; } .app-bg i:nth-child(4) { left: 30%; animation-delay: -6s; width: 8px; height: 8px; filter: blur(3px); }
+.app-bg i:nth-child(5) { left: 39%; animation-delay: -20s; } .app-bg i:nth-child(6) { left: 47%; animation-delay: -9s; width: 3px; height: 3px; }
+.app-bg i:nth-child(7) { left: 55%; animation-delay: -14s; } .app-bg i:nth-child(8) { left: 63%; animation-delay: -3s; width: 7px; height: 7px; filter: blur(3px); }
+.app-bg i:nth-child(9) { left: 71%; animation-delay: -18s; } .app-bg i:nth-child(10) { left: 79%; animation-delay: -7s; width: 3px; height: 3px; }
+.app-bg i:nth-child(11) { left: 87%; animation-delay: -12s; } .app-bg i:nth-child(12) { left: 94%; animation-delay: -22s; width: 6px; height: 6px; }
+.app[data-period="night"] .app-bg i { background: #e8e6ff; filter: none; bottom: auto; animation: twinkle 4.5s ease-in-out infinite; }
+.app[data-period="night"] .app-bg i:nth-child(odd) { top: 5%; } .app[data-period="night"] .app-bg i:nth-child(even) { top: 14%; }
+.app[data-period="night"] .app-bg i:nth-child(3n) { top: 24%; } .app[data-period="night"] .app-bg i:nth-child(4n) { top: 34%; }
+
+/* Header and tabs: floating glass */
+.top { background: rgba(14, 7, 11, .42); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-bottom: 1px solid rgba(233, 184, 102, .14); }
+.top .avatar { box-shadow: 0 0 0 2px #e8c477, 0 0 18px rgba(216, 30, 74, .55); }
+.top .name { font-family: Georgia, serif; }
+.tabs { background: rgba(14, 7, 11, .62); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-top: 1px solid rgba(233, 184, 102, .16); }
+.tabs button.active { color: #f3d9a0; }
+.tabs button.active .tab-ic { background: linear-gradient(140deg, rgba(239, 69, 112, .35), rgba(200, 23, 58, .2)); color: #fff; box-shadow: 0 0 18px rgba(236, 61, 102, .45); }
+
+/* Glass cards with a thin gold-to-crimson edge */
+.card, .list-card, .set-group, .tile, .summary, .sched-card, .update-card, .food-entry, .empty-state .empty-ic {
+  position: relative; background: var(--panel); border: 1px solid transparent;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 12px 32px rgba(0, 0, 0, .35); }
+.card::before, .list-card::before, .set-group::before, .tile::before, .summary::before, .sched-card::before, .update-card::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 0;
+  background: linear-gradient(140deg, rgba(240, 207, 133, .6), rgba(255, 255, 255, .06) 32%, rgba(255, 255, 255, .03) 66%, rgba(236, 61, 102, .5));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+.list-card { overflow: hidden; }
+.swipe .row-item { background: var(--panel-solid); }
+.swipe .row-item.done { background: #170a11; }
+
+/* Holo foil on the cards that matter most right now */
+.holo { position: relative; overflow: hidden; }
+.holo::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0; mix-blend-mode: color-dodge; opacity: .22;
+  background: repeating-linear-gradient(115deg, #ff3c78 0%, #ffd23c 6%, #3cffb4 12%, #3cb4ff 18%, #b43cff 24%, #ff3c78 30%);
+  background-size: 300% 300%; animation: holo-sweep 9s ease-in-out infinite alternate;
+  -webkit-mask-image: linear-gradient(110deg, transparent 20%, #000 50%, transparent 80%); mask-image: linear-gradient(110deg, transparent 20%, #000 50%, transparent 80%);
+  -webkit-mask-size: 250% 100%; mask-size: 250% 100%; }
+@keyframes holo-sweep { from { background-position: 0% 50%; -webkit-mask-position: 120% 0; mask-position: 120% 0; } to { background-position: 100% 50%; -webkit-mask-position: -20% 0; mask-position: -20% 0; } }
+.holo > * { position: relative; z-index: 1; }
+
+/* Gold serif labels, like the alarm card */
+.eyebrow, .section-title, .meal-head h3, .group-title, .set-group h2, .tile-label, .next-card .next-label, .ns-label, .field-label, .test-label {
+  font-family: Georgia, "Times New Roman", serif !important; font-style: italic; font-weight: normal !important; letter-spacing: .14em !important;
+  text-transform: uppercase; color: #e8c477 !important; text-shadow: 0 0 14px rgba(233, 184, 102, .25); }
+.page-title, .home-greet h1 { font-family: Georgia, "Times New Roman", serif; font-weight: normal; letter-spacing: .01em; text-shadow: 0 2px 20px rgba(216, 30, 74, .35); }
+.next-shift .ns-label { color: #ffe1a8 !important; }
+
+/* Buttons: glowing crimson for the main action, glass for the rest */
+.btn-primary, button.primary, .stack button.primary, .fab, .plan-week, .tile-btn, .goodnight-btn + .update-card .btn-primary {
+  background: linear-gradient(140deg, #ef4570, #c8173a) !important; border-color: transparent !important; color: #fff;
+  box-shadow: 0 8px 24px rgba(216, 30, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .25); }
+.btn-primary.sm.tonal { background: rgba(255, 255, 255, .08) !important; box-shadow: none; }
+.stack button:not(.primary):not(.danger):not(.btn-primary):not(.mem-del), .segmented, .quick-actions button {
+  background: rgba(40, 17, 29, .5); border: 1px solid rgba(255, 255, 255, .1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.quick-actions .qa-ic { background: linear-gradient(140deg, rgba(239, 69, 112, .3), rgba(200, 23, 58, .15)); box-shadow: 0 0 16px rgba(236, 61, 102, .3); color: #fff; }
+.chip input:checked + span { background: linear-gradient(140deg, rgba(239, 69, 112, .32), rgba(200, 23, 58, .18)); border-color: rgba(240, 207, 133, .6); box-shadow: 0 0 14px rgba(236, 61, 102, .3); }
+input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { background: rgba(20, 9, 15, .6); border-color: rgba(255, 255, 255, .1); }
+
+/* Home: her speech bubble is glass too */
+.bubble { background: rgba(34, 14, 25, .62); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid rgba(240, 207, 133, .28); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+.bubble::after { background: rgba(34, 14, 25, .62); border-color: rgba(240, 207, 133, .28); }
+
+/* Dialogs and sheets stay solid enough to read, with the same gold edge */
+dialog:not(.alarm) { background: linear-gradient(170deg, #2a0e1c, #150910 60%, #100709); border: 1px solid rgba(240, 207, 133, .3); box-shadow: 0 24px 70px rgba(0, 0, 0, .7), 0 0 40px rgba(216, 30, 74, .2); }
+dialog:not(.alarm)::backdrop { background: rgba(8, 3, 6, .6); backdrop-filter: blur(6px); }
+.sheet-actions { background: #150910; }
+.save-bar { background: linear-gradient(180deg, transparent, rgba(11, 6, 8, .9) 40%); }
+@media (prefers-reduced-motion: reduce) { .app-bg i, .holo::after { animation: none; } }

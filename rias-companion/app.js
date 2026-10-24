@@ -1003,6 +1003,7 @@
 
   function renderStatus() {
     if (!state.profile) return;
+    document.querySelector('.app').dataset.period = period();
     const p = pendingItem();
     const nm = nowMin();
     const next = todaysItems().find((it) => toMin(it.time) > nm && !statusOf(it.id));
