@@ -1263,6 +1263,10 @@ button:active, .chip:active span { transform: scale(.97); }
 .perm-txt small { color: var(--muted); font-size: .78rem; }
 .perm-row button { flex: none; padding: 7px 14px; }
 .say-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .88rem; line-height: 1.4; }
+/* Settings sub-headings (e.g. Look & pictures → Pictures) */
+.set-sub { margin: 14px 0 2px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .08); font-family: Georgia, serif; font-style: italic;
+  font-weight: 400; font-size: .95rem; color: #e8c477; }
+.set-group h2 + p + .set-sub, .set-group h2 + .set-sub { border-top: 0; padding-top: 0; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -1527,47 +1531,8 @@ button:active, .chip:active span { transform: scale(.97); }
             </select>
           </label>
           </section>
-          <section class="set-group" data-cat="look">
-          <h2>Home screen</h2>
-          <label>On the Home screen, show
-            <select name="homeChar">
-              <option value="animated">Animated Rias</option>
-              <option value="picture">My chosen picture</option>
-            </select>
-          </label>
-          <label>Rias's outfit
-            <select name="riasOutfit">
-              <option value="auto">Changes with the time and season</option>
-              <option value="uniform">School uniform</option>
-              <option value="pajamas">Pajamas</option>
-              <option value="winter">Winter coat</option>
-              <option value="summer">Summer</option>
-            </select>
-          </label>
-          <label>Theme
-            <select name="theme">
-              <option value="crimson">Crimson (Gremory red)</option>
-              <option value="amethyst">Amethyst</option>
-              <option value="midnight">Midnight blue</option>
-              <option value="gold">Royal gold</option>
-            </select>
-          </label>
-          <label class="switch"><input name="haptics" type="checkbox"> Little vibrations when I tap</label>
-          </section>
-          <section class="set-group" data-cat="look">
-          <h2>Rias's picture</h2>
-          <div class="pic-row">
-            <img class="avatar pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="Rias's current picture">
-            <div class="stack grow">
-              <button type="button" id="pic-choose">Choose from my photos</button>
-              <button type="button" id="pic-reset">Use the default</button>
-            </div>
-          </div>
-          <input type="file" id="pic-file" accept="image/*" hidden>
-          <p class="muted small" id="pic-hint">Shown as her avatar and next to her notifications. It stays on this phone and is never uploaded.</p>
-          </section>
-          <section class="set-group" data-cat="you">
-          <h2>Voice</h2>
+          <section class="set-group" data-cat="voice">
+          <h2>Speaking</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
           <label>Voice type
@@ -1603,6 +1568,98 @@ button:active, .chip:active span { transform: scale(.97); }
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
           </section>
+          <section class="set-group" data-cat="look">
+          <h2>Theme &amp; outfit</h2>
+          <label>Rias's outfit
+            <select name="riasOutfit">
+              <option value="auto">Changes with the time and season</option>
+              <option value="uniform">School uniform</option>
+              <option value="pajamas">Pajamas</option>
+              <option value="winter">Winter coat</option>
+              <option value="summer">Summer</option>
+            </select>
+          </label>
+          <label>Theme
+            <select name="theme">
+              <option value="crimson">Crimson (Gremory red)</option>
+              <option value="amethyst">Amethyst</option>
+              <option value="midnight">Midnight blue</option>
+              <option value="gold">Royal gold</option>
+            </select>
+          </label>
+          <label class="switch"><input name="haptics" type="checkbox"> Little vibrations when I tap</label>
+          </section>
+          <section class="set-group" data-cat="look">
+          <h2>Pictures</h2>
+          <p class="muted small">Every picture of Rias, in one place. Pictures stay on this phone and are never uploaded.</p>
+          <h3 class="set-sub">Home, Chat &amp; notifications</h3>
+          <div class="pic-row">
+            <img class="avatar pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="Rias's current picture">
+            <div class="stack grow">
+              <button type="button" id="pic-choose">Choose from my photos</button>
+              <button type="button" id="pic-reset">Use the default</button>
+            </div>
+          </div>
+          <input type="file" id="pic-file" accept="image/*" hidden>
+          <p class="muted small" id="pic-hint">Shown as her avatar, on Home and in Chat (if picked below), and next to her notifications.</p>
+          <label>On Home and in Chat, show
+            <select name="homeChar">
+              <option value="animated">Animated Rias</option>
+              <option value="picture">My chosen picture</option>
+            </select>
+          </label>
+          <h3 class="set-sub">Alarm card</h3>
+          <div class="field">
+            <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
+            <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
+            <input type="file" id="art-file" accept="image/*" hidden>
+            <div class="row" id="cut-row"><button type="button" id="cut-make">✨ Make the photo pop out</button><button type="button" id="cut-off" hidden>Turn pop-out off</button></div>
+            <p class="small muted" id="cut-hint">The person in your photo steps out over the top of the card. Works best with one clear person or character.</p>
+            <p class="small voice-hint" id="art-hint"></p>
+          </div>
+          <h3 class="set-sub">Home-button pop-up</h3>
+          <div class="pic-row">
+            <img class="pic-preview" id="assist-pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="How she looks in the pop-up">
+            <div class="stack grow">
+              <label>Show
+                <select name="assistChar">
+                  <option value="same">Same as Home</option>
+                  <option value="animated">Animated Rias</option>
+                  <option value="picture">My chosen picture (from above)</option>
+                  <option value="own">A different picture just for the pop-up</option>
+                </select>
+              </label>
+              <small class="muted" id="assist-pic-desc"></small>
+              <button type="button" id="assist-pic-choose" hidden>Choose pop-up picture</button>
+            </div>
+          </div>
+          <input type="file" id="assist-pic-file" accept="image/*" hidden>
+          <p class="muted small" id="assist-pic-hint"></p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Phone assistant button</h2>
+          <p class="muted small">Make Rias your phone's assistant, so long-pressing the home button (or the power button on some phones) opens her instead of Google.</p>
+          <div class="perm-row" id="perm-assistant"></div>
+          <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Home-button pop-up</h2>
+          <label>Style
+            <select name="assistStyle">
+              <option value="quiet">Quiet bubble (she just talks)</option>
+              <option value="full">Full panel (shows the words)</option>
+            </select>
+          </label>
+          <p class="muted small">How she appears when you long-press home. In Quiet, tap the bubble to stop talking early, or to hush her. Her picture in the pop-up is under Look &amp; pictures.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>What she's allowed to do</h2>
+          <div class="perm-row" id="perm-mic"></div>
+          <div class="perm-row" id="perm-calls"></div>
+          <div class="perm-row" id="perm-notifications"></div>
+          <div class="perm-row" id="perm-dnd"></div>
+          <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
+          </section>
           <section class="set-group" data-cat="assist">
           <h2>“Hey Rias”</h2>
           <p class="muted small">Say “Hey Rias” and she answers, without touching your phone. For example: “Hey Rias, set a timer for 10 minutes”.</p>
@@ -1614,48 +1671,7 @@ button:active, .chip:active span { transform: scale(.97); }
             </select>
           </label>
           <p class="small voice-hint" id="wake-hint"></p>
-          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Alarms &amp; notifications) so the assistant can pop up over other apps.</p>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>Phone assistant button</h2>
-          <p class="muted small">Make Rias your phone's assistant, so long-pressing the home button (or the power button on some phones) opens her instead of Google.</p>
-          <div class="perm-row" id="perm-assistant"></div>
-          <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>Pop-up look</h2>
-          <label>Style
-            <select name="assistStyle">
-              <option value="quiet">Quiet: a small Rias bubble, she just answers out loud</option>
-              <option value="full">Full: a panel showing what you said and her words</option>
-            </select>
-          </label>
-          <p class="muted small">How she appears when you long-press home. In Quiet, tap the bubble to stop talking early, or to hush her.</p>
-          <div class="pic-row">
-            <img class="pic-preview" id="assist-pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="How she looks in the pop-up">
-            <div class="stack grow">
-              <label>Show
-                <select name="assistChar">
-                  <option value="same">Same as Home</option>
-                  <option value="animated">Animated Rias</option>
-                  <option value="picture">My chosen picture (from Look &amp; feel)</option>
-                  <option value="own">A different picture just for the pop-up</option>
-                </select>
-              </label>
-              <small class="muted" id="assist-pic-desc"></small>
-              <button type="button" id="assist-pic-choose" hidden>Choose pop-up picture</button>
-            </div>
-          </div>
-          <input type="file" id="assist-pic-file" accept="image/*" hidden>
-          <p class="muted small" id="assist-pic-hint">Pictures stay on this phone and are never uploaded.</p>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>What she's allowed to do</h2>
-          <div class="perm-row" id="perm-mic"></div>
-          <div class="perm-row" id="perm-calls"></div>
-          <div class="perm-row" id="perm-notifications"></div>
-          <div class="perm-row" id="perm-dnd"></div>
-          <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
+          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Reminders &amp; alarms → pop-up check) so she can pop up over other apps.</p>
           </section>
           <section class="set-group" data-cat="assist">
           <h2>Things you can say</h2>
@@ -1670,7 +1686,7 @@ button:active, .chip:active span { transform: scale(.97); }
           <p class="muted small">With her AI on, you can say these any way you like.</p>
           </section>
           <section class="set-group" data-cat="mind">
-          <h2>Rias's mind (AI)</h2>
+          <h2>AI replies</h2>
           <label class="switch"><input name="aiOn" type="checkbox"> Let Rias think up her own replies</label>
           <p class="muted small">She talks about anything, remembers your day, and adds reminders, shifts and food for you when you ask. Needs internet and a key from one of the services below. Without them she uses her written lines.</p>
           <label>AI service
@@ -1789,22 +1805,13 @@ button:active, .chip:active span { transform: scale(.97); }
             <p class="muted small">Ticked types get the big pop-up. The rest come as normal notifications. You can also change it for a single reminder when you edit it.</p>
             <div class="chips" id="alarm-cat-list"></div>
           </fieldset>
-          <div class="field">
-            <span class="field-label">Alarm sound <small>· tap one to hear it</small></span>
-            <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
-            <p class="small voice-hint" id="sound-hint"></p>
-          </div>
           </section>
           <section class="set-group" data-cat="alerts">
-          <h2>Alarm card &amp; sound</h2>
+          <h2>Alarm sound</h2>
           <div class="field">
-            <span class="field-label">Alarm card picture</span>
-            <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
-            <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
-            <input type="file" id="art-file" accept="image/*" hidden>
-            <div class="row" id="cut-row"><button type="button" id="cut-make">✨ Make the photo pop out</button><button type="button" id="cut-off" hidden>Turn pop-out off</button></div>
-            <p class="small muted" id="cut-hint">The person in your photo steps out over the top of the card. Works best with one clear person or character.</p>
-            <p class="small voice-hint" id="art-hint"></p>
+            <p class="muted small">Tap one to hear it. Each reminder can also have its own sound.</p>
+            <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
+            <p class="small voice-hint" id="sound-hint"></p>
           </div>
           <label class="switch"><input name="alarmRing" type="checkbox"> Keep ringing until I answer (stops after 3 minutes)</label>
           <p class="test-label">Try them out</p>
@@ -1838,7 +1845,7 @@ button:active, .chip:active span { transform: scale(.97); }
           </section>
           <section class="set-group" data-cat="data">
           <h2>Data</h2>
-          <button type="button" id="regen">Rebuild default routine</button>
+          <button type="button" id="regen">Reset my daily reminders to the defaults</button>
           <button type="button" id="clear-chat">Clear chat history</button>
           <button type="button" id="reset" class="danger">Reset everything</button>
           </section>
@@ -5959,7 +5966,7 @@ window.createAssistant = function createAssistant(ctx) {
     const allDay = allDayEvents();
     if (allDay.length) extra.push(`All day: ${allDay.map((ev) => ev.title).join(', ')}.`);
     const tail = extra.length ? `\n\n${extra.join(' ')}` : '';
-    if (!list.length) return `Your schedule is empty today. Let's add a few things in the Today tab.${tail}`;
+    if (!list.length) return `Your schedule is empty today. Let's add a few things in the Reminders tab.${tail}`;
     if (!upcoming.length) return `That's everything scheduled for today. Relax a little — you've earned it.${tail}`;
     return `Here's what's next:\n${upcoming.map((it) => `• ${fmtTime(it.time)} — ${it.title}`).join('\n')}${tail}`;
   }
@@ -6476,7 +6483,7 @@ window.createAssistant = function createAssistant(ctx) {
         let flag = '';
         if (st === 'done') row.classList.add('done');
         else if (st === 'skipped') { row.classList.add('skipped'); flag = 'Skipped'; }
-        else if (fired[it.id] && toMin(it.time) <= nm && nm - toMin(it.time) > FIRE_WINDOW_MIN) { row.classList.add('missed'); flag = 'Missed'; }
+        else if (fired[it.id] && fired[it.id] !== 'skip' && toMin(it.time) <= nm && nm - toMin(it.time) > FIRE_WINDOW_MIN) { row.classList.add('missed'); flag = 'Missed'; }
         else if (fired[it.id] && toMin(it.time) <= nm) { row.classList.add('now'); flag = 'Now'; }
         else if (it.id === nextId) { row.classList.add('next'); flag = 'Up next'; }
         row.innerHTML = `<button type="button" class="check" aria-label="Mark done">${ICON('check')}</button>`
@@ -6779,7 +6786,7 @@ window.createAssistant = function createAssistant(ctx) {
   // ---------- food, work, phone calendar, AI ----------
   function silencePast() {
     const f = (state.fired[dateKey()] ||= {});
-    for (const it of todaysItems()) if (toMin(it.time) <= nowMin() && !f[it.id]) f[it.id] = 'silent';
+    for (const it of todaysItems()) if (toMin(it.time) <= nowMin() && !f[it.id]) f[it.id] = 'skip';
   }
   function refresh() { updateSummary(); renderToday(); renderStatus(); }
   const modCtx = {
@@ -6941,7 +6948,7 @@ window.createAssistant = function createAssistant(ctx) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
         state.items.push(item);
-        if (item.repeat !== 'once' || item.date === dateKey()) { if (toMin(time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'silent'; }
+        if (item.repeat !== 'once' || item.date === dateKey()) { if (toMin(time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'skip'; }
         refresh(); save();
         return { ok: true, added: `${title} at ${time}${item.date ? ` on ${item.date}` : ` (${repeat})`}` };
       },
@@ -7282,7 +7289,7 @@ window.createAssistant = function createAssistant(ctx) {
       const item = { id: uid(), ...data };
       state.items.push(item);
       // Don't instantly ping for something created in the past today.
-      if (toMin(item.time) <= nowMin() && (item.repeat !== 'once' || item.date === dateKey())) (state.fired[dateKey()] ||= {})[item.id] = 'silent';
+      if (toMin(item.time) <= nowMin() && (item.repeat !== 'once' || item.date === dateKey())) (state.fired[dateKey()] ||= {})[item.id] = 'skip';
       const on = item.repeat === 'once' && item.date && item.date !== dateKey()
         ? ` on ${new Date(`${item.date}T12:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}` : '';
       addMessage('rias', say(`Noted. I'll remind you: ${item.title} at ${fmtTime(item.time)}${on}.`));
@@ -7722,12 +7729,13 @@ window.createAssistant = function createAssistant(ctx) {
   }
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
-    { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
-    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, the home-button pop-up, phone controls' },
-    { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
+    { k: 'you', icon: '👤', title: 'You', sub: 'Your name, wake-up and bedtime, what she calls you' },
+    { k: 'voice', icon: '🗣️', title: 'Her voice', sub: 'Speaking out loud, voice type, pitch and speed' },
+    { k: 'look', icon: '🎨', title: 'Look & pictures', sub: 'Theme, outfit, and every picture of her' },
+    { k: 'alerts', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
+    { k: 'day', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
-    { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
-    { k: 'day', icon: '📅', title: 'Your day', sub: 'Morning briefing, weather, recap, sleep, calendar, food & water' },
+    { k: 'assist', icon: '🎙', title: 'Assistant', sub: 'Home-button pop-up, phone controls, “Hey Rias”' },
     { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
   ];
   let setCat = null;
@@ -7737,8 +7745,9 @@ window.createAssistant = function createAssistant(ctx) {
     const st = state.settings;
     const extra = {
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
+      voice: st.voice === false ? 'Silent' : st.voiceStyle === 'natural' ? 'Natural AI voice' : 'Phone voice',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
-      assist: { charging: '“Hey Rias” while charging', always: '“Hey Rias” always on' }[st.wakeMode] || '“Hey Rias” off',
+      assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ' · “Hey Rias” while charging', always: ' · “Hey Rias” on' }[st.wakeMode] || ''),
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
       alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
       day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
@@ -8224,6 +8233,7 @@ window.createAssistant = function createAssistant(ctx) {
     const g = sf.elements.aiProvider.value === 'gemini';
     $('#ai-gemini').hidden = !g;
     $('#ai-claude').hidden = g;
+    $('#cost-meter').hidden = g; // Gemini's free key has no bill to track
     $('#ai-hint').textContent = '';
   }
   sf.elements.aiProvider.addEventListener('change', showProvider);
@@ -8327,7 +8337,7 @@ window.createAssistant = function createAssistant(ctx) {
     if (!await ask('Replace your daily routine with the default one? Custom reminders set to "once" are kept.')) return;
     state.items = state.items.filter((it) => it.repeat === 'once').concat(defaultItems(state.profile.wake, state.profile.sleep));
     const fired = (state.fired[dateKey()] ||= {});
-    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
+    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'skip'; // set up after these: not missed
     updateSummary(); save();
     addMessage('rias', say('I\'ve rebuilt your routine around your wake-up and bed times.'));
     show('today');
@@ -8468,11 +8478,11 @@ window.createAssistant = function createAssistant(ctx) {
     // Everything already in the past today is treated as handled so you aren't flooded on day one.
     const today = dateKey();
     const fired = (state.fired[today] = {});
-    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
+    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'skip'; // set up after these: not missed
     state.greeted[today] = true;
     updateSummary();
     $('#onboarding').hidden = true;
-    addMessage('rias', say("Welcome to my household, {name}. I've set up a daily routine for you — you can change anything in the Today tab."));
+    addMessage('rias', say("Welcome to my household, {name}. I've set up a daily routine for you — you can change anything in the Reminders tab."));
     setTimeout(() => {
       addMessage('rias', planText());
       addMessage('rias', say("One more thing: go to Settings and allow notifications, so I can call for you when it's time. Talk to me whenever you like~"));

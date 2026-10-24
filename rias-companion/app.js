@@ -685,7 +685,7 @@
     const allDay = allDayEvents();
     if (allDay.length) extra.push(`All day: ${allDay.map((ev) => ev.title).join(', ')}.`);
     const tail = extra.length ? `\n\n${extra.join(' ')}` : '';
-    if (!list.length) return `Your schedule is empty today. Let's add a few things in the Today tab.${tail}`;
+    if (!list.length) return `Your schedule is empty today. Let's add a few things in the Reminders tab.${tail}`;
     if (!upcoming.length) return `That's everything scheduled for today. Relax a little — you've earned it.${tail}`;
     return `Here's what's next:\n${upcoming.map((it) => `• ${fmtTime(it.time)} — ${it.title}`).join('\n')}${tail}`;
   }
@@ -1202,7 +1202,7 @@
         let flag = '';
         if (st === 'done') row.classList.add('done');
         else if (st === 'skipped') { row.classList.add('skipped'); flag = 'Skipped'; }
-        else if (fired[it.id] && toMin(it.time) <= nm && nm - toMin(it.time) > FIRE_WINDOW_MIN) { row.classList.add('missed'); flag = 'Missed'; }
+        else if (fired[it.id] && fired[it.id] !== 'skip' && toMin(it.time) <= nm && nm - toMin(it.time) > FIRE_WINDOW_MIN) { row.classList.add('missed'); flag = 'Missed'; }
         else if (fired[it.id] && toMin(it.time) <= nm) { row.classList.add('now'); flag = 'Now'; }
         else if (it.id === nextId) { row.classList.add('next'); flag = 'Up next'; }
         row.innerHTML = `<button type="button" class="check" aria-label="Mark done">${ICON('check')}</button>`
@@ -1505,7 +1505,7 @@
   // ---------- food, work, phone calendar, AI ----------
   function silencePast() {
     const f = (state.fired[dateKey()] ||= {});
-    for (const it of todaysItems()) if (toMin(it.time) <= nowMin() && !f[it.id]) f[it.id] = 'silent';
+    for (const it of todaysItems()) if (toMin(it.time) <= nowMin() && !f[it.id]) f[it.id] = 'skip';
   }
   function refresh() { updateSummary(); renderToday(); renderStatus(); }
   const modCtx = {
@@ -1667,7 +1667,7 @@
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
         state.items.push(item);
-        if (item.repeat !== 'once' || item.date === dateKey()) { if (toMin(time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'silent'; }
+        if (item.repeat !== 'once' || item.date === dateKey()) { if (toMin(time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'skip'; }
         refresh(); save();
         return { ok: true, added: `${title} at ${time}${item.date ? ` on ${item.date}` : ` (${repeat})`}` };
       },
@@ -2008,7 +2008,7 @@
       const item = { id: uid(), ...data };
       state.items.push(item);
       // Don't instantly ping for something created in the past today.
-      if (toMin(item.time) <= nowMin() && (item.repeat !== 'once' || item.date === dateKey())) (state.fired[dateKey()] ||= {})[item.id] = 'silent';
+      if (toMin(item.time) <= nowMin() && (item.repeat !== 'once' || item.date === dateKey())) (state.fired[dateKey()] ||= {})[item.id] = 'skip';
       const on = item.repeat === 'once' && item.date && item.date !== dateKey()
         ? ` on ${new Date(`${item.date}T12:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}` : '';
       addMessage('rias', say(`Noted. I'll remind you: ${item.title} at ${fmtTime(item.time)}${on}.`));
@@ -2448,12 +2448,13 @@
   }
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
-    { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
-    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, the home-button pop-up, phone controls' },
-    { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
+    { k: 'you', icon: '👤', title: 'You', sub: 'Your name, wake-up and bedtime, what she calls you' },
+    { k: 'voice', icon: '🗣️', title: 'Her voice', sub: 'Speaking out loud, voice type, pitch and speed' },
+    { k: 'look', icon: '🎨', title: 'Look & pictures', sub: 'Theme, outfit, and every picture of her' },
+    { k: 'alerts', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
+    { k: 'day', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
-    { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
-    { k: 'day', icon: '📅', title: 'Your day', sub: 'Morning briefing, weather, recap, sleep, calendar, food & water' },
+    { k: 'assist', icon: '🎙', title: 'Assistant', sub: 'Home-button pop-up, phone controls, “Hey Rias”' },
     { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
   ];
   let setCat = null;
@@ -2463,8 +2464,9 @@
     const st = state.settings;
     const extra = {
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
+      voice: st.voice === false ? 'Silent' : st.voiceStyle === 'natural' ? 'Natural AI voice' : 'Phone voice',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
-      assist: { charging: '“Hey Rias” while charging', always: '“Hey Rias” always on' }[st.wakeMode] || '“Hey Rias” off',
+      assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ' · “Hey Rias” while charging', always: ' · “Hey Rias” on' }[st.wakeMode] || ''),
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
       alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
       day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
@@ -2950,6 +2952,7 @@
     const g = sf.elements.aiProvider.value === 'gemini';
     $('#ai-gemini').hidden = !g;
     $('#ai-claude').hidden = g;
+    $('#cost-meter').hidden = g; // Gemini's free key has no bill to track
     $('#ai-hint').textContent = '';
   }
   sf.elements.aiProvider.addEventListener('change', showProvider);
@@ -3053,7 +3056,7 @@
     if (!await ask('Replace your daily routine with the default one? Custom reminders set to "once" are kept.')) return;
     state.items = state.items.filter((it) => it.repeat === 'once').concat(defaultItems(state.profile.wake, state.profile.sleep));
     const fired = (state.fired[dateKey()] ||= {});
-    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
+    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'skip'; // set up after these: not missed
     updateSummary(); save();
     addMessage('rias', say('I\'ve rebuilt your routine around your wake-up and bed times.'));
     show('today');
@@ -3194,11 +3197,11 @@
     // Everything already in the past today is treated as handled so you aren't flooded on day one.
     const today = dateKey();
     const fired = (state.fired[today] = {});
-    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'silent';
+    for (const it of state.items) if (toMin(it.time) <= nowMin()) fired[it.id] = 'skip'; // set up after these: not missed
     state.greeted[today] = true;
     updateSummary();
     $('#onboarding').hidden = true;
-    addMessage('rias', say("Welcome to my household, {name}. I've set up a daily routine for you — you can change anything in the Today tab."));
+    addMessage('rias', say("Welcome to my household, {name}. I've set up a daily routine for you — you can change anything in the Reminders tab."));
     setTimeout(() => {
       addMessage('rias', planText());
       addMessage('rias', say("One more thing: go to Settings and allow notifications, so I can call for you when it's time. Talk to me whenever you like~"));

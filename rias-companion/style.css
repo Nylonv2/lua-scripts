@@ -1251,3 +1251,7 @@ button:active, .chip:active span { transform: scale(.97); }
 .perm-txt small { color: var(--muted); font-size: .78rem; }
 .perm-row button { flex: none; padding: 7px 14px; }
 .say-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .88rem; line-height: 1.4; }
+/* Settings sub-headings (e.g. Look & pictures → Pictures) */
+.set-sub { margin: 14px 0 2px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .08); font-family: Georgia, serif; font-style: italic;
+  font-weight: 400; font-size: .95rem; color: #e8c477; }
+.set-group h2 + p + .set-sub, .set-group h2 + .set-sub { border-top: 0; padding-top: 0; margin-top: 4px; }

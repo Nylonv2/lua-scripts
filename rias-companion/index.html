@@ -275,47 +275,8 @@
             </select>
           </label>
           </section>
-          <section class="set-group" data-cat="look">
-          <h2>Home screen</h2>
-          <label>On the Home screen, show
-            <select name="homeChar">
-              <option value="animated">Animated Rias</option>
-              <option value="picture">My chosen picture</option>
-            </select>
-          </label>
-          <label>Rias's outfit
-            <select name="riasOutfit">
-              <option value="auto">Changes with the time and season</option>
-              <option value="uniform">School uniform</option>
-              <option value="pajamas">Pajamas</option>
-              <option value="winter">Winter coat</option>
-              <option value="summer">Summer</option>
-            </select>
-          </label>
-          <label>Theme
-            <select name="theme">
-              <option value="crimson">Crimson (Gremory red)</option>
-              <option value="amethyst">Amethyst</option>
-              <option value="midnight">Midnight blue</option>
-              <option value="gold">Royal gold</option>
-            </select>
-          </label>
-          <label class="switch"><input name="haptics" type="checkbox"> Little vibrations when I tap</label>
-          </section>
-          <section class="set-group" data-cat="look">
-          <h2>Rias's picture</h2>
-          <div class="pic-row">
-            <img class="avatar pic-preview" src="icons/icon.svg" alt="Rias's current picture">
-            <div class="stack grow">
-              <button type="button" id="pic-choose">Choose from my photos</button>
-              <button type="button" id="pic-reset">Use the default</button>
-            </div>
-          </div>
-          <input type="file" id="pic-file" accept="image/*" hidden>
-          <p class="muted small" id="pic-hint">Shown as her avatar and next to her notifications. It stays on this phone and is never uploaded.</p>
-          </section>
-          <section class="set-group" data-cat="you">
-          <h2>Voice</h2>
+          <section class="set-group" data-cat="voice">
+          <h2>Speaking</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
           <label>Voice type
@@ -351,6 +312,98 @@
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
           </section>
+          <section class="set-group" data-cat="look">
+          <h2>Theme &amp; outfit</h2>
+          <label>Rias's outfit
+            <select name="riasOutfit">
+              <option value="auto">Changes with the time and season</option>
+              <option value="uniform">School uniform</option>
+              <option value="pajamas">Pajamas</option>
+              <option value="winter">Winter coat</option>
+              <option value="summer">Summer</option>
+            </select>
+          </label>
+          <label>Theme
+            <select name="theme">
+              <option value="crimson">Crimson (Gremory red)</option>
+              <option value="amethyst">Amethyst</option>
+              <option value="midnight">Midnight blue</option>
+              <option value="gold">Royal gold</option>
+            </select>
+          </label>
+          <label class="switch"><input name="haptics" type="checkbox"> Little vibrations when I tap</label>
+          </section>
+          <section class="set-group" data-cat="look">
+          <h2>Pictures</h2>
+          <p class="muted small">Every picture of Rias, in one place. Pictures stay on this phone and are never uploaded.</p>
+          <h3 class="set-sub">Home, Chat &amp; notifications</h3>
+          <div class="pic-row">
+            <img class="avatar pic-preview" src="icons/icon.svg" alt="Rias's current picture">
+            <div class="stack grow">
+              <button type="button" id="pic-choose">Choose from my photos</button>
+              <button type="button" id="pic-reset">Use the default</button>
+            </div>
+          </div>
+          <input type="file" id="pic-file" accept="image/*" hidden>
+          <p class="muted small" id="pic-hint">Shown as her avatar, on Home and in Chat (if picked below), and next to her notifications.</p>
+          <label>On Home and in Chat, show
+            <select name="homeChar">
+              <option value="animated">Animated Rias</option>
+              <option value="picture">My chosen picture</option>
+            </select>
+          </label>
+          <h3 class="set-sub">Alarm card</h3>
+          <div class="field">
+            <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
+            <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
+            <input type="file" id="art-file" accept="image/*" hidden>
+            <div class="row" id="cut-row"><button type="button" id="cut-make">✨ Make the photo pop out</button><button type="button" id="cut-off" hidden>Turn pop-out off</button></div>
+            <p class="small muted" id="cut-hint">The person in your photo steps out over the top of the card. Works best with one clear person or character.</p>
+            <p class="small voice-hint" id="art-hint"></p>
+          </div>
+          <h3 class="set-sub">Home-button pop-up</h3>
+          <div class="pic-row">
+            <img class="pic-preview" id="assist-pic-preview" src="icons/icon.svg" alt="How she looks in the pop-up">
+            <div class="stack grow">
+              <label>Show
+                <select name="assistChar">
+                  <option value="same">Same as Home</option>
+                  <option value="animated">Animated Rias</option>
+                  <option value="picture">My chosen picture (from above)</option>
+                  <option value="own">A different picture just for the pop-up</option>
+                </select>
+              </label>
+              <small class="muted" id="assist-pic-desc"></small>
+              <button type="button" id="assist-pic-choose" hidden>Choose pop-up picture</button>
+            </div>
+          </div>
+          <input type="file" id="assist-pic-file" accept="image/*" hidden>
+          <p class="muted small" id="assist-pic-hint"></p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Phone assistant button</h2>
+          <p class="muted small">Make Rias your phone's assistant, so long-pressing the home button (or the power button on some phones) opens her instead of Google.</p>
+          <div class="perm-row" id="perm-assistant"></div>
+          <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Home-button pop-up</h2>
+          <label>Style
+            <select name="assistStyle">
+              <option value="quiet">Quiet bubble (she just talks)</option>
+              <option value="full">Full panel (shows the words)</option>
+            </select>
+          </label>
+          <p class="muted small">How she appears when you long-press home. In Quiet, tap the bubble to stop talking early, or to hush her. Her picture in the pop-up is under Look &amp; pictures.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>What she's allowed to do</h2>
+          <div class="perm-row" id="perm-mic"></div>
+          <div class="perm-row" id="perm-calls"></div>
+          <div class="perm-row" id="perm-notifications"></div>
+          <div class="perm-row" id="perm-dnd"></div>
+          <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
+          </section>
           <section class="set-group" data-cat="assist">
           <h2>“Hey Rias”</h2>
           <p class="muted small">Say “Hey Rias” and she answers, without touching your phone. For example: “Hey Rias, set a timer for 10 minutes”.</p>
@@ -362,48 +415,7 @@
             </select>
           </label>
           <p class="small voice-hint" id="wake-hint"></p>
-          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Alarms &amp; notifications) so the assistant can pop up over other apps.</p>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>Phone assistant button</h2>
-          <p class="muted small">Make Rias your phone's assistant, so long-pressing the home button (or the power button on some phones) opens her instead of Google.</p>
-          <div class="perm-row" id="perm-assistant"></div>
-          <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>Pop-up look</h2>
-          <label>Style
-            <select name="assistStyle">
-              <option value="quiet">Quiet: a small Rias bubble, she just answers out loud</option>
-              <option value="full">Full: a panel showing what you said and her words</option>
-            </select>
-          </label>
-          <p class="muted small">How she appears when you long-press home. In Quiet, tap the bubble to stop talking early, or to hush her.</p>
-          <div class="pic-row">
-            <img class="pic-preview" id="assist-pic-preview" src="icons/icon.svg" alt="How she looks in the pop-up">
-            <div class="stack grow">
-              <label>Show
-                <select name="assistChar">
-                  <option value="same">Same as Home</option>
-                  <option value="animated">Animated Rias</option>
-                  <option value="picture">My chosen picture (from Look &amp; feel)</option>
-                  <option value="own">A different picture just for the pop-up</option>
-                </select>
-              </label>
-              <small class="muted" id="assist-pic-desc"></small>
-              <button type="button" id="assist-pic-choose" hidden>Choose pop-up picture</button>
-            </div>
-          </div>
-          <input type="file" id="assist-pic-file" accept="image/*" hidden>
-          <p class="muted small" id="assist-pic-hint">Pictures stay on this phone and are never uploaded.</p>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>What she's allowed to do</h2>
-          <div class="perm-row" id="perm-mic"></div>
-          <div class="perm-row" id="perm-calls"></div>
-          <div class="perm-row" id="perm-notifications"></div>
-          <div class="perm-row" id="perm-dnd"></div>
-          <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
+          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Reminders &amp; alarms → pop-up check) so she can pop up over other apps.</p>
           </section>
           <section class="set-group" data-cat="assist">
           <h2>Things you can say</h2>
@@ -418,7 +430,7 @@
           <p class="muted small">With her AI on, you can say these any way you like.</p>
           </section>
           <section class="set-group" data-cat="mind">
-          <h2>Rias's mind (AI)</h2>
+          <h2>AI replies</h2>
           <label class="switch"><input name="aiOn" type="checkbox"> Let Rias think up her own replies</label>
           <p class="muted small">She talks about anything, remembers your day, and adds reminders, shifts and food for you when you ask. Needs internet and a key from one of the services below. Without them she uses her written lines.</p>
           <label>AI service
@@ -537,22 +549,13 @@
             <p class="muted small">Ticked types get the big pop-up. The rest come as normal notifications. You can also change it for a single reminder when you edit it.</p>
             <div class="chips" id="alarm-cat-list"></div>
           </fieldset>
-          <div class="field">
-            <span class="field-label">Alarm sound <small>· tap one to hear it</small></span>
-            <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
-            <p class="small voice-hint" id="sound-hint"></p>
-          </div>
           </section>
           <section class="set-group" data-cat="alerts">
-          <h2>Alarm card &amp; sound</h2>
+          <h2>Alarm sound</h2>
           <div class="field">
-            <span class="field-label">Alarm card picture</span>
-            <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
-            <div class="row"><button type="button" id="art-photo">📷 Choose a photo for the card</button><button type="button" id="art-preview">👀 Preview</button></div>
-            <input type="file" id="art-file" accept="image/*" hidden>
-            <div class="row" id="cut-row"><button type="button" id="cut-make">✨ Make the photo pop out</button><button type="button" id="cut-off" hidden>Turn pop-out off</button></div>
-            <p class="small muted" id="cut-hint">The person in your photo steps out over the top of the card. Works best with one clear person or character.</p>
-            <p class="small voice-hint" id="art-hint"></p>
+            <p class="muted small">Tap one to hear it. Each reminder can also have its own sound.</p>
+            <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
+            <p class="small voice-hint" id="sound-hint"></p>
           </div>
           <label class="switch"><input name="alarmRing" type="checkbox"> Keep ringing until I answer (stops after 3 minutes)</label>
           <p class="test-label">Try them out</p>
@@ -586,7 +589,7 @@
           </section>
           <section class="set-group" data-cat="data">
           <h2>Data</h2>
-          <button type="button" id="regen">Rebuild default routine</button>
+          <button type="button" id="regen">Reset my daily reminders to the defaults</button>
           <button type="button" id="clear-chat">Clear chat history</button>
           <button type="button" id="reset" class="danger">Reset everything</button>
           </section>
