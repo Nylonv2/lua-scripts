@@ -1229,3 +1229,13 @@ button:active, .chip:active span { transform: scale(.97); }
 .dd-head { flex-wrap: wrap; }
 .dd-head > div { flex: 1; }
 .dd-quick-add { flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(240, 207, 133, .5); background: rgba(var(--a2), .18); color: #fff; font-weight: 600; font-size: .86rem; }
+/* Month: days with one-time reminders or calendar events */
+.m-day.has-rem { border: 1px solid rgba(var(--a2), .85); box-shadow: 0 0 10px rgba(var(--a2), .35), inset 0 0 8px rgba(var(--a2), .15); }
+.m-day.has-rem.today { box-shadow: inset 0 0 0 2px #e8c477, 0 0 10px rgba(var(--a2), .4); }
+.m-dots { display: flex; align-items: center; gap: 2px; height: 6px; }
+.m-dot { width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px rgba(var(--a2), .9); display: inline-block; }
+.m-dot.ev { background: #7fc8ff; box-shadow: 0 0 6px rgba(127, 200, 255, .8); }
+.m-dots small { font-size: .55rem; line-height: 1; color: #fff; }
+.month-legend .lg-rem { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.month-legend .lg-rem .m-dot { width: 6px; height: 6px; }
+.m-dots { position: absolute; top: 5px; left: 0; right: 0; justify-content: center; }

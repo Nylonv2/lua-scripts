@@ -226,7 +226,7 @@ Rias (with AI on) and she'll add them herself.
   under *Little vibrations when I tap*).
 - **Month calendar:** Reminders → *Month* shows the month as a heatmap of how much you got done each day, a gold bar
   on work days and 🌙 on nights you went to bed on time. Tap a day for its reminders (done / missed), shifts,
-  calories, water, sleep and weather; future days show what's planned. Tap **＋ Add** on any day to make a one-time reminder for that date (it opens at 9:00 AM for other days), and tap a reminder in the day's list to edit or delete it (changing a repeating one changes every day it repeats; shifts open the Work tab).
+  calories, water, sleep and weather; future days show what's planned. Days with something special glow with a crimson outline and dots at the top: a white dot per one-time reminder and a blue dot per phone-calendar event (up to three, then "+"); the everyday routine isn't counted since it's on every day. Tap **＋ Add** on any day to make a one-time reminder for that date (it opens at 9:00 AM for other days), and tap a reminder in the day's list to edit or delete it (changing a repeating one changes every day it repeats; shifts open the Work tab).
 - **AI cost meter:** Settings → Rias's mind shows an estimate of this month's Claude spend (from Anthropic's list
   prices and the token counts each reply reports, web searches included) and how many requests she's made. Set a
   *Monthly limit* and, once it's reached, she quietly switches to her written replies until next month. Gemini's

@@ -1953,6 +1953,9 @@
       k, past: k <= today, s, ratio: s && s.total ? s.done / s.total : null,
       shifts: shiftsOn(d), sleepOk: night && minutesPastBedtime(night.at) <= 30, night,
       kcal: (state.food[k] || []).reduce((a, e) => a + ((e.n && e.n.kcal) || 0), 0), water: state.water[k] || 0,
+      // Things special to this day (the daily routine is on every day, so it isn't counted).
+      oneOffs: state.items.filter((it) => it.enabled && it.repeat === 'once' && it.date === k).length,
+      events: state.settings.phoneCalendar ? state.phoneEvents.filter((ev) => evDateKey(ev) === k).length : 0,
     };
   }
   function renderMonth() {
@@ -1973,8 +1976,13 @@
       c.dataset.day = st.k;
       const heat = st.ratio == null ? 0 : st.ratio >= 0.9 ? 4 : st.ratio >= 0.6 ? 3 : st.ratio >= 0.3 ? 2 : st.ratio > 0 ? 1 : 0;
       c.className = `m-day h${st.past ? heat : 0}${d.getMonth() !== monthStart.getMonth() ? ' out' : ''}${st.k === dateKey() ? ' today' : ''}${st.k === monthSel ? ' sel' : ''}${st.past ? '' : ' future'}`;
-      c.innerHTML = `<b>${d.getDate()}</b>${st.shifts.length ? '<i class="m-shift"></i>' : ''}${st.sleepOk ? '<em>🌙</em>' : ''}`;
-      c.setAttribute('aria-label', d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }));
+      const special = st.oneOffs + st.events;
+      if (special) c.classList.add('has-rem');
+      const dots = '<i class="m-dot"></i>'.repeat(Math.min(st.oneOffs, 3)) + '<i class="m-dot ev"></i>'.repeat(Math.min(st.events, Math.max(0, 3 - st.oneOffs)));
+      c.innerHTML = `<b>${d.getDate()}</b>${special ? `<span class="m-dots">${dots}${special > 3 ? '<small>+</small>' : ''}</span>` : ''}`
+        + `${st.shifts.length ? '<i class="m-shift"></i>' : ''}${st.sleepOk ? '<em>🌙</em>' : ''}`;
+      c.setAttribute('aria-label', d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
+        + (special ? `, ${special} reminder${special === 1 ? '' : 's'}` : ''));
       grid.append(c);
     }
     renderDayDetail();
