@@ -200,6 +200,15 @@ In the Android app, **Connect** in **Settings → Phone calendar & other apps** 
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
 
+## Talk to her from the home screen (5.4)
+
+- **Chat widget.** Long-press your home screen → Widgets → Rias → **Rias · Chat**. It shows her picture and her latest line, two quick buttons ("How's my day?", "Talk to me"), a **Say something to Rias…** bar and a 🎙 mic.
+- **Tap the bar** for a small chat box over your home screen (type, or tap 🎙 to speak). It closes when you send.
+- **Her answer comes as a notification**, shown as a conversation with her picture. Tap **Reply** to keep talking without opening the app.
+- **Her regular notifications have Reply too**, so you can answer her check-ins.
+- It's the same Rias as in the app: same AI, memory and chat history. Reminders she adds this way get scheduled. When you open the app, the conversation is there.
+- With her AI off she answers with her written lines. She needs the app opened once (to set up your profile) before the widget can talk.
+
 ## What's new in 5.0
 
 - **Immersive alarm card:** alarm-style reminders pop up as a full-art card, the kind where the art fills the whole

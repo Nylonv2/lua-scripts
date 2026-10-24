@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Rias's AI replies (only if you add an API key) talk to api.anthropic.com. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Answering widget/notification messages in the background -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Exact reminder times: granted at install on Android 13+, user-grantable on 12. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
@@ -82,6 +84,28 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/rias_widget_info" />
         </receiver>
+
+        <!-- Chat widget: talk to her from the home screen -->
+        <receiver android:name=".RiasChatWidget" android:exported="true" android:label="@string/chat_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/rias_chat_widget_info" />
+        </receiver>
+
+        <activity
+            android:name=".QuickChatActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity="com.nylonv2.riascompanion.quickchat"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="stateVisible|adjustResize"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <service
+            android:name=".RiasReplyService"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
 
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>

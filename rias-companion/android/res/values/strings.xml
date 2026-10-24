@@ -4,4 +4,6 @@
     <string name="widget_label">Rias · Up next</string>
     <string name="widget_open">Open Rias to start</string>
     <string name="widget_desc">What\'s next, and a word from Rias</string>
+    <string name="chat_widget_desc">Talk to Rias from your home screen; she answers in a notification</string>
+    <string name="chat_widget_label">Rias · Chat</string>
 </resources>

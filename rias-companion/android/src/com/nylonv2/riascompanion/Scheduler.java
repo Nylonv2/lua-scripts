@@ -459,7 +459,10 @@ final class Scheduler {
                 .setColor(0xFFC8173A)
                 .setAutoCancel(true)
                 .setShowWhen(true)
-                .setContentIntent(tap);
+                .setContentIntent(tap)
+                // Answer her right from the notification; she replies in a chat notification.
+                .addAction(RiasReplyService.replyAction(c, id));
+        ChatLog.add(c, "rias", text);
         // Your chosen picture of Rias, shown beside the message.
         android.graphics.Bitmap pic = picture(c);
         if (pic != null) b.setLargeIcon(pic);

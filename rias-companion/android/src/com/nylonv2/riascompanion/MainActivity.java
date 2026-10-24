@@ -691,6 +691,13 @@ public class MainActivity extends Activity {
             RiasWidget.save(ctx, json);
         }
 
+        /** Her latest line in the app, for the chat widget. */
+        @JavascriptInterface
+        public void setChatLast(String text) {
+            ChatLog.setLast(ctx, text);
+            RiasChatWidget.update(ctx);
+        }
+
         /** The installed app's version, for the update check. */
         @JavascriptInterface
         public String appVersion() {

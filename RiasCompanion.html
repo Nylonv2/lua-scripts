@@ -4651,6 +4651,9 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
 
   const R = window.RIAS;
   const KEY = 'rias-companion-v1';
+  // Hidden copy of the app the Android chat widget / notification replies talk to (RiasReplyService):
+  // same AI, memory and chat history, but no timers, greetings, sounds or pop-ups of its own.
+  const HEADLESS = location.hash === '#headless';
   const FIRE_WINDOW_MIN = 45;   // items older than this when first noticed are marked "missed" instead of pinging
   const SNOOZE_MIN = 10;
   const MAX_MESSAGES = 200;
@@ -4742,9 +4745,14 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   state.settings = { ...blank().settings, ...state.settings };
   state.ai = { ...blank().ai, ...state.ai };
   let restoring = false; // a backup is being restored: don't overwrite it before the reload
+  // What this copy last wrote. If storage holds something else, the other copy (the app, or the
+  // hidden one answering the chat widget) changed it: reload to pick that up instead of overwriting it.
+  let lastSaved = localStorage.getItem(KEY);
+  const changedElsewhere = () => { try { return localStorage.getItem(KEY) !== lastSaved; } catch { return false; } };
   const save = () => {
     if (restoring) return;
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full / private mode */ }
+    if (!HEADLESS && changedElsewhere()) { restoring = true; location.reload(); return; }
+    try { lastSaved = JSON.stringify(state); localStorage.setItem(KEY, lastSaved); } catch { /* storage full / private mode */ }
     syncNative();
   };
 
@@ -4934,7 +4942,10 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     if (from === 'rias') state.lastRias = m.ts;
     save();
     renderFeed();
-    if (from === 'rias') { speak(text); Chat.noteRias(text); showToast(m); chatEffects(text); }
+    if (from === 'rias' && !HEADLESS) {
+      speak(text); Chat.noteRias(text); showToast(m); chatEffects(text);
+      try { if (Native && Native.setChatLast) Native.setChatLast(text); } catch { /* older app */ }
+    }
     return m;
   }
 
@@ -6010,7 +6021,7 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     }
     // She "types" each message for a time that fits its length.
     const lines = r == null ? [] : [].concat(r);
-    const typeTime = (line) => Math.min(2600, 500 + line.length * 18 + Math.random() * 400);
+    const typeTime = (line) => (HEADLESS ? 30 : Math.min(2600, 500 + line.length * 18 + Math.random() * 400));
     const next = (i) => {
       if (i >= lines.length) { renderStatus(); save(); return; }
       if (i === 0 && aiTyped) { addMessage('rias', lines[0]); next(1); return; }
@@ -7598,6 +7609,34 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   applyPicture(loadPicture());
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
+  // The chat widget's hidden copy: answer one message at a time and hand her lines back.
+  if (HEADLESS) {
+    const H = window.RiasHeadless;
+    const busy = () => $('#view-chat').classList.contains('thinking');
+    window.riasHeadlessSay = async (text) => {
+      const lines = [];
+      try {
+        if (!state.profile) {
+          lines.push('Open the app once so I can get to know you first, then we can talk from here~');
+        } else {
+          const from = state.messages.length ? state.messages[state.messages.length - 1].id : null;
+          await userSays(text);
+          // Wait for all of her messages (and any tool work) to land.
+          let quiet = 0, n = state.messages.length;
+          for (let t = 0; t < 600 && quiet < 12; t++) {
+            await new Promise((r) => setTimeout(r, 100));
+            if (state.messages.length !== n || busy()) { n = state.messages.length; quiet = 0; } else quiet++;
+          }
+          const start = state.messages.findIndex((m) => m.id === from) + 1;
+          for (const m of state.messages.slice(start)) if (m.from === 'rias' && m.text) lines.push(m.text);
+        }
+      } catch { /* the service answers with a fallback line */ }
+      try { H.reply(JSON.stringify(lines)); } catch { /* not in the service */ }
+    };
+    try { if (H) H.ready(); } catch { /* not in the service */ }
+    return;
+  }
+
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;
@@ -7621,6 +7660,8 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
+    // You talked to her from the widget while the app was in the background: show that conversation.
+    if (changedElsewhere()) { restoring = true; location.reload(); return; }
     housekeeping();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
     if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); }
