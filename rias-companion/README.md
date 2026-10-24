@@ -90,7 +90,7 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
 - **Chat**: talk to Rias by typing or with 🎙.
 - **Reminders**: today's reminders grouped into Morning / Afternoon / Evening / Night, with All / To do / Done
   filters, round checkboxes, *Up next* / *Missed* tags, ⏰ for alarm-style ones, and your work shifts and phone-calendar
-  events alongside. A card offers to connect your phone calendar. *New reminder* opens a bottom sheet with tap-to-pick
+  events alongside (connect the calendar in Settings). *New reminder* opens a bottom sheet with tap-to-pick
   repeat, type and pop-up style.
 - **Food**: a food diary (breakfast, lunch, dinner, snacks, each marked healthy / normal / treat) with **calories and
   macros**: today's calories against your goal, protein / carbs / fat bars, fiber and sugar, kcal on every entry and
@@ -99,8 +99,10 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   nutrition and logs it; in the add-food form, **✨ Ask Rias to estimate** fills the numbers, and you can always type
   or fix them yourself. Her numbers are estimates. Plus a water tracker with a daily goal and a diary streak. After a meal reminder, Rias asks what you had; at 9 PM she nudges you if
   dinner isn't logged, and at 3 PM if you're behind on water.
-- **Work**: weekly or one-off shifts (overnight shifts work too), a 7-day overview with total hours, and a
-  "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
+- **Work**: your schedule sits at the top: this week's hours and shift count, a **Next shift** card with a countdown
+  (or time left while you're on shift), and a 7-day timeline with each shift's times on a 24-hour bar (today
+  highlighted, days off greyed). Below are your saved shifts (weekly or one-off; overnight shifts work too) and a
+  "remind me to leave" time, with the planning tools at the bottom. Rias reminds you when to leave, when the shift starts, and when it ends.
   **🗓️ Plan my week** sets a whole week on one screen: tap Start and End on each day you work and pick the time with
   the tap picker (hour, :00/:15/:30/:45, ±5 min, AM/PM; a start alone fills an end 8 hours later) and leave days off blank; ✕ clears a day, ↺ copies the day above, *Copy last week*,
   ‹ › to plan ahead, and *Repeat this every week* (starts from that week; earlier weeks keep their plan). Or paste/type your schedule: "Mon 9-5", "Tue off", "Wed-Fri 12-8",
@@ -109,7 +111,7 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   **📷 Photo of your schedule:** with Rias's AI on (a free Gemini key works), tap 📷 in the chat (or *Send Rias a
   photo of your schedule* on the Work tab) and pick a photo or screenshot. She reads it, finds your row by your
   name, adds each shift (re-sending the same week replaces instead of doubling), and tells you what she added.
-- **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, phone calendar, food reminders, check-ins.
+- **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, phone calendar & other apps, food reminders, check-ins.
 
 ## Pop-ups
 
@@ -156,11 +158,11 @@ REST API directly (`ai.js`).
 
 ## Sync from your phone
 
-The top of **Reminders** has a *Sync from your phone* section:
+**Settings → Phone calendar & other apps**:
 
 - **Phone calendar:** *Connect* asks for calendar permission; once connected it shows how many events it found, when
   it last synced, and a *Sync now* button. If permission was denied, *Allow* asks again and a link opens Rias's page
-  in Android settings.
+  in Android settings. *Disconnect phone calendar* turns it off and clears the synced events.
 - **Share → Rias:** in Samsung Reminder, Google Keep, Messages or any app, open a reminder and tap **Share → Rias**.
   With her AI on she creates the reminder (with the right time); without it the new-reminder sheet opens filled in
   (title and any time like "4:30pm"). Sharing a screenshot or photo sends it to her chat, so a schedule becomes shifts
@@ -170,7 +172,7 @@ Every time box in the app opens the same tap picker, so it works the same on eve
 
 ## Phone calendar
 
-In the Android app, **Connect calendar** on the Reminders page (or **Settings → Phone calendar**) shows events from Samsung Calendar and Google Calendar in Today
+In the Android app, **Connect** in **Settings → Phone calendar & other apps** shows events from Samsung Calendar and Google Calendar in Today
 (all-day events at the top) and Rias reminds you at their start time. Android doesn't let other apps read
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.

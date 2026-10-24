@@ -645,3 +645,46 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
 .app[data-view="chat"] .top { display: none; }
 .app[data-view="chat"] .chat-head { padding-top: calc(env(safe-area-inset-top) + 10px); }
 .chat-head .gear { margin-left: 0; }
+
+/* Work schedule (top of the Work tab) */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sched-card { padding: 16px; margin-bottom: 18px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.sched-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+.sched-stats { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.sched-stats b { font-size: 1.5rem; font-weight: 700; }
+.sched-stats span { font-size: .78rem; color: var(--muted); }
+.next-shift { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 14px; border-radius: 16px;
+  background: linear-gradient(135deg, var(--crimson), #7d0d27); box-shadow: 0 8px 24px rgba(216, 30, 74, .28); }
+.next-shift > div:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.next-shift.none { flex-direction: column; align-items: flex-start; gap: 2px; background: var(--panel-2); box-shadow: none; border: 1px dashed var(--line); }
+.ns-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #ffd0da; }
+.next-shift.none .ns-label { color: var(--crimson-2); }
+.ns-time { font-size: 1.08rem; font-weight: 700; }
+.ns-sub { font-size: .82rem; color: #f3c4cf; }
+.next-shift.none .ns-sub { color: var(--muted); }
+.ns-count { flex: none; display: flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 12px; background: rgba(0, 0, 0, .22); line-height: 1.1; }
+.ns-count b { font-size: 1.1rem; }
+.ns-count span { font-size: .7rem; color: #f3c4cf; }
+.timeline { display: flex; flex-direction: column; gap: 4px; }
+.tl-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; }
+.tl-row.today { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--crimson-2); }
+.tl-day { display: flex; flex-direction: column; line-height: 1.15; }
+.tl-day b { font-size: .92rem; }
+.tl-day span { font-size: .72rem; color: var(--muted); }
+.tl-row:not(.on) .tl-day b { color: var(--muted); font-weight: 600; }
+.tl-body { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tl-pill { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: .84rem; font-weight: 600; }
+.tl-pill small { font-weight: 500; color: var(--muted); font-size: .74rem; }
+.tl-off { font-size: .84rem; color: var(--muted); }
+.tl-bar { position: relative; flex-basis: 100%; height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.tl-bar i { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--crimson-2), var(--crimson)); }
+.tl-now { position: absolute; top: -1px; bottom: -1px; width: 2px; background: var(--gold); }
+.tl-scale { display: flex; justify-content: space-between; margin: 4px 10px 0 76px; font-size: .64rem; color: var(--muted); }
+.plan-area { margin-top: 18px; }
+.plan-area .work-photo { margin: -4px auto 4px; }
+
+/* Settings > Phone calendar & other apps */
+.sync-box { padding: 4px 14px; border-radius: var(--radius-sm, 12px); background: var(--panel-2); border: 1px solid var(--line); }
+.settings .sync-box button.btn-text { background: none; border: 0; }
+.settings .sync-box .btn-primary.sm { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+.settings .sync-box .btn-primary.sm.tonal { background: var(--panel); border-color: var(--line); color: var(--text); }

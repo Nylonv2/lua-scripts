@@ -16,26 +16,91 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     : (sh.days || []).length === 7 ? 'Every day' : (sh.days || []).map((d) => DAYS[d]).join(', '));
 
   function render() {
-    // Next 7 days at a glance.
+    // Next 7 days at a glance: a hero "next shift" card plus a day-by-day timeline.
     const week = $('#week');
     week.textContent = '';
-    let total = 0;
+    let total = 0, count = 0, next = null;
+    const now = new Date();
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(d.getDate() + i);
-      const list = ctx.shiftsOn(d);
+      const list = ctx.shiftsOn(d).slice().sort((x, y) => toMin(x.start) - toMin(y.start));
       const row = document.createElement('div');
-      row.className = `week-row${list.length ? ' on' : ''}`;
-      const day = document.createElement('b');
-      day.textContent = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
-      const what = document.createElement('span');
-      what.textContent = list.length
-        ? list.map((sh) => `${fmtTime(sh.start)} – ${fmtTime(sh.end)} · ${sh.label || 'Work'}`).join('  |  ')
-        : 'Off';
-      row.append(day, what);
+      row.className = `tl-row${list.length ? ' on' : ''}${i === 0 ? ' today' : ''}`;
+      const day = document.createElement('div');
+      day.className = 'tl-day';
+      day.innerHTML = '<b></b><span></span>';
+      day.querySelector('b').textContent = i === 0 ? 'Today' : d.toLocaleDateString([], { weekday: 'short' });
+      day.querySelector('span').textContent = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const body = document.createElement('div');
+      body.className = 'tl-body';
+      const bar = document.createElement('div');
+      bar.className = 'tl-bar';
+      if (!list.length) {
+        const off = document.createElement('span');
+        off.className = 'tl-off';
+        off.textContent = 'Day off';
+        body.append(off);
+      }
+      for (const sh of list) {
+        const pill = document.createElement('span');
+        pill.className = 'tl-pill';
+        pill.textContent = `${fmtTime(sh.start)} – ${fmtTime(sh.end)}`;
+        if (sh.label && sh.label !== 'Work') {
+          const lab = document.createElement('small');
+          lab.textContent = sh.label;
+          pill.append(lab);
+        }
+        body.append(pill);
+        // Bar segment(s) on a 24h track; overnight shifts wrap to midnight.
+        const s0 = toMin(sh.start), e0 = toMin(sh.end);
+        const segs = e0 > s0 ? [[s0, e0]] : [[s0, 1440]];
+        for (const [from, to] of segs) {
+          const seg = document.createElement('i');
+          seg.style.left = `${(from / 1440) * 100}%`;
+          seg.style.width = `${((to - from) / 1440) * 100}%`;
+          bar.append(seg);
+        }
+        total += hours(sh);
+        count++;
+        const start = new Date(d); start.setHours(0, s0, 0, 0);
+        const end = new Date(start.getTime() + hours(sh) * 3600000);
+        if (end > now && (!next || start < next.start)) next = { sh, start, end };
+      }
+      if (i === 0) {
+        const mark = document.createElement('b');
+        mark.className = 'tl-now';
+        mark.style.left = `${((now.getHours() * 60 + now.getMinutes()) / 1440) * 100}%`;
+        bar.append(mark);
+      }
+      body.append(bar);
+      row.append(day, body);
       week.append(row);
-      for (const sh of list) total += hours(sh);
     }
-    $('#week-hours').textContent = total ? `${Math.round(total * 10) / 10} hours of work in the next 7 days.` : 'No shifts in the next 7 days.';
+    const hrs = Math.round(total * 10) / 10;
+    $('#week-hours-big').textContent = `${hrs} h`;
+    $('#week-shifts').textContent = `${count} shift${count === 1 ? '' : 's'}`;
+    $('#week-hours').textContent = total ? `${hrs} hours of work in the next 7 days.` : 'No shifts in the next 7 days.';
+
+    const ns = $('#next-shift');
+    ns.textContent = '';
+    ns.classList.toggle('none', !next);
+    if (!next) {
+      ns.innerHTML = '<span class="ns-label">No shifts coming up</span><span class="ns-sub">Plan your week below or tap ＋ to add a shift.</span>';
+    } else {
+      const live = next.start <= now;
+      const mins = Math.round(((live ? next.end : next.start) - now) / 60000);
+      const left = mins >= 1440 ? `${Math.floor(mins / 1440)}d ${Math.floor((mins % 1440) / 60)}h`
+        : mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+      const dayName = dateKey(next.start) === dateKey(now) ? 'Today'
+        : dateKey(next.start) === dateKey(new Date(now.getTime() + 86400000)) ? 'Tomorrow'
+          : next.start.toLocaleDateString([], { weekday: 'long' });
+      ns.innerHTML = '<div><span class="ns-label"></span><b class="ns-time"></b><span class="ns-sub"></span></div><div class="ns-count"><b></b><span></span></div>';
+      ns.querySelector('.ns-label').textContent = live ? 'On shift now' : 'Next shift';
+      ns.querySelector('.ns-time').textContent = `${dayName} · ${fmtTime(next.sh.start)} – ${fmtTime(next.sh.end)}`;
+      ns.querySelector('.ns-sub').textContent = `${next.sh.label || 'Work'} · ${Math.round(hours(next.sh) * 10) / 10} h`;
+      ns.querySelector('.ns-count b').textContent = left;
+      ns.querySelector('.ns-count span').textContent = live ? 'left' : 'to go';
+    }
 
     // Saved shifts.
     const ul = $('#shifts');

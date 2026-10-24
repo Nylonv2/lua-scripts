@@ -155,19 +155,6 @@
             </div>
           </div>
         </div>
-        <section class="sync-card" id="sync-card" aria-labelledby="sync-title">
-          <h3 class="sync-title" id="sync-title">Sync from your phone</h3>
-          <div class="sync-row">
-            <span class="sync-ic cal"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
-            <div class="sync-text"><b>Phone calendar</b><span id="cal-status"></span></div>
-            <button type="button" class="btn-primary sm" id="cal-action"></button>
-          </div>
-          <button type="button" class="btn-text sync-link" id="cal-app-settings" hidden>Open Android settings to allow calendar access</button>
-          <div class="sync-row">
-            <span class="sync-ic share"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg></span>
-            <div class="sync-text"><b>Reminders from other apps</b><span>In Samsung Reminder or any app, open a reminder, tap <b>Share</b>, then pick <b>Rias</b>. Screenshots work too.</span></div>
-          </div>
-        </section>
         <div class="segmented" id="today-filter" role="tablist" aria-label="Show">
           <button type="button" data-f="all" class="active" role="tab">All</button>
           <button type="button" data-f="todo" role="tab">To do</button>
@@ -213,14 +200,23 @@
 
       <!-- Work schedule -->
       <section class="view pad" id="view-work" hidden>
-        <button type="button" class="plan-week" id="plan-week">🗓️ Plan my week<small>Set every day at once, paste a schedule, or copy last week</small></button>
-        <button type="button" class="link work-photo" id="work-photo">📷 Or send Rias a photo of your schedule</button>
-        <div class="card">
-          <b>Next 7 days</b>
-          <div class="week" id="week"></div>
-          <p class="muted small" id="week-hours"></p>
-        </div>
-        <h3 class="section-title">Your shifts</h3>
+        <section class="sched-card" aria-labelledby="sched-title">
+          <div class="sched-head">
+            <div>
+              <p class="eyebrow">Work schedule</p>
+              <h1 class="page-title" id="sched-title">Next 7 days</h1>
+            </div>
+            <div class="sched-stats">
+              <b id="week-hours-big">0 h</b>
+              <span id="week-shifts">0 shifts</span>
+            </div>
+          </div>
+          <div class="next-shift" id="next-shift"></div>
+          <div class="timeline" id="week"></div>
+          <div class="tl-scale" aria-hidden="true"><span>12a</span><span>6a</span><span>12p</span><span>6p</span><span>12a</span></div>
+          <p class="sr-only" id="week-hours"></p>
+        </section>
+        <h3 class="section-title">Saved shifts</h3>
         <ul class="items" id="shifts"></ul>
         <form class="card stack" id="work-settings">
           <label>Remind me to leave
@@ -237,6 +233,10 @@
           </label>
           <label class="switch"><input name="workReminders" type="checkbox"> Rias reminds me before and after shifts</label>
         </form>
+        <div class="plan-area">
+        <button type="button" class="plan-week" id="plan-week">🗓️ Plan my week<small>Set every day at once, paste a schedule, or copy last week</small></button>
+        <button type="button" class="link work-photo" id="work-photo">📷 Or send Rias a photo of your schedule</button>
+        </div>
         <button class="fab" id="shift-add" type="button" aria-label="Add shift"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
       </section>
 
@@ -335,9 +335,20 @@
           <p class="small voice-hint" id="ai-hint"></p>
           </section>
           <section class="set-group">
-          <h2>Phone calendar</h2>
-          <label class="switch"><input name="phoneCalendar" type="checkbox"> Show my phone's calendar events</label>
-          <p class="muted small" id="calendar-hint"></p>
+          <h2>Phone calendar &amp; other apps</h2>
+          <div class="sync-box">
+          <div class="sync-row">
+            <span class="sync-ic cal"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
+            <div class="sync-text"><b>Phone calendar</b><span id="cal-status"></span></div>
+            <button type="button" class="btn-primary sm" id="cal-action"></button>
+          </div>
+          <button type="button" class="btn-text sync-link" id="cal-disconnect" hidden>Disconnect phone calendar</button>
+          <button type="button" class="btn-text sync-link" id="cal-app-settings" hidden>Open Android settings to allow calendar access</button>
+          <div class="sync-row">
+            <span class="sync-ic share"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg></span>
+            <div class="sync-text"><b>Reminders from other apps</b><span>In Samsung Reminder or any app, open a reminder, tap <b>Share</b>, then pick <b>Rias</b>. Screenshots work too.</span></div>
+          </div>
+          </div>
           </section>
           <section class="set-group">
           <h2>Food &amp; water</h2>

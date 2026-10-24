@@ -706,8 +706,6 @@
     const s = streak();
     $('#streak-text').textContent = s ? `done · 🔥 ${s}-day streak` : 'done today';
 
-    renderSync();
-
     const allDay = allDayEvents();
     $('#allday').hidden = !allDay.length;
     $('#allday').textContent = allDay.length ? `📅 All day · ${allDay.map((ev) => ev.title).join(' · ')}` : '';
@@ -777,11 +775,12 @@
     todayFilter = b.dataset.f;
     renderToday();
   });
-  // "Sync from your phone": phone calendar status + the share-to-Rias tip.
+  // Settings > "Phone calendar & other apps": phone calendar status + the share-to-Rias tip.
   function renderSync() {
     const N = window.RiasNative;
     const status = $('#cal-status'), btn = $('#cal-action');
     $('#cal-app-settings').hidden = true;
+    $('#cal-disconnect').hidden = !state.settings.phoneCalendar;
     if (!(N && N.calendarEvents)) {
       status.textContent = 'Available in the Android app.';
       btn.hidden = true;
@@ -789,7 +788,7 @@
     }
     btn.hidden = false;
     if (!state.settings.phoneCalendar) {
-      status.textContent = 'Not connected. Shows Samsung & Google Calendar events here.';
+      status.textContent = 'Not connected. Shows Samsung & Google Calendar events in Reminders.';
       btn.textContent = 'Connect';
       btn.classList.remove('tonal');
     } else if (!N.hasCalendarPermission()) {
@@ -816,7 +815,15 @@
       syncCalendar();
       refresh();
     }
-    renderToday();
+    renderSync();
+  });
+  $('#cal-disconnect').addEventListener('click', () => {
+    state.settings.phoneCalendar = false;
+    state.phoneEvents = [];
+    state.calSyncedAt = 0;
+    save();
+    refresh();
+    renderSync();
   });
   $('#cal-app-settings').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openAppSettings) N.openAppSettings(); });
 
@@ -1139,9 +1146,8 @@
   window.riasPermission = (what, granted) => {
     if (what !== 'calendar') return;
     if (granted) { syncCalendar(); refresh(); addMessage('rias', say("I can see your calendar now, {name}. I'll remind you about those events too.")); }
-    // Denied: keep it switched on so Reminders shows "Allow" and the Android settings link.
-    renderToday();
-    if (!$('#view-settings').hidden) fillSettings();
+    // Denied: keep it switched on so Settings shows "Allow" and the Android settings link.
+    renderSync();
   };
   function enableCalendar() {
     const N = window.RiasNative;
@@ -1570,24 +1576,16 @@
     sf.elements.geminiKey.value = state.ai.geminiKey;
     sf.elements.aiModel.value = state.ai.model;
     showProvider();
-    sf.elements.phoneCalendar.checked = state.settings.phoneCalendar;
     sf.elements.foodReminders.checked = state.settings.foodReminders;
     sf.elements.waterGoal.value = String(state.settings.waterGoal);
-    const N = window.RiasNative;
-    $('#calendar-hint').textContent = !(N && N.calendarEvents)
-      ? 'Phone calendar sync works in the Android app.'
-      : state.settings.phoneCalendar
-        ? `Showing ${state.phoneEvents.length} event${state.phoneEvents.length === 1 ? '' : 's'} from your phone's calendar for the next week.`
-        : 'Shows events from Samsung Calendar and Google Calendar in Today, and Rias reminds you about them.';
+    renderSync();
   }
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
-    const calWas = state.settings.phoneCalendar;
     Object.assign(state.settings, {
-      phoneCalendar: sf.elements.phoneCalendar.checked,
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
       homeChar: sf.elements.homeChar.value,
@@ -1598,8 +1596,6 @@
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
       key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),
     });
-    if (state.settings.phoneCalendar && !calWas) enableCalendar();
-    if (!state.settings.phoneCalendar) state.phoneEvents = [];
     applyNativeVoice();
     save();
     show('home');
