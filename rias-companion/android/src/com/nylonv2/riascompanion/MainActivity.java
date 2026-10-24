@@ -40,6 +40,9 @@ public class MainActivity extends Activity {
     private static final int REQ_LISTEN = 42;
     private static final int REQ_CALENDAR = 2;
     private static final int REQ_FILE = 43;
+    private static final int REQ_SAVE = 44;
+    /** Backup text waiting for the user to pick where to save it. */
+    private String pendingSave;
     private android.webkit.ValueCallback<Uri[]> fileCallback;
     private WebView web;
     private boolean pageReady;
@@ -79,10 +82,17 @@ public class MainActivity extends Activity {
                     FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
-                Intent pick = new Intent(Intent.ACTION_GET_CONTENT).setType("image/*")
-                        .addCategory(Intent.CATEGORY_OPENABLE);
+                boolean backup = false;
+                for (String t : params.getAcceptTypes()) if (t != null && t.contains("json")) backup = true;
+                Intent pick = new Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE);
+                if (backup) {
+                    pick.setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES,
+                            new String[] {"application/json", "text/plain", "application/octet-stream"});
+                } else {
+                    pick.setType("image/*");
+                }
                 try {
-                    startActivityForResult(Intent.createChooser(pick, "Choose Rias's picture"), REQ_FILE);
+                    startActivityForResult(Intent.createChooser(pick, backup ? "Choose your Rias backup" : "Choose Rias's picture"), REQ_FILE);
                 } catch (Exception e) {
                     fileCallback = null;
                     return false;
@@ -240,6 +250,19 @@ public class MainActivity extends Activity {
                 fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
                 fileCallback = null;
             }
+            return;
+        }
+        if (requestCode == REQ_SAVE) {
+            boolean ok = false;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && pendingSave != null) {
+                try (java.io.OutputStream out = getContentResolver().openOutputStream(data.getData(), "wt")) {
+                    out.write(pendingSave.getBytes("UTF-8"));
+                    ok = true;
+                } catch (Exception ignored) {
+                }
+            }
+            pendingSave = null;
+            web.evaluateJavascript("window.riasSaved && window.riasSaved(" + ok + ")", null);
             return;
         }
         if (requestCode != REQ_LISTEN || resultCode != RESULT_OK || data == null) return;
@@ -489,6 +512,87 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean canFullScreen() {
             return Scheduler.canFullScreen(ctx);
+        }
+
+        /** Settings → Backup: asks where to save the file, then writes it (result → window.riasSaved). */
+        @JavascriptInterface
+        public void saveFile(final String name, final String content) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.pendingSave = content;
+                    Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                            .setType("application/json").putExtra(Intent.EXTRA_TITLE, name);
+                    try {
+                        activity.startActivityForResult(i, REQ_SAVE);
+                    } catch (Exception e) {
+                        activity.pendingSave = null;
+                        activity.web.evaluateJavascript("window.riasSaved && window.riasSaved(false)", null);
+                    }
+                }
+            });
+        }
+
+        /** Weekly automatic backup: Downloads/RiasCompanion/rias-backup.json (Android 10+). */
+        @JavascriptInterface
+        public boolean autoBackup(String content) {
+            if (Build.VERSION.SDK_INT < 29) return false;
+            try {
+                android.content.ContentResolver cr = ctx.getContentResolver();
+                Uri coll = android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+                String dir = android.os.Environment.DIRECTORY_DOWNLOADS + "/RiasCompanion/";
+                Uri target = null;
+                try (Cursor c = cr.query(coll, new String[] {android.provider.MediaStore.MediaColumns._ID},
+                        android.provider.MediaStore.MediaColumns.DISPLAY_NAME + "=? AND "
+                                + android.provider.MediaStore.MediaColumns.RELATIVE_PATH + "=?",
+                        new String[] {"rias-backup.json", dir}, null)) {
+                    if (c != null && c.moveToFirst()) target = ContentUris.withAppendedId(coll, c.getLong(0));
+                }
+                if (target == null) {
+                    android.content.ContentValues v = new android.content.ContentValues();
+                    v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "rias-backup.json");
+                    v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                    v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, dir);
+                    target = cr.insert(coll, v);
+                }
+                if (target == null) return false;
+                try (java.io.OutputStream out = cr.openOutputStream(target, "wt")) {
+                    out.write(content.getBytes("UTF-8"));
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /** Home screen widget data: upcoming items and her lines. */
+        @JavascriptInterface
+        public void setWidget(String json) {
+            RiasWidget.save(ctx, json);
+        }
+
+        /** The installed app's version, for the update check. */
+        @JavascriptInterface
+        public String appVersion() {
+            try {
+                android.content.pm.PackageInfo pi = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
+                JSONObject o = new JSONObject();
+                o.put("code", pi.versionCode);
+                o.put("name", pi.versionName);
+                return o.toString();
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
+        /** Opens a link (the update download) in the browser. */
+        @JavascriptInterface
+        public void openUrl(String url) {
+            if (url == null || !url.startsWith("https://")) return;
+            try {
+                ctx.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Exception ignored) {
+            }
         }
 
         @JavascriptInterface

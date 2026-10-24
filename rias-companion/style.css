@@ -772,3 +772,50 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
 .pc-text small { color: var(--muted); font-size: .76rem; }
 .pc-text small:empty { display: none; }
 .popup-check .btn-primary.sm { flex: none; background: var(--crimson); border-color: var(--crimson); color: #fff; }
+.tl-pill.tail { opacity: .8; border-style: dashed; }
+.tl-bar i.tail { opacity: .55; }
+/* Snooze 5 / 10 / 30 on the alarm pop-up */
+.snooze-row { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 6px; }
+.snooze-row span { flex: none; font-size: .82rem; color: var(--muted); padding-right: 2px; }
+.snooze-row .alarm-btn { flex: 1; margin-top: 0; padding: 12px 6px; font-size: .95rem; }
+.snooze-row[hidden] { display: none; }
+
+/* Swipe on reminders: right = done, left = snooze / delete */
+.swipe { position: relative; overflow: hidden; }
+.swipe + .swipe { border-top: 1px solid var(--line); }
+.swipe .row-item { position: relative; z-index: 1; background: var(--panel); touch-action: pan-y; transition: transform .22s ease; }
+.swipe .row-item.dragging { transition: none; }
+.swipe-done { position: absolute; inset: 0; display: flex; align-items: center; gap: 6px; padding-left: 18px; background: #1f7a4a; color: #fff; font-weight: 700; font-size: .9rem; opacity: 0; }
+.swipe-done .ic { width: 18px; height: 18px; }
+.swipe.right .swipe-done { opacity: 1; }
+.swipe-acts { position: absolute; top: 0; right: 0; bottom: 0; display: flex; }
+.swipe.right .swipe-acts { visibility: hidden; }
+.swipe-acts button { width: 84px; border: 0; border-radius: 0; background: var(--panel-2); color: var(--text); font-weight: 600; font-size: .86rem; }
+.swipe-acts button[data-swipe="snooze"] { background: #8a6420; }
+.swipe-acts button.del, .swipe-acts button[data-swipe="skip"] { background: var(--crimson); }
+/* Recent foods in the add-food dialog */
+.food-recent .chips { flex-wrap: wrap; }
+.stack .recent-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: .84rem; }
+.stack .recent-chip small { color: var(--muted); font-size: .72rem; }
+/* Update available (Home) + Settings rows */
+.update-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 12px; border-radius: var(--radius); background: linear-gradient(135deg, rgba(216, 30, 74, .25), rgba(216, 30, 74, .08)); border: 1px solid rgba(236, 61, 102, .45); }
+.update-card[hidden] { display: none; }
+.update-card > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.update-card span { font-size: .8rem; color: var(--muted); }
+.update-row { display: flex; align-items: center; gap: 12px; padding-top: 6px; }
+.update-row .sync-text { flex: 1; }
+
+/* Settings → Things Rias remembers */
+.mem-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mem-list li { display: flex; align-items: center; gap: 10px; padding: 9px 8px 9px 12px; border-radius: var(--radius-sm); background: var(--panel-2); border: 1px solid var(--line); font-size: .9rem; }
+.mem-list li span { flex: 1; min-width: 0; }
+.mem-list li.mem-empty { color: var(--muted); font-style: italic; border-style: dashed; }
+.stack .mem-list .mem-del { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 0; background: transparent; color: var(--muted); }
+.mem-add input, .city-row input { flex: 1; min-width: 0; }
+.mem-add button, .city-row button { flex: 0 0 auto; }
+
+/* Home: goodnight */
+.goodnight-btn { display: block; width: 100%; margin: 0 0 12px; padding: 13px 16px; border-radius: var(--radius); border: 1px solid rgba(170, 180, 255, .3);
+  background: linear-gradient(135deg, #1d1838, #120e22); color: #e6e4ff; font-size: 1rem; font-weight: 600; }
+.goodnight-btn[hidden] { display: none; }
+.fab { z-index: 5; }

@@ -37,3 +37,15 @@ echo "Signing…"
 java -jar "$TOOLS/signer/uber-apk-signer.jar" --apks "$WORK/unsigned.apk" --out "$WORK/signed" >/dev/null
 cp "$WORK"/signed/*.apk "$OUT"
 echo "Built $(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
+
+# The app's update check reads this from GitHub.
+CODE=$(sed -n "s/^ *versionCode: '\{0,1\}\([0-9]*\)'\{0,1\}/\1/p" apktool.yml)
+NAME=$(sed -n "s/^ *versionName: '\{0,1\}\([^']*\)'\{0,1\}/\1/p" apktool.yml)
+cat > ../version.json <<JSON
+{
+  "versionCode": $CODE,
+  "versionName": "$NAME",
+  "apk": "https://github.com/nylonv2/lua-scripts/raw/master/RiasCompanion.apk"
+}
+JSON
+echo "Wrote version.json ($NAME, build $CODE)"

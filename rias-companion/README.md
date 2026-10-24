@@ -111,7 +111,7 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   **📷 Photo of your schedule:** with Rias's AI on (a free Gemini key works), tap 📷 in the chat (or *Send Rias a
   photo of your schedule* on the Work tab) and pick a photo or screenshot. She reads it, finds your row by your
   name, adds each shift (re-sending the same week replaces instead of doubling), and tells you what she added.
-- **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, phone calendar & other apps, food reminders, check-ins.
+- **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, what she remembers, your day (briefing, weather, recap, sleep), phone calendar & other apps, food reminders, check-ins, backup & updates.
 
 ## Pop-ups
 
@@ -181,6 +181,41 @@ In the Android app, **Connect** in **Settings → Phone calendar & other apps** 
 (all-day events at the top) and Rias reminds you at their start time. Android doesn't let other apps read
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
+
+## Daily life with Rias (4.0)
+
+- **Backup & restore** (Settings → Backup & updates): *Save backup* writes one file with everything (reminders,
+  shifts, food diary, chat, sleep, what she remembers, your picture) to Google Drive, Downloads or wherever you pick.
+  *Restore* reads it back on a new install or phone. API keys are never put in the file. The Android app also keeps
+  a weekly automatic copy in **Downloads/RiasCompanion/rias-backup.json** (Android 10+, can be turned off).
+- **Update check:** once a day the Android app compares its version with `version.json` on GitHub (written by the
+  APK build). When a newer one is out, a card on Home offers **Update**: it downloads the APK in your browser, and you
+  open it to install over the old one (your data stays). *Check for updates* in Settings does it on demand.
+- **Things Rias remembers** (Settings): facts about your life. With her AI on she saves them herself (`remember` /
+  `forget` tools) and they go into her context; without it she picks up "Remember that…", "I work at…", "My sister's
+  name is…" and "My birthday is…". She brings them up in check-ins, the morning briefing and when you tap her. You can
+  add or delete any of them.
+- **Morning briefing:** the first time you open the app after waking, she gives you the day: shifts (and when to
+  leave), reminders left, calendar events, the weather, how you slept, and something she remembers. The wake-up
+  notification carries a one-line version. Weather comes from Open-Meteo (free, no key): set your city in
+  **Settings → Your day with Rias**; only that city name and its coordinates are sent. Fahrenheit in the US, Celsius
+  elsewhere.
+- **Wind-down & sleep:** say goodnight (the 🌙 button on Home near bedtime, the *Goodnight* quick reply, or just
+  "goodnight") and she notes the time, and tells you off if it's late. In the morning she asks how you slept
+  (Great / Okay / Badly) and notices three late nights in a row. If you're still up 30+ minutes past bedtime she
+  nudges you once.
+- **Weekly recap:** Sunday evening (or Monday morning if you missed it): reminders done and your best day, water,
+  calories, hours worked, bedtimes, and a verdict.
+- **Home screen widget:** long-press your home screen → Widgets → Rias. It shows her picture, what's next (or
+  tomorrow's first thing) and one of her lines, and refreshes on every reminder and every 30 minutes.
+- **Reminders:** *Pick days* (e.g. Mon/Wed/Fri), and *During the day: every 30 min / 1–4 hours until …* (each
+  occurrence can be checked off on its own). **Swipe** a reminder right to mark it done, or left for *Snooze* and
+  *Delete* (*Skip* for shifts and calendar events).
+- **Snooze 5 / 10 / 30 min** on the in-app pop-up, the Android alarm screen and the over-other-apps card; the
+  notification has *Done*, *Snooze 10 min* and *30 min*.
+- **Recent foods:** the add-food dialog shows what you've eaten lately; one tap logs it again with the same calories.
+- **Night shifts** show their morning tail ("until 6:00 AM, from last night") on the next day, and the Work tab
+  counts down while you're still on one.
 
 ## The chat
 

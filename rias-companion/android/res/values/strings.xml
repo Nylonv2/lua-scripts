@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Rias</string>
+    <string name="widget_label">Rias · Up next</string>
+    <string name="widget_open">Open Rias to start</string>
+    <string name="widget_desc">What\'s next, and a word from Rias</string>
 </resources>

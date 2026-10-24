@@ -21,6 +21,13 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     week.textContent = '';
     let total = 0, count = 0, next = null;
     const now = new Date();
+    // A night shift that started yesterday may still be going (or end later this morning).
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    for (const sh of ctx.shiftsOn(y)) {
+      const start = new Date(y); start.setHours(0, toMin(sh.start), 0, 0);
+      const end = new Date(start.getTime() + hours(sh) * 3600000);
+      if (end > now) next = { sh, start, end };
+    }
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(d.getDate() + i);
       const list = ctx.shiftsOn(d).slice().sort((x, y) => toMin(x.start) - toMin(y.start));
@@ -35,7 +42,24 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       body.className = 'tl-body';
       const bar = document.createElement('div');
       bar.className = 'tl-bar';
-      if (!list.length) {
+      // The morning tail of last night's shift.
+      const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+      const tails = ctx.shiftsOn(prev).filter((sh) => toMin(sh.end) <= toMin(sh.start));
+      for (const sh of tails) {
+        const pill = document.createElement('span');
+        pill.className = 'tl-pill tail';
+        pill.textContent = `until ${fmtTime(sh.end)}`;
+        const lab = document.createElement('small');
+        lab.textContent = 'from last night';
+        pill.append(lab);
+        body.append(pill);
+        const seg = document.createElement('i');
+        seg.className = 'tail';
+        seg.style.left = '0%';
+        seg.style.width = `${(toMin(sh.end) / 1440) * 100}%`;
+        bar.append(seg);
+      }
+      if (!list.length && !tails.length) {
         const off = document.createElement('span');
         off.className = 'tl-off';
         off.textContent = 'Day off';

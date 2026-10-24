@@ -102,6 +102,7 @@ final class Scheduler {
         }
         p.edit().putLong(KEY_LAST_FIRED, now + 5000).apply();
         scheduleNext(c);
+        RiasWidget.update(c);
     }
 
     static void ensureChannel(Context c) {
@@ -173,8 +174,9 @@ final class Scheduler {
                 .setContentIntent(pop)
                 .setFullScreenIntent(pop, true);
         if (itemId != null && !itemId.isEmpty()) {
-            b.addAction(0, "Done ✓", actionIntent(c, AlarmReceiver.ACTION_DONE, id, text, title, itemId, at));
-            b.addAction(0, "Snooze 10 min", actionIntent(c, AlarmReceiver.ACTION_SNOOZE, id, text, title, itemId, at));
+            b.addAction(0, "Done ✓", actionIntent(c, AlarmReceiver.ACTION_DONE, id, text, title, itemId, at, 0));
+            b.addAction(0, "Snooze 10 min", actionIntent(c, AlarmReceiver.ACTION_SNOOZE, id, text, title, itemId, at, 10));
+            b.addAction(0, "30 min", actionIntent(c, AlarmReceiver.ACTION_SNOOZE, id, text, title, itemId, at, 30));
         }
         android.graphics.Bitmap pic = picture(c);
         if (pic != null) b.setLargeIcon(pic);
@@ -192,14 +194,15 @@ final class Scheduler {
     }
 
     private static PendingIntent actionIntent(Context c, String action, int id, String text, String title,
-                                              String itemId, long at) {
+                                              String itemId, long at, int mins) {
         Intent i = new Intent(c, AlarmReceiver.class).setAction(action)
                 .putExtra(AlarmActivity.EXTRA_TEXT, text)
                 .putExtra(AlarmActivity.EXTRA_TITLE, title)
                 .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
                 .putExtra(AlarmActivity.EXTRA_AT, at)
-                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id);
-        int code = id * 2 + (AlarmReceiver.ACTION_DONE.equals(action) ? 1 : 0);
+                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id)
+                .putExtra("mins", mins);
+        int code = id * 4 + (AlarmReceiver.ACTION_DONE.equals(action) ? 1 : mins >= 30 ? 2 : 0);
         return PendingIntent.getBroadcast(c, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
@@ -212,7 +215,7 @@ final class Scheduler {
         if (AlarmReceiver.ACTION_DONE.equals(in.getAction())) {
             recordAction(c, itemId, "done", at, 0);
         } else {
-            long until = System.currentTimeMillis() + 10 * 60 * 1000L;
+            long until = System.currentTimeMillis() + in.getIntExtra("mins", 10) * 60 * 1000L;
             recordAction(c, itemId, "snooze", at, until);
             addEvent(c, until, in.getStringExtra(AlarmActivity.EXTRA_TEXT), itemId, in.getStringExtra(AlarmActivity.EXTRA_TITLE));
         }

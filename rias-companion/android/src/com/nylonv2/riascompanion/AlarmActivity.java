@@ -125,15 +125,30 @@ public class AlarmActivity extends Activity {
                     close(notificationId);
                 }
             }));
-            root.addView(button("Snooze 10 min", 0xFF301723, new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    long until = System.currentTimeMillis() + 10 * 60 * 1000L;
-                    Scheduler.recordAction(c, itemId, "snooze", at, until);
-                    Scheduler.addEvent(c, until, text, itemId, title);
-                    close(notificationId);
-                }
-            }));
+            TextView sl = label("Snooze", 14, MUTED);
+            sl.setPadding(0, dp(12), 0, 0);
+            root.addView(sl);
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(dp(280), dp(54));
+            rowLp.topMargin = dp(4);
+            row.setLayoutParams(rowLp);
+            for (final int mins : new int[] {5, 10, 30}) {
+                Button b = button(mins + " min", 0xFF301723, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        long until = System.currentTimeMillis() + mins * 60 * 1000L;
+                        Scheduler.recordAction(c, itemId, "snooze", at, until);
+                        Scheduler.addEvent(c, until, text, itemId, title);
+                        close(notificationId);
+                    }
+                });
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(54), 1f);
+                if (mins != 5) lp.leftMargin = dp(8);
+                b.setLayoutParams(lp);
+                row.addView(b);
+            }
+            root.addView(row);
         }
         root.addView(button("Dismiss", 0x00000000, new View.OnClickListener() {
             @Override

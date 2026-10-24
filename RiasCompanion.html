@@ -784,6 +784,53 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
 .pc-text small { color: var(--muted); font-size: .76rem; }
 .pc-text small:empty { display: none; }
 .popup-check .btn-primary.sm { flex: none; background: var(--crimson); border-color: var(--crimson); color: #fff; }
+.tl-pill.tail { opacity: .8; border-style: dashed; }
+.tl-bar i.tail { opacity: .55; }
+/* Snooze 5 / 10 / 30 on the alarm pop-up */
+.snooze-row { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 6px; }
+.snooze-row span { flex: none; font-size: .82rem; color: var(--muted); padding-right: 2px; }
+.snooze-row .alarm-btn { flex: 1; margin-top: 0; padding: 12px 6px; font-size: .95rem; }
+.snooze-row[hidden] { display: none; }
+
+/* Swipe on reminders: right = done, left = snooze / delete */
+.swipe { position: relative; overflow: hidden; }
+.swipe + .swipe { border-top: 1px solid var(--line); }
+.swipe .row-item { position: relative; z-index: 1; background: var(--panel); touch-action: pan-y; transition: transform .22s ease; }
+.swipe .row-item.dragging { transition: none; }
+.swipe-done { position: absolute; inset: 0; display: flex; align-items: center; gap: 6px; padding-left: 18px; background: #1f7a4a; color: #fff; font-weight: 700; font-size: .9rem; opacity: 0; }
+.swipe-done .ic { width: 18px; height: 18px; }
+.swipe.right .swipe-done { opacity: 1; }
+.swipe-acts { position: absolute; top: 0; right: 0; bottom: 0; display: flex; }
+.swipe.right .swipe-acts { visibility: hidden; }
+.swipe-acts button { width: 84px; border: 0; border-radius: 0; background: var(--panel-2); color: var(--text); font-weight: 600; font-size: .86rem; }
+.swipe-acts button[data-swipe="snooze"] { background: #8a6420; }
+.swipe-acts button.del, .swipe-acts button[data-swipe="skip"] { background: var(--crimson); }
+/* Recent foods in the add-food dialog */
+.food-recent .chips { flex-wrap: wrap; }
+.stack .recent-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: .84rem; }
+.stack .recent-chip small { color: var(--muted); font-size: .72rem; }
+/* Update available (Home) + Settings rows */
+.update-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 12px; border-radius: var(--radius); background: linear-gradient(135deg, rgba(216, 30, 74, .25), rgba(216, 30, 74, .08)); border: 1px solid rgba(236, 61, 102, .45); }
+.update-card[hidden] { display: none; }
+.update-card > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.update-card span { font-size: .8rem; color: var(--muted); }
+.update-row { display: flex; align-items: center; gap: 12px; padding-top: 6px; }
+.update-row .sync-text { flex: 1; }
+
+/* Settings → Things Rias remembers */
+.mem-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mem-list li { display: flex; align-items: center; gap: 10px; padding: 9px 8px 9px 12px; border-radius: var(--radius-sm); background: var(--panel-2); border: 1px solid var(--line); font-size: .9rem; }
+.mem-list li span { flex: 1; min-width: 0; }
+.mem-list li.mem-empty { color: var(--muted); font-style: italic; border-style: dashed; }
+.stack .mem-list .mem-del { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 0; background: transparent; color: var(--muted); }
+.mem-add input, .city-row input { flex: 1; min-width: 0; }
+.mem-add button, .city-row button { flex: 0 0 auto; }
+
+/* Home: goodnight */
+.goodnight-btn { display: block; width: 100%; margin: 0 0 12px; padding: 13px 16px; border-radius: var(--radius); border: 1px solid rgba(170, 180, 255, .3);
+  background: linear-gradient(135deg, #1d1838, #120e22); color: #e6e4ff; font-size: 1rem; font-weight: 600; }
+.goodnight-btn[hidden] { display: none; }
+.fab { z-index: 5; }
 </style>
 </head>
 <body>
@@ -795,7 +842,12 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
     <div class="alarm-title" id="alarm-title"></div>
     <p class="alarm-text" id="alarm-text"></p>
     <button type="button" class="alarm-btn primary" id="alarm-done">Done ✓</button>
-    <button type="button" class="alarm-btn" id="alarm-snooze">Snooze 10 min</button>
+    <div class="snooze-row" id="alarm-snooze">
+      <span>Snooze</span>
+      <button type="button" class="alarm-btn" data-snooze="5">5 min</button>
+      <button type="button" class="alarm-btn" data-snooze="10">10 min</button>
+      <button type="button" class="alarm-btn" data-snooze="30">30 min</button>
+    </div>
     <button type="button" class="alarm-btn ghost" id="alarm-dismiss">Dismiss</button>
   </dialog>
 
@@ -851,6 +903,11 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <h1 id="home-hello"></h1>
           <p class="muted" id="home-date"></p>
         </div>
+        <button type="button" class="goodnight-btn" id="home-goodnight" hidden>🌙 Goodnight, Rias</button>
+        <div class="update-card" id="update-card" hidden>
+          <div><b id="update-title">A new version of Rias is ready</b><span>Tap to download, then open the file to install. Your data stays.</span></div>
+          <button type="button" class="btn-primary sm" id="update-get">Update</button>
+        </div>
         <div class="card next-card" id="next-card"></div>
         <div class="tiles">
           <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
@@ -891,6 +948,7 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <button type="button" data-say="Play chess with me">Play chess</button>
           <button type="button" data-say="I need motivation">Motivate me</button>
           <button type="button" data-say="I'm tired">I'm tired</button>
+          <button type="button" data-say="Goodnight, Rias">Goodnight 🌙</button>
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
@@ -1102,6 +1160,25 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <p class="small voice-hint" id="ai-hint"></p>
           </section>
           <section class="set-group">
+          <h2>Things Rias remembers</h2>
+          <p class="muted small">What you've told her about your life. She brings it up later. With her AI on she saves these herself; without it, start a message with “Remember that…”.</p>
+          <ul class="mem-list" id="mem-list"></ul>
+          <div class="row mem-add">
+            <input id="mem-input" maxlength="140" placeholder="e.g. I have a test on Friday" aria-label="Something for Rias to remember" enterkeyhint="done">
+            <button type="button" id="mem-add">Add</button>
+          </div>
+          </section>
+          <section class="set-group">
+          <h2>Your day with Rias</h2>
+          <label class="switch"><input name="briefing" type="checkbox"> Morning briefing when I wake up (my day, the weather, how I slept)</label>
+          <div class="field"><span class="field-label">City for the weather</span>
+            <div class="row city-row"><input name="city" placeholder="e.g. Dallas" aria-label="City" enterkeyhint="done"><button type="button" id="city-set">Set</button></div>
+          </div>
+          <p class="small voice-hint" id="city-hint"></p>
+          <label class="switch"><input name="recap" type="checkbox"> Weekly recap on Sunday evening</label>
+          <label class="switch"><input name="windDown" type="checkbox"> Bedtime nudges, and ask how I slept</label>
+          </section>
+          <section class="set-group">
           <h2>Phone calendar &amp; other apps</h2>
           <div class="sync-box">
           <div class="sync-row">
@@ -1169,6 +1246,22 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           </div>
           </section>
           <section class="set-group">
+          <h2>Backup &amp; updates</h2>
+          <p class="muted small">Your reminders, shifts, food diary, chat and what Rias remembers live only on this phone. Save a backup so nothing is lost if you reinstall or switch phones. API keys aren't included.</p>
+          <div class="row">
+            <button type="button" id="backup-save">💾 Save backup</button>
+            <button type="button" id="backup-restore">📂 Restore</button>
+          </div>
+          <input type="file" id="backup-file" accept="application/json,.json" hidden>
+          <label class="switch" id="auto-backup-row"><input name="autoBackup" type="checkbox"> Auto backup every week to Downloads/RiasCompanion</label>
+          <p class="small voice-hint" id="backup-hint"></p>
+          <div class="update-row">
+            <div class="sync-text"><b>App version</b><span id="app-version"></span></div>
+            <button type="button" class="btn-primary sm tonal" id="update-check">Check for updates</button>
+          </div>
+          <p class="small voice-hint" id="update-hint"></p>
+          </section>
+          <section class="set-group">
           <h2>Data</h2>
           <button type="button" id="regen">Rebuild default routine</button>
           <button type="button" id="clear-chat">Clear chat history</button>
@@ -1199,7 +1292,23 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
         <label id="date-wrap">Date <input name="date" type="date"></label>
       </div>
       <div class="field"><span class="field-label">Repeat</span>
-        <div class="chips" role="radiogroup" aria-label="Repeat"><label class="chip"><input type="radio" name="repeat" value="once"><span>Once</span></label><label class="chip"><input type="radio" name="repeat" value="daily"><span>Every day</span></label><label class="chip"><input type="radio" name="repeat" value="weekdays"><span>Weekdays</span></label><label class="chip"><input type="radio" name="repeat" value="weekends"><span>Weekends</span></label></div>
+        <div class="chips" role="radiogroup" aria-label="Repeat"><label class="chip"><input type="radio" name="repeat" value="once"><span>Once</span></label><label class="chip"><input type="radio" name="repeat" value="daily"><span>Every day</span></label><label class="chip"><input type="radio" name="repeat" value="weekdays"><span>Weekdays</span></label><label class="chip"><input type="radio" name="repeat" value="weekends"><span>Weekends</span></label><label class="chip"><input type="radio" name="repeat" value="days"><span>Pick days</span></label></div>
+      </div>
+      <div class="daypick" id="days-wrap" role="group" aria-label="Days">
+        <label><input type="checkbox" name="days" value="1"><span>M</span></label><label><input type="checkbox" name="days" value="2"><span>T</span></label><label><input type="checkbox" name="days" value="3"><span>W</span></label><label><input type="checkbox" name="days" value="4"><span>T</span></label><label><input type="checkbox" name="days" value="5"><span>F</span></label><label><input type="checkbox" name="days" value="6"><span>S</span></label><label><input type="checkbox" name="days" value="0"><span>S</span></label>
+      </div>
+      <div class="row">
+        <label>During the day
+          <select name="every">
+            <option value="0">Just once</option>
+            <option value="30">Every 30 min</option>
+            <option value="60">Every hour</option>
+            <option value="120">Every 2 hours</option>
+            <option value="180">Every 3 hours</option>
+            <option value="240">Every 4 hours</option>
+          </select>
+        </label>
+        <label id="until-wrap">Until <input name="until" type="time"></label>
       </div>
       <div class="field"><span class="field-label">Type</span>
         <div class="chips" role="radiogroup" aria-label="Type"><label class="chip"><input type="radio" name="category" value="custom"><span>📌 Other</span></label><label class="chip"><input type="radio" name="category" value="wake"><span>⏰ Wake up</span></label><label class="chip"><input type="radio" name="category" value="meds"><span>💊 Medication</span></label><label class="chip"><input type="radio" name="category" value="water"><span>💧 Water</span></label><label class="chip"><input type="radio" name="category" value="meal"><span>🍽️ Meal</span></label><label class="chip"><input type="radio" name="category" value="exercise"><span>🏃 Exercise</span></label><label class="chip"><input type="radio" name="category" value="work"><span>📚 Work / study</span></label><label class="chip"><input type="radio" name="category" value="break"><span>☕ Break</span></label><label class="chip"><input type="radio" name="category" value="hygiene"><span>🪥 Hygiene</span></label><label class="chip"><input type="radio" name="category" value="social"><span>💬 Social</span></label><label class="chip"><input type="radio" name="category" value="chores"><span>🧹 Chores</span></label><label class="chip"><input type="radio" name="category" value="wind"><span>🌙 Wind down</span></label><label class="chip"><input type="radio" name="category" value="sleep"><span>😴 Sleep</span></label></div>
@@ -1278,6 +1387,10 @@ dialog .stack h2, .sheet h2 { font-family: inherit; color: var(--text); font-siz
           <option value="snack">Snack</option>
         </select>
       </label>
+      <div class="food-recent" id="food-recent-wrap" hidden>
+        <span class="field-label">Tap to log again</span>
+        <div class="chips" id="food-recent"></div>
+      </div>
       <label>What you had <input name="text" required maxlength="120" placeholder="e.g. Chicken wrap and an apple"></label>
       <button type="button" id="food-estimate" class="estimate">✨ Ask Rias to estimate calories &amp; macros</button>
       <p class="muted small" id="estimate-hint"></p>
@@ -2296,8 +2409,50 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     $('#food-estimate').hidden = !(ctx.canEstimate && ctx.canEstimate());
     $('#estimate-hint').textContent = '';
   }
+  // Your recent foods (last 30 days, newest first), each once.
+  function recentFoods(limit = 8) {
+    const seen = new Set(), out = [];
+    for (let i = 0; i < 30 && out.length < limit; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const list = (state.food[dateKey(d)] || []).slice().sort((a, b) => b.ts - a.ts);
+      for (const e of list) {
+        const key = e.text.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(e);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
+  }
+  function renderRecent() {
+    const box = $('#food-recent');
+    const list = recentFoods();
+    $('#food-recent-wrap').hidden = !list.length;
+    box.textContent = '';
+    for (const e of list) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'recent-chip';
+      b.textContent = e.text.length > 28 ? `${e.text.slice(0, 27)}…` : e.text;
+      if (e.n && e.n.kcal != null) {
+        const k = document.createElement('small');
+        k.textContent = `${Math.round(e.n.kcal)} kcal`;
+        b.append(k);
+      }
+      b.addEventListener('click', () => {
+        const when = isToday() ? new Date() : new Date(viewDate.getFullYear(), viewDate.getMonth(), viewDate.getDate(), 12);
+        logFood(F.meal.value, e.text, e.kind || 'normal', when, e.n ? { ...e.n } : undefined);
+        dlg.close();
+        if (isToday()) riasLine(ctx.R.food[e.kind] || ctx.R.food.normal);
+        render();
+      });
+      box.append(b);
+    }
+  }
   function openAdd(meal) {
     editing = null;
+    renderRecent();
     $('#food-dialog-title').textContent = 'What did you eat?';
     F.meal.value = meal || 'snack';
     F.text.value = '';
@@ -2318,6 +2473,7 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     F.text.value = e.text;
     F.kind.value = e.kind || 'normal';
     writeN(e.n);
+    $('#food-recent-wrap').hidden = true;
     $('#food-delete').hidden = false;
     showEstimate();
     dlg.showModal();
@@ -2435,6 +2591,13 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     week.textContent = '';
     let total = 0, count = 0, next = null;
     const now = new Date();
+    // A night shift that started yesterday may still be going (or end later this morning).
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    for (const sh of ctx.shiftsOn(y)) {
+      const start = new Date(y); start.setHours(0, toMin(sh.start), 0, 0);
+      const end = new Date(start.getTime() + hours(sh) * 3600000);
+      if (end > now) next = { sh, start, end };
+    }
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(d.getDate() + i);
       const list = ctx.shiftsOn(d).slice().sort((x, y) => toMin(x.start) - toMin(y.start));
@@ -2449,7 +2612,24 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       body.className = 'tl-body';
       const bar = document.createElement('div');
       bar.className = 'tl-bar';
-      if (!list.length) {
+      // The morning tail of last night's shift.
+      const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+      const tails = ctx.shiftsOn(prev).filter((sh) => toMin(sh.end) <= toMin(sh.start));
+      for (const sh of tails) {
+        const pill = document.createElement('span');
+        pill.className = 'tl-pill tail';
+        pill.textContent = `until ${fmtTime(sh.end)}`;
+        const lab = document.createElement('small');
+        lab.textContent = 'from last night';
+        pill.append(lab);
+        body.append(pill);
+        const seg = document.createElement('i');
+        seg.className = 'tail';
+        seg.style.left = '0%';
+        seg.style.width = `${(toMin(sh.end) / 1440) * 100}%`;
+        bar.append(seg);
+      }
+      if (!list.length && !tails.length) {
         const off = document.createElement('span');
         off.className = 'tl-off';
         off.textContent = 'Day off';
@@ -2922,6 +3102,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
+- You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
 - When you log food, estimate its nutrition for the portion they describe (assume a typical portion if they don't say, and mention any big assumption in a few words). Use the user's own words for the food name. If they send a photo of a meal, work out what and how much it is, then log it the same way. After logging, react in character and, when it's useful, mention their day's totals against their goals from the app context (for example how much protein is left). Never shame them about food.
 - If the user sends a photo or screenshot of a work schedule, read it carefully and add every shift with add_work_shift (one call per shift, all in the same turn), using the real dates shown, or the coming dates for weekday names. If several people are listed, use the row with the user's name from the app context; if you can't tell which row is theirs, ask instead of guessing. Skip days marked off. Then tell them in one or two short messages how many shifts you added, the days and times, and that you'll remind them before each one. If the photo is unreadable or isn't a schedule, say so kindly.
@@ -3015,6 +3196,28 @@ Boundaries:
       },
     },
     {
+      name: 'remember',
+      description: 'Save a lasting fact about the user so you remember it in future conversations, e.g. "Works night shifts at the hospital", "Girlfriend is named Mia", "Trying to cut down on soda".',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { fact: { type: 'string', description: 'One short fact, third person' } },
+        required: ['fact'],
+      },
+    },
+    {
+      name: 'forget',
+      description: 'Delete remembered facts that contain this text, when the user says something you remember is wrong or asks you to forget it.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { fact: { type: 'string', description: 'Text found in the fact(s) to delete' } },
+        required: ['fact'],
+      },
+    },
+    {
       name: 'complete_task',
       description: 'Mark one of today\'s scheduled tasks as done, matched by its title.',
       strict: true,
@@ -3071,6 +3274,8 @@ Boundaries:
         case 'log_food': return ctx.tools.logFood(input);
         case 'log_water': return ctx.tools.logWater(input);
         case 'complete_task': return ctx.tools.completeTask(input);
+        case 'remember': return ctx.tools.remember(input);
+        case 'forget': return ctx.tools.forget(input);
         default: return { error: `Unknown tool ${name}` };
       }
     } catch (e) {
@@ -3577,12 +3782,19 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     settings: {
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
+      autoBackup: true, briefing: true, city: '', recap: true, windDown: true,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
     },
     lastRias: 0,
     chat: {},        // what Rias remembers from conversations (chat.js)
+    memory: [],      // "Things Rias remembers": [{ id, text, ts }]
+    sleep: {},       // { date you woke: { at: bedtime ms, quality? } }
+    briefed: {},     // { date: true } morning briefing given
+    recaps: {},      // { week key: true } Sunday recap given
+    weather: null,   // { place, lat, lon, days: [{ date, max, min, rain, code }], at }
+    lastBackup: 0, lastAutoBackup: 0,
     shifts: [],      // [{ id, label, days: [0-6] | null, date: 'YYYY-MM-DD' | null, start, end }]
     food: {},        // { date: [{ id, meal, text, kind, ts }] }
     water: {},       // { date: glasses }
@@ -3597,7 +3809,9 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   // Fill in settings added in newer versions.
   state.settings = { ...blank().settings, ...state.settings };
   state.ai = { ...blank().ai, ...state.ai };
+  let restoring = false; // a backup is being restored: don't overwrite it before the reload
   const save = () => {
+    if (restoring) return;
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full / private mode */ }
     syncNative();
   };
@@ -3626,8 +3840,26 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       case 'weekdays': return day >= 1 && day <= 5;
       case 'weekends': return day === 0 || day === 6;
       case 'once': return item.date === dateKey(d);
+      case 'days': return (item.days || []).includes(day);
       default: return true;
     }
+  }
+  // "Every 2 hours until 8 PM": one reminder becomes several on the day, each with its own id.
+  function expand(item) {
+    if (!item.every) return [item];
+    const out = [item];
+    const end = toMin(item.until || '20:00');
+    for (let m = toMin(item.time) + item.every; m <= end && m < 1440; m += item.every) {
+      out.push({ ...item, id: `${item.id}~${minToTime(m).replace(':', '')}`, time: minToTime(m), baseId: item.id });
+    }
+    return out;
+  }
+  const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function repeatLabel(it) {
+    const days = it.repeat === 'days' ? (it.days || []).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => DAY_SHORT[d]).join(' ')
+      : { weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat] || '';
+    const every = it.every ? `every ${it.every >= 60 ? `${it.every / 60}h` : `${it.every}m`} until ${fmtTime(it.until || '20:00')}` : '';
+    return [days, every].filter(Boolean).join(' · ');
   }
   // Work shifts and phone-calendar events show up as read-only items on their day.
   function shiftsOn(d) {
@@ -3672,10 +3904,12 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const u = new Date(ev.begin);
     return `${u.getUTCFullYear()}-${pad(u.getUTCMonth() + 1)}-${pad(u.getUTCDate())}`;
   };
-  const itemsOn = (d) => state.items.filter((it) => appliesOn(it, d)).concat(virtualItems(d))
+  const itemsOn = (d) => state.items.filter((it) => appliesOn(it, d)).flatMap(expand).concat(virtualItems(d))
     .sort((a, b) => toMin(a.time) - toMin(b.time));
   const todaysItems = (d = new Date()) => itemsOn(d);
-  const findItem = (id) => state.items.find((it) => it.id === id) || virtualItems(new Date()).find((it) => it.id === id);
+  const findItem = (id) => state.items.find((it) => it.id === id)
+    || (String(id).includes('~') ? state.items.filter((it) => it.every && String(id).startsWith(`${it.id}~`)).flatMap(expand).find((it) => it.id === id) : null)
+    || virtualItems(new Date()).find((it) => it.id === id);
   const allDayEvents = (d = new Date()) => (state.settings.phoneCalendar ? state.phoneEvents.filter((ev) => ev.allDay && evDateKey(ev) === dateKey(d)) : []);
   const statusOf = (id, day = dateKey()) => (state.log[day] || {})[id];
 
@@ -3872,7 +4106,11 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     if (next) setTimeout(() => showAlarmCard(...next), 300);
   }
   $('#alarm-done').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it && it.id) resolve(it.id, 'done'); });
-  $('#alarm-snooze').addEventListener('click', () => { const it = alarmItem; closeAlarm(); if (it && it.id) snooze(it.id); });
+  $('#alarm-snooze').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-snooze]');
+    if (!b) return;
+    const it = alarmItem; closeAlarm(); if (it && it.id) snooze(it.id, Number(b.dataset.snooze));
+  });
   $('#alarm-dismiss').addEventListener('click', closeAlarm);
   alarmDlg.addEventListener('cancel', (e) => { e.preventDefault(); closeAlarm(); });
 
@@ -3922,12 +4160,12 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     renderStatus();
   }
 
-  function snooze(itemId) {
+  function snooze(itemId, mins = SNOOZE_MIN) {
     const item = findItem(itemId);
     if (!item || statusOf(itemId)) return;
     state.snoozes = state.snoozes.filter((s) => s.id !== itemId);
-    state.snoozes.push({ id: itemId, at: Date.now() + SNOOZE_MIN * 60000 });
-    addMessage('me', `${SNOOZE_MIN} more minutes…`);
+    state.snoozes.push({ id: itemId, at: Date.now() + mins * 60000 });
+    addMessage('me', `${mins} more minutes…`);
     setTimeout(() => addMessage('rias', say(pick(R.snooze))), 500);
   }
 
@@ -3949,7 +4187,16 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       state.greeted[today] = true;
       pruneOld();
       updateSummary();
-      riasSays(`${say(pick(R.greet[period(nm)] || R.greet.morning))}\n\n${planText()}`);
+      // The morning briefing, if you open the app within a few hours of waking.
+      if (state.settings.briefing !== false && nm - toMin(state.profile.wake) <= 300) { state.briefed[today] = true; deliverBriefing(); }
+      else riasSays(`${say(pick(R.greet[period(nm)] || R.greet.morning))}\n\n${planText()}`);
+    }
+
+    // Weekly recap: Sunday evening, or Monday morning if you weren't around.
+    if (state.settings.recap !== false && isAwake(nm)) {
+      const y = new Date(d); y.setDate(y.getDate() - 1);
+      if (d.getDay() === 0 && nm >= 18 * 60 && !state.recaps[weekKey(d)]) { state.recaps[weekKey(d)] = true; riasSays(recapText(d)); }
+      else if (d.getDay() === 1 && nm < 12 * 60 && !state.recaps[weekKey(y)]) { state.recaps[weekKey(y)] = true; riasSays(recapText(y)); }
     }
 
     // Scheduled items.
@@ -3984,11 +4231,20 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       riasSays(say(pick(R.water.nudge), { count: glasses }));
     }
 
-    // Idle check-ins while you're awake.
+    // Idle check-ins while you're awake (sometimes about something you told her).
     const quietFor = Date.now() - state.lastRias;
     if (state.settings.checkins && isAwake(nm) && quietFor > state.settings.checkinEvery * 60000) {
       const p = period(nm);
-      if (R.checkin[p]) riasSays(checkinLine(p, doneToday()));
+      const mem = Math.random() < 0.25 ? memoryLine() : '';
+      if (mem) riasSays(mem);
+      else if (R.checkin[p]) riasSays(checkinLine(p, doneToday()));
+    }
+
+    // Past bedtime with the app open and no goodnight yet: one gentle nudge.
+    const late = minutesPastBedtime();
+    if (state.settings.windDown !== false && late >= 30 && late <= 300 && !state.sleep[wakeDayKey()] && !nudged.bed) {
+      nudged.bed = true;
+      riasSays(say(pick(R.lateNight)));
     }
 
     save();
@@ -4008,6 +4264,206 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     if (!list.length) return `Your schedule is empty today. Let's add a few things in the Today tab.${tail}`;
     if (!upcoming.length) return `That's everything scheduled for today. Relax a little — you've earned it.${tail}`;
     return `Here's what's next:\n${upcoming.map((it) => `• ${fmtTime(it.time)} — ${it.title}`).join('\n')}${tail}`;
+  }
+
+  // ---------- daily rhythm: morning briefing, weather, sleep, weekly recap ----------
+  // Weather comes from Open-Meteo (free, no key): the city you set in Settings, nothing else is sent.
+  const WX = {
+    0: ['clear skies', '☀️'], 1: ['mostly clear', '🌤️'], 2: ['partly cloudy', '⛅'], 3: ['cloudy', '☁️'], 45: ['foggy', '🌫️'], 48: ['foggy', '🌫️'],
+    51: ['light drizzle', '🌦️'], 53: ['drizzle', '🌦️'], 55: ['heavy drizzle', '🌧️'], 56: ['freezing drizzle', '🌧️'], 57: ['freezing drizzle', '🌧️'],
+    61: ['light rain', '🌦️'], 63: ['rain', '🌧️'], 65: ['heavy rain', '🌧️'], 66: ['freezing rain', '🌧️'], 67: ['freezing rain', '🌧️'],
+    71: ['light snow', '🌨️'], 73: ['snow', '🌨️'], 75: ['heavy snow', '❄️'], 77: ['snow', '🌨️'], 80: ['showers', '🌦️'], 81: ['showers', '🌧️'],
+    82: ['heavy showers', '⛈️'], 85: ['snow showers', '🌨️'], 86: ['snow showers', '🌨️'], 95: ['thunderstorms', '⛈️'], 96: ['thunderstorms', '⛈️'], 99: ['thunderstorms', '⛈️'],
+  };
+  const useFahrenheit = () => /-(US|LR|MM)$/i.test(navigator.language || 'en-US');
+  async function findCity(name) {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name=${encodeURIComponent(name)}`);
+    const j = await r.json();
+    const c = j && j.results && j.results[0];
+    return c ? { place: [c.name, c.admin1].filter(Boolean).join(', '), lat: c.latitude, lon: c.longitude } : null;
+  }
+  async function refreshWeather(force) {
+    const w = state.weather;
+    if (!w || w.lat == null) return;
+    const fresh = w.at && Date.now() - w.at < 3 * 3600000 && (w.days || []).some((x) => x.date === dateKey());
+    if (fresh && !force) return;
+    try {
+      const unit = useFahrenheit() ? '&temperature_unit=fahrenheit' : '';
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${w.lat}&longitude=${w.lon}`
+        + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7${unit}`);
+      const dl = (await r.json()).daily;
+      if (!dl || !dl.time) return;
+      const days = dl.time.map((date, i) => ({ date, code: dl.weather_code[i], max: Math.round(dl.temperature_2m_max[i]), min: Math.round(dl.temperature_2m_min[i]), rain: dl.precipitation_probability_max[i] || 0 }));
+      state.weather = { ...w, days, unit: useFahrenheit() ? 'F' : 'C', at: Date.now() };
+      save();
+    } catch { /* offline: keep the last forecast */ }
+  }
+  const weatherFor = (d) => state.weather && (state.weather.days || []).find((x) => x.date === dateKey(d));
+  function weatherLine(d = new Date(), short = false) {
+    const x = weatherFor(d);
+    if (!x) return '';
+    const [desc, icon] = WX[x.code] || ['mixed weather', '🌡️'];
+    const f = state.weather.unit === 'F';
+    if (short) return `${icon} ${x.max}°/${x.min}° ${desc}${x.rain >= 30 ? `, ${x.rain}% rain` : ''}`;
+    const tip = x.rain >= 50 ? ' Take an umbrella.' : (f ? x.max < 50 : x.max < 10) ? ' Dress warm.' : (f ? x.max >= 90 : x.max >= 32) ? ' It\'s going to be hot, so drink extra water.' : '';
+    return `${icon} ${state.weather.place}: ${desc}, high ${x.max}°, low ${x.min}°${x.rain >= 20 ? `, ${x.rain}% chance of rain` : ''}.${tip}`;
+  }
+
+  // Sleep is filed under the morning you wake up.
+  const wakeDayKey = (t = Date.now()) => { const d = new Date(t); if (d.getHours() >= 12) d.setDate(d.getDate() + 1); return dateKey(d); };
+  function minutesPastBedtime(t = Date.now()) {
+    const d = new Date(t);
+    let diff = d.getHours() * 60 + d.getMinutes() - toMin(state.profile.sleep);
+    if (diff < -720) diff += 1440;
+    if (diff > 720) diff -= 1440;
+    return diff;
+  }
+  const GOODNIGHT = /\b(good ?night|nighty? night|going to (bed|sleep)|heading to bed|gonna (go to )?sleep|time for bed|off to bed)\b/i;
+  function logSleep() {
+    state.sleep[wakeDayKey()] = { at: Date.now() };
+    save();
+    renderHome();
+    const late = minutesPastBedtime();
+    return late > 30 ? say(`It's ${fmtClock(Date.now())}, ${late >= 90 ? 'way ' : ''}past your bedtime, {name}. Tomorrow you go to bed earlier. Promise me.`) : '';
+  }
+  function sleepRemark() {
+    const nights = [0, 1, 2].map((i) => { const d = new Date(); d.setDate(d.getDate() - i); return state.sleep[dateKey(d)]; });
+    if (nights.every((n) => n && minutesPastBedtime(n.at) > 45)) return say('That\'s three late nights in a row, {name}. Tonight you go to bed on time. That\'s an order.');
+    const last = nights[0];
+    if (!last) return '';
+    return minutesPastBedtime(last.at) > 45
+      ? `You fell asleep around ${fmtClock(last.at)}, later than you should have. Take it easy today.`
+      : `You were in bed by ${fmtClock(last.at)}. Good.`;
+  }
+
+  function briefingText(d = new Date()) {
+    const k = dateKey(d), nm = dateKey() === k ? nowMin() : 0;
+    const log = state.log[k] || {};
+    const items = itemsOn(d).filter((it) => !log[it.id]);
+    const shifts = shiftsOn(d);
+    const parts = [];
+    if (shifts.length) {
+      const leave = state.settings.workReminders && state.settings.commute > 0 ? ` (leave by ${fmtTime(minToTime(toMin(shifts[0].start) - state.settings.commute))})` : '';
+      parts.push(`You work ${shifts.map((sh) => `${fmtTime(sh.start)}–${fmtTime(sh.end)}`).join(' and ')}${leave}.`);
+    }
+    const own = items.filter((it) => !it.source && toMin(it.time) > nm + 1);
+    if (own.length) parts.push(`${own.length} reminder${own.length === 1 ? '' : 's'} left today, next is ${own[0].title} at ${fmtTime(own[0].time)}.`);
+    const cal = items.filter((it) => it.source === 'calendar');
+    if (cal.length) parts.push(`On your calendar: ${cal.slice(0, 3).map((it) => `${it.title} at ${fmtTime(it.time)}`).join(', ')}.`);
+    const allDay = allDayEvents(d);
+    if (allDay.length) parts.push(`All day: ${allDay.map((ev) => ev.title).join(', ')}.`);
+    return [
+      say(pick(R.greet.morning)),
+      `Your ${d.toLocaleDateString([], { weekday: 'long' })}: ${parts.join(' ') || 'nothing planned. A free day, ufufu.'}`,
+      weatherLine(d),
+      sleepRemark(),
+      memoryLine(),
+    ].filter(Boolean).join('\n\n');
+  }
+  // One line for the wake-up notification (the app may be closed then).
+  function briefingShort(d) {
+    const k = dateKey(d);
+    const shifts = shiftsOn(d);
+    const n = itemsOn(d).filter((it) => !it.source && !(state.log[k] || {})[it.id]).length;
+    return [shifts.length ? `Work ${shifts.map((sh) => `${fmtTime(sh.start)}–${fmtTime(sh.end)}`).join(', ')}` : '', `${n} reminder${n === 1 ? '' : 's'}`, weatherLine(d, true)]
+      .filter(Boolean).join(' · ');
+  }
+  async function deliverBriefing() {
+    await refreshWeather();
+    riasSays(briefingText());
+    const night = state.sleep[dateKey()];
+    if (night && !night.quality && state.settings.windDown !== false) {
+      setTimeout(() => addMessage('rias', say('So, how did you sleep, {name}?'), { action: 'sleep', day: dateKey() }), 1400);
+    }
+  }
+
+  // Sunday evening (or Monday morning if you missed it): how the week went.
+  const weekKey = (d = new Date()) => { const m = new Date(d); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return dateKey(m); };
+  const shiftHours = (sh) => { let m = toMin(sh.end) - toMin(sh.start); if (m <= 0) m += 1440; return m / 60; };
+  function recapText(end = new Date()) {
+    let done = 0, total = 0, best = null, water = 0, goalDays = 0, kcal = 0, kcalDays = 0, hours = 0;
+    const beds = [];
+    const goal = state.settings.waterGoal || 8;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(end); d.setDate(d.getDate() - i);
+      const k = dateKey(d);
+      const s = state.summary[k];
+      if (s) { done += s.done; total += s.total; if (s.done && (!best || s.done > best.done)) best = { d, done: s.done }; }
+      const g = state.water[k] || 0;
+      water += g;
+      if (g >= goal) goalDays++;
+      const kc = (state.food[k] || []).reduce((a, e) => a + ((e.n && e.n.kcal) || 0), 0);
+      if (kc) { kcal += kc; kcalDays++; }
+      hours += shiftsOn(d).reduce((a, sh) => a + shiftHours(sh), 0);
+      if (state.sleep[k]) beds.push(minutesPastBedtime(state.sleep[k].at));
+    }
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    const lines = [say('Here\'s your week, {name}:')];
+    lines.push(`✅ ${done} of ${total} reminders done (${pct}%)${best ? `, best day ${best.d.toLocaleDateString([], { weekday: 'long' })}` : ''}`);
+    lines.push(`💧 ${(water / 7).toFixed(1)} glasses a day, goal hit ${goalDays} of 7 days`);
+    if (kcalDays) lines.push(`🍽️ About ${Math.round(kcal / kcalDays)} kcal a day on the ${kcalDays} day${kcalDays === 1 ? '' : 's'} you logged`);
+    if (hours) lines.push(`💼 ${Math.round(hours * 10) / 10} hours of work`);
+    if (beds.length) {
+      const avg = Math.round(beds.reduce((a, b) => a + b, 0) / beds.length);
+      lines.push(`🌙 ${avg > 20 ? `In bed about ${avg} min after your bedtime on average` : 'Mostly in bed on time'} (${beds.length} night${beds.length === 1 ? '' : 's'} logged)`);
+    }
+    lines.push('');
+    lines.push(pct >= 75 ? say(pick(praiseLines())) : pct >= 45 ? say('Not bad. But next week I want more from you, {name}.')
+      : say('That was a rough week. I\'m not angry. We\'ll do better together, okay?'));
+    return lines.join('\n');
+  }
+
+  // ---------- things Rias remembers ----------
+  function remember(text, kind) {
+    text = String(text || '').trim().replace(/\s+/g, ' ').slice(0, 140);
+    if (!text || state.memory.some((m) => m.text.toLowerCase() === text.toLowerCase())) return false;
+    state.memory.push({ id: uid(), text, ts: Date.now(), ...(kind ? { kind } : {}) });
+    if (state.memory.length > 60) state.memory.splice(0, state.memory.length - 60);
+    save();
+    return true;
+  }
+  function forget(q) {
+    const low = String(q || '').toLowerCase().trim();
+    const before = state.memory.length;
+    if (low) state.memory = state.memory.filter((m) => !m.text.toLowerCase().includes(low));
+    save();
+    return before - state.memory.length;
+  }
+  // Without her AI she still notices a few clear facts, and "Remember that …".
+  function noticeFacts(text) {
+    const t = text.trim();
+    let m = t.match(/^(?:please\s+|hey rias,?\s+)?remember(?: that)?\s+(.{3,140}?)[.!]*$/i);
+    if (m) { remember(m[1]); return 'explicit'; }
+    if ((m = t.match(/\bi (?:work|am working|'m working) (?:at|for) ([\w&'.-]+(?: [\w&'.-]+){0,3}?)(?=\s+(?:and|but|as|so|it|now|today|because|since|with)\b|[.,!?]|$)/i))) remember(`Works at ${m[1].replace(/[.!?]+$/, '')}`, 'work');
+    if ((m = t.match(/\bmy (girlfriend|boyfriend|wife|husband|fianc[eé]e?|best friend|mom|mum|dad|mother|father|sister|brother|son|daughter|dog|cat|boss)(?:'s name)? is (?:called |named )?([A-Z][a-z]+)/))) remember(`Their ${m[1]} is ${m[2]}`, 'person');
+    if ((m = t.match(/\bmy birthday is (?:on )?([^.,!?]{3,25})/i))) remember(`Birthday: ${m[1].trim()}`, 'birthday');
+    return '';
+  }
+  function memoryLine() {
+    const facts = state.memory.filter((m) => m.kind === 'work' || m.kind === 'person');
+    if (!facts.length || Math.random() < 0.5) return '';
+    const f = pick(facts);
+    if (f.kind === 'work') return say(`How are things at ${f.text.replace(/^Works at /, '')}? Tell me if anyone there gives you trouble.`);
+    const parts = f.text.match(/^Their (.+) is (.+)$/);
+    return parts ? say(`How's ${parts[2]} doing? You don't tell me enough about your ${parts[1]}.`) : '';
+  }
+
+  // Home screen widget (Android): upcoming items and a few of her lines.
+  function widgetData() {
+    const now = Date.now(), next = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      const log = state.log[dateKey(d)] || {};
+      for (const it of itemsOn(d)) {
+        const t = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, toMin(it.time)).getTime();
+        if (t > now - 60000 && !log[it.id]) next.push({ at: t, title: it.title });
+      }
+    }
+    const lines = {};
+    for (const p of ['morning', 'afternoon', 'evening', 'night']) {
+      lines[p] = [].concat(R.checkin[p] || [], R.greet[p] || [], p === 'night' ? R.lateNight : []).slice(0, 10).map((l) => say(l));
+    }
+    return JSON.stringify({ next: next.slice(0, 40), lines });
   }
 
   // ---------- chat replies ----------
@@ -4131,7 +4587,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
         if (!st && findItem(m.itemId)) {
           const acts = document.createElement('div');
           acts.className = 'actions';
-          acts.innerHTML = '<button class="done" data-act="done">Done ✓</button><button data-act="snooze">Snooze 10m</button><button data-act="skip">Skip</button>';
+          acts.innerHTML = '<button class="done" data-act="done">Done ✓</button><button data-act="snooze" data-mins="10">10 min</button><button data-act="snooze" data-mins="30">30 min</button><button data-act="skip">Skip</button>';
           acts.dataset.item = m.itemId;
           el.append(acts);
         } else if (st === 'done' || st === 'skipped') {
@@ -4140,6 +4596,13 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
           r.textContent = st === 'done' ? '✓ Done' : 'Skipped';
           el.append(r);
         }
+      }
+      if (m.action === 'sleep' && m.day && state.sleep[m.day] && !state.sleep[m.day].quality) {
+        const acts = document.createElement('div');
+        acts.className = 'actions';
+        acts.innerHTML = '<button data-sleep="great">😴 Great</button><button data-sleep="okay">🙂 Okay</button><button data-sleep="bad">😵 Badly</button>';
+        acts.dataset.day = m.day;
+        el.append(acts);
       }
       if (m.action === 'food') {
         const acts = document.createElement('div');
@@ -4292,10 +4755,17 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
         add(fmtTime(it.time), 'ri-time');
         if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
-        else add(`${CATEGORY_LABEL[it.category] || 'Other'}${it.repeat && it.repeat !== 'daily' ? ` · ${{ weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat]}` : ''}`, 'ri-sub');
+        else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
         if (flag) add(flag, `tag-chip flag ${flag === 'Missed' ? 'warn' : ''}`);
-        card.append(row);
+        // Swipe right: done. Swipe left: snooze, or delete (skip for shifts and calendar events).
+        const wrap = document.createElement('div');
+        wrap.className = 'swipe';
+        wrap.innerHTML = `<div class="swipe-done">${ICON('check')} ${st === 'done' ? 'Undo' : 'Done'}</div>`
+          + `<div class="swipe-acts"><button type="button" data-swipe="snooze">Snooze</button>${it.source
+            ? '<button type="button" data-swipe="skip">Skip</button>' : '<button type="button" class="del" data-swipe="delete">Delete</button>'}</div>`;
+        wrap.append(row);
+        card.append(wrap);
       }
       sec.append(h, card);
       box.append(sec);
@@ -4439,6 +4909,17 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     if (!text && !photo) return;
     if (photo && !text) text = 'Here’s a photo of my work schedule. Can you add my shifts?';
     addMessage('me', text, photo ? { photo: photo.thumb } : {});
+    // Saying goodnight logs when you went to bed.
+    if (!photo && GOODNIGHT.test(text) && minutesPastBedtime() > -180) {
+      const lateLine = logSleep();
+      if (lateLine) setTimeout(() => addMessage('rias', lateLine), 3200);
+    }
+    // Without her AI she still remembers clear facts, and "Remember that …".
+    if (!photo && !AI.enabled() && noticeFacts(text) === 'explicit') {
+      const typing = showTyping();
+      setTimeout(() => { typing.remove(); addMessage('rias', say(pick(["I'll remember that, {name}.", 'Noted. I won\'t forget.', 'Mm, I\'ll keep that in mind~']))); }, 900);
+      return;
+    }
     if (photo && !AI.enabled()) {
       addMessage('rias', say('I need my AI turned on to read photos, {name}. Set it up in Settings → Rias’s mind (a free Gemini key works). Or use Work → Plan my week and paste the schedule as text.'));
       return;
@@ -4525,10 +5006,23 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
+    const sb = e.target.closest('[data-sleep]');
+    if (sb) {
+      const night = state.sleep[sb.parentElement.dataset.day];
+      if (!night) return;
+      night.quality = sb.dataset.sleep;
+      save();
+      addMessage('me', sb.textContent);
+      const line = { great: 'Good. A well-rested {name} is a useful {name}. Make today count~',
+        okay: 'Okay is fine. Coffee, water, and don\'t overdo it today.',
+        bad: 'I\'m sorry. Go easy today, and tonight you\'re going to bed early. I\'ll remind you.' }[night.quality];
+      setTimeout(() => addMessage('rias', say(line)), 700);
+      return;
+    }
     const b = e.target.closest('[data-act]');
     if (!b) return;
     const id = b.parentElement.dataset.item;
-    if (b.dataset.act === 'snooze') snooze(id); else resolve(id, b.dataset.act === 'done' ? 'done' : 'skipped');
+    if (b.dataset.act === 'snooze') snooze(id, Number(b.dataset.mins) || SNOOZE_MIN); else resolve(id, b.dataset.act === 'done' ? 'done' : 'skipped');
   });
 
   // ---------- food, work, phone calendar, AI ----------
@@ -4616,6 +5110,9 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       `Work shifts, next 7 days: ${Work.summary()}.`,
       `Food diary today: ${Food.summary()}`,
       likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
+      state.memory.length ? `Things you remember about the user (saved earlier; bring them up naturally, never recite the list): ${state.memory.map((m) => m.text).join('; ')}.` : '',
+      state.sleep[dateKey()] ? `They went to sleep last night at ${fmtClock(state.sleep[dateKey()].at)}${state.sleep[dateKey()].quality ? ` and slept ${state.sleep[dateKey()].quality}` : ''}.` : '',
+      weatherFor(now) ? `Weather today: ${weatherLine(now, true)}.` : '',
       `What you (Rias) are doing right now, shown in the app; stay consistent if it comes up: ${riasActivity()}.`,
     ].filter(Boolean).join('\n');
   }
@@ -4648,6 +5145,8 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
         return { ok: true, today: Food.summary() };
       },
       logWater({ glasses }) { return { ok: true, glassesToday: Food.addWater(Math.max(1, Math.min(10, glasses)), false, dateKey()) }; },
+      remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
+      forget({ fact }) { return { ok: true, removed: forget(fact) }; },
       completeTask({ title }) {
         const q = title.toLowerCase();
         const it = todaysItems().find((x) => !statusOf(x.id) && x.title.toLowerCase().includes(q));
@@ -4717,6 +5216,8 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const options = [];
     if (next) options.push([say(`Next up at ${fmtTime(next.time)}: ${next.title}. I'll remind you~`), 'neutral']);
     if (doneToday()) options.push([say(pick(praiseLines())), 'happy']);
+    const mem = memoryLine();
+    if (mem) options.push([mem, 'happy']);
     options.push([say(pick([].concat(T.whatDoing))), 'happy']);
     if (R.checkin[period()]) options.push([checkinLine(period(), doneToday()), 'neutral']);
     const o = pick(options);
@@ -4746,7 +5247,10 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const nm = nowMin();
     const hello = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', night: 'Still up' }[period(nm)];
     $('#home-hello').textContent = `${hello}, ${state.profile.name}${period(nm) === 'night' ? '?' : ''}`;
-    $('#home-date').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    $('#home-date').textContent = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
+      + (weatherFor(new Date()) ? `  ·  ${weatherLine(new Date(), true)}` : '');
+    const toBed = minutesPastBedtime();
+    $('#home-goodnight').hidden = !(toBed >= -90 && toBed <= 360) || !!state.sleep[wakeDayKey()];
     if (!$('#home-bubble').textContent) $('#home-bubble').textContent = say(pick(R.greet[period(nm)] || R.greet.evening));
     if (Avatar.mood !== 'happy') Avatar.setMood(baseMood());
 
@@ -4883,11 +5387,20 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     ef.elements.repeat.value = item ? item.repeat : 'once';
     ef.elements.date.value = (item && item.date) || dateKey();
     ef.elements.popup.value = (item && item.popup) || 'default';
+    const days = (item && item.days) || [new Date().getDay()];
+    for (const b of ef.querySelectorAll('[name=days]')) b.checked = days.includes(Number(b.value));
+    ef.elements.every.value = String((item && item.every) || 0);
+    ef.elements.until.value = (item && item.until) || '20:00';
     $('#edit-delete').hidden = !item;
-    $('#date-wrap').hidden = ef.elements.repeat.value !== 'once';
+    syncRepeatFields();
     editor.showModal();
   }
-  ef.addEventListener('change', (e) => { if (e.target.name === 'repeat') $('#date-wrap').hidden = ef.elements.repeat.value !== 'once'; });
+  function syncRepeatFields() {
+    $('#date-wrap').hidden = ef.elements.repeat.value !== 'once';
+    $('#days-wrap').hidden = ef.elements.repeat.value !== 'days';
+    $('#until-wrap').hidden = ef.elements.every.value === '0';
+  }
+  ef.addEventListener('change', (e) => { if (['repeat', 'every'].includes(e.target.name)) syncRepeatFields(); });
   $('#edit-cancel').addEventListener('click', () => editor.close());
   $('#edit-delete').addEventListener('click', () => {
     state.items = state.items.filter((it) => it.id !== editingId);
@@ -4898,7 +5411,11 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       title: ef.elements.title.value.trim(), time: ef.elements.time.value, category: ef.elements.category.value,
       repeat: ef.elements.repeat.value, date: ef.elements.repeat.value === 'once' ? ef.elements.date.value : undefined, enabled: true,
       popup: ef.elements.popup.value === 'default' ? undefined : ef.elements.popup.value,
+      days: ef.elements.repeat.value === 'days' ? [...ef.querySelectorAll('[name=days]:checked')].map((b) => Number(b.value)) : undefined,
+      every: Number(ef.elements.every.value) || undefined,
+      until: Number(ef.elements.every.value) ? ef.elements.until.value : undefined,
     };
+    if (data.repeat === 'days' && !data.days.length) data.repeat = 'daily';
     const existing = state.items.find((it) => it.id === editingId);
     if (existing) {
       // Moving an item later in the day re-arms it.
@@ -4915,6 +5432,79 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   });
 
   $('#add').addEventListener('click', () => openEditor(null));
+
+  // ---------- swipe on reminders ----------
+  const SWIPE_OPEN = 168;
+  let drag = null, swallowClick = false;
+  const groupsEl = $('#items-groups');
+  const closeSwipes = (except) => {
+    for (const r of groupsEl.querySelectorAll('.row-item.open')) if (r !== except) { r.classList.remove('open'); r.style.transform = ''; }
+  };
+  groupsEl.addEventListener('pointerdown', (e) => {
+    const row = e.target.closest('.row-item');
+    if (!row || e.target.closest('.check')) return;
+    closeSwipes(row);
+    drag = { row, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, active: false, base: row.classList.contains('open') ? -SWIPE_OPEN : 0 };
+  });
+  groupsEl.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.active) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        drag.active = true;
+        drag.row.classList.add('dragging');
+        try { drag.row.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      } else if (Math.abs(dy) > 10) { drag = null; return; } else return;
+    }
+    const x = Math.max(-SWIPE_OPEN - 24, Math.min(130, drag.base + dx));
+    drag.dx = x;
+    drag.row.style.transform = `translateX(${x}px)`;
+    drag.row.parentElement.classList.toggle('right', x > 0);
+  });
+  const endDrag = () => {
+    if (!drag) return;
+    const { row, active, dx } = drag;
+    drag = null;
+    if (!active) return;
+    row.classList.remove('dragging');
+    swallowClick = true;
+    setTimeout(() => { swallowClick = false; }, 350);
+    if (dx > 80) {
+      row.style.transform = '';
+      const id = row.dataset.id;
+      if (statusOf(id)) undo(id); else resolve(id, 'done');
+    } else if (dx < -60) {
+      row.style.transform = `translateX(${-SWIPE_OPEN}px)`;
+      row.classList.add('open');
+    } else {
+      row.style.transform = '';
+      row.classList.remove('open');
+    }
+  };
+  groupsEl.addEventListener('pointerup', endDrag);
+  groupsEl.addEventListener('pointercancel', endDrag);
+  groupsEl.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-swipe]');
+    if (b) {
+      e.stopImmediatePropagation();
+      const row = b.closest('.swipe').querySelector('.row-item');
+      const id = row.dataset.id;
+      const it = findItem(id);
+      closeSwipes();
+      if (!it) return;
+      if (b.dataset.swipe === 'snooze') snooze(id, SNOOZE_MIN);
+      else if (b.dataset.swipe === 'skip') resolve(id, 'skipped');
+      else if (await ask(`Delete “${it.title}”${it.baseId || it.repeat !== 'once' ? ' (every time it repeats)' : ''}?`)) {
+        const baseId = it.baseId || it.id;
+        state.items = state.items.filter((x) => x.id !== baseId);
+        updateSummary(); save(); renderToday(); renderStatus();
+      }
+      return;
+    }
+    // The click that ends a swipe does nothing; a tap on an opened row closes it.
+    if (swallowClick) { swallowClick = false; e.stopImmediatePropagation(); return; }
+    if (e.target.closest('.row-item.open')) { e.stopImmediatePropagation(); closeSwipes(); }
+  }, true);
   $('#items-groups').addEventListener('click', (e) => {
     const li = e.target.closest('.row-item');
     if (!li) return;
@@ -4926,7 +5516,7 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const item = findItem(id);
     if (item && item.source === 'work') { show('work'); return; }
     if (item && item.source === 'calendar') return; // edit it in your phone's calendar
-    openEditor(item);
+    openEditor(item && item.baseId ? state.items.find((it) => it.id === item.baseId) : item);
   });
 
   // In-app yes/no prompt (window.confirm is blocked in some app views).
@@ -5001,10 +5591,11 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     const today = dateKey();
     // Only reschedule when something that affects the schedule changed.
     const sig = JSON.stringify([state.items, state.settings, state.profile, state.log[today], state.snoozes, today,
-      state.shifts, state.phoneEvents, (state.food[today] || []).length, state.water[today] || 0]);
+      state.shifts, state.phoneEvents, (state.food[today] || []).length, state.water[today] || 0, state.sleep, state.weather && state.weather.at]);
     if (sig === lastSync) return;
     lastSync = sig;
     try { Native.schedule(JSON.stringify(upcomingEvents())); } catch { /* bridge unavailable */ }
+    try { if (Native.setWidget) Native.setWidget(widgetData()); } catch { /* older app */ }
   }
 
   function upcomingEvents(days = 7) {
@@ -5018,13 +5609,26 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       const d = new Date(); d.setDate(d.getDate() + i);
       const log = state.log[dateKey(d)] || {};
       const items = itemsOn(d);
+      const brief = state.settings.briefing !== false ? briefingShort(d) : '';
+      let briefed = false;
       for (const it of items) {
         const t = at(d, toMin(it.time));
         if (t <= now || log[it.id]) continue;
+        // The wake-up reminder carries the day's briefing.
+        const withBrief = brief && !briefed && it.category === 'wake';
+        if (withBrief) briefed = true;
         events.push({
-          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}`,
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${withBrief ? `\n${brief}` : ''}`,
           itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it),
         });
+      }
+      if (brief && !briefed && at(d, w) > now) events.push({ at: at(d, w), text: `${say(pick(R.greet.morning))}\n${brief}` });
+      if (state.settings.recap !== false && d.getDay() === 0 && at(d, 19 * 60) > now && !state.recaps[weekKey(d)]) {
+        events.push({ at: at(d, 19 * 60), text: say('Your weekly recap is ready, {name}. Come see how you did~') });
+      }
+      if (state.settings.windDown !== false) {
+        const t = at(d, s + 45);
+        if (t > now && !state.sleep[wakeDayKey(t)]) events.push({ at: t, text: say(pick(R.lateNight)) });
       }
       if (state.settings.foodReminders) {
         const k = dateKey(d);
@@ -5119,7 +5723,60 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     sf.elements.foodReminders.checked = state.settings.foodReminders;
     sf.elements.waterGoal.value = String(state.settings.waterGoal);
     renderSync();
+    sf.elements.autoBackup.checked = state.settings.autoBackup !== false;
+    sf.elements.briefing.checked = state.settings.briefing !== false;
+    sf.elements.recap.checked = state.settings.recap !== false;
+    sf.elements.windDown.checked = state.settings.windDown !== false;
+    sf.elements.city.value = (state.weather && state.weather.place) || '';
+    $('#city-hint').textContent = weatherFor(new Date()) ? `Today: ${weatherLine(new Date(), true)}` : state.weather ? '' : 'Set your city and Rias tells you the weather each morning.';
+    renderMemory();
+    backupHint();
+    renderUpdate();
   }
+  // Settings → Things Rias remembers.
+  function renderMemory() {
+    const ul = $('#mem-list');
+    ul.textContent = '';
+    if (!state.memory.length) ul.innerHTML = '<li class="mem-empty">Nothing yet. Tell her about yourself~</li>';
+    for (const m of state.memory.slice().reverse()) {
+      const li = document.createElement('li');
+      li.innerHTML = '<span></span><button type="button" class="mem-del" aria-label="Forget this">✕</button>';
+      li.firstChild.textContent = m.text;
+      li.lastChild.dataset.id = m.id;
+      ul.append(li);
+    }
+  }
+  $('#mem-list').addEventListener('click', (e) => {
+    const b = e.target.closest('.mem-del');
+    if (!b) return;
+    state.memory = state.memory.filter((m) => m.id !== b.dataset.id);
+    save(); renderMemory();
+  });
+  const addMemory = () => {
+    const i = $('#mem-input');
+    if (remember(i.value)) { i.value = ''; renderMemory(); }
+  };
+  $('#mem-add').addEventListener('click', addMemory);
+  $('#mem-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addMemory(); } });
+  // Settings → City for the weather.
+  async function setCity() {
+    const name = sf.elements.city.value.trim();
+    if (!name) { state.weather = null; save(); $('#city-hint').textContent = 'Weather turned off.'; return; }
+    $('#city-hint').textContent = 'Looking it up…';
+    try {
+      const c = await findCity(name);
+      if (!c) { $('#city-hint').textContent = `Couldn't find “${name}”. Try the nearest big city.`; return; }
+      state.weather = c;
+      await refreshWeather(true);
+      sf.elements.city.value = c.place;
+      $('#city-hint').textContent = weatherFor(new Date()) ? `${c.place} ✓ Today: ${weatherLine(new Date(), true)}` : `${c.place} ✓`;
+      save();
+    } catch {
+      $('#city-hint').textContent = 'Couldn’t reach the weather service. Are you online?';
+    }
+  }
+  $('#city-set').addEventListener('click', setCity);
+  sf.elements.city.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); setCity(); } });
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
@@ -5131,6 +5788,10 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
       homeChar: sf.elements.homeChar.value,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
+      autoBackup: sf.elements.autoBackup.checked,
+      briefing: sf.elements.briefing.checked,
+      recap: sf.elements.recap.checked,
+      windDown: sf.elements.windDown.checked,
     });
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
@@ -5295,6 +5956,120 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
     if (!await ask('Clear all chat messages?')) return;
     state.messages = []; save(); renderFeed();
   });
+  // ---------- backup & restore ----------
+  // Everything lives only on this phone, so a backup file is the safety net. API keys stay out of it.
+  function backupData() {
+    const copy = JSON.parse(JSON.stringify(state));
+    if (copy.ai) { copy.ai.key = ''; copy.ai.geminiKey = ''; }
+    return JSON.stringify({ app: 'rias-companion', format: 1, savedAt: new Date().toISOString(), state: copy, picture: loadPicture() || '' });
+  }
+  function backupHint() {
+    const parts = [];
+    if (state.lastBackup) parts.push(`Last saved backup: ${new Date(state.lastBackup).toLocaleDateString([], { month: 'short', day: 'numeric' })}`);
+    if (state.lastAutoBackup) parts.push(`Last auto backup: ${new Date(state.lastAutoBackup).toLocaleDateString([], { month: 'short', day: 'numeric' })}`);
+    $('#backup-hint').textContent = parts.join(' · ') || 'No backup yet.';
+    $('#auto-backup-row').hidden = !(Native && Native.autoBackup);
+  }
+  $('#backup-save').addEventListener('click', () => {
+    const name = `rias-backup-${dateKey()}.json`;
+    const data = backupData();
+    if (Native && Native.saveFile) {
+      $('#backup-hint').textContent = 'Choose where to save it: Google Drive, Downloads…';
+      Native.saveFile(name, data);
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    window.riasSaved(true);
+  });
+  window.riasSaved = (ok) => {
+    if (ok) { state.lastBackup = Date.now(); save(); }
+    backupHint();
+    if (!ok) $('#backup-hint').textContent = 'The backup wasn’t saved.';
+    else $('#backup-hint').textContent = `Backup saved ✓ ${$('#backup-hint').textContent}`;
+  };
+  $('#backup-restore').addEventListener('click', () => $('#backup-file').click());
+  $('#backup-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let data = null;
+    try { data = JSON.parse(await file.text()); } catch { /* not JSON */ }
+    if (!data || data.app !== 'rias-companion' || !data.state || !data.state.profile) {
+      $('#backup-hint').textContent = 'That file isn’t a Rias backup.';
+      return;
+    }
+    const when = new Date(data.savedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    if (!(await ask(`Restore the backup from ${when}? It replaces everything in the app right now.`))) return;
+    const next = data.state;
+    next.ai = { ...(next.ai || {}), key: state.ai.key || '', geminiKey: state.ai.geminiKey || '' }; // keys stay on this phone
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+      if (data.picture) localStorage.setItem(PIC_KEY, data.picture); else localStorage.removeItem(PIC_KEY);
+    } catch {
+      $('#backup-hint').textContent = 'Couldn’t restore: the phone’s storage is full.';
+      return;
+    }
+    if (data.picture && Native && Native.setPicture) { try { Native.setPicture(data.picture); } catch { /* ignore */ } }
+    restoring = true;
+    location.reload();
+  });
+  // Weekly automatic copy in Downloads/RiasCompanion (Android 10+).
+  function maybeAutoBackup() {
+    if (!state.profile || !state.settings.autoBackup || !(Native && Native.autoBackup)) return;
+    if (Date.now() - (state.lastAutoBackup || 0) < 7 * 86400000) return;
+    try { if (Native.autoBackup(backupData())) { state.lastAutoBackup = Date.now(); save(); } } catch { /* ignore */ }
+  }
+
+  // ---------- update check ----------
+  // The Android build writes version.json next to the APK on GitHub; once a day the app compares.
+  const VERSION_URL = 'https://raw.githubusercontent.com/nylonv2/lua-scripts/master/rias-companion/version.json';
+  let latest = null;
+  function installedVersion() {
+    try { return Native && Native.appVersion ? JSON.parse(Native.appVersion()) : {}; } catch { return {}; }
+  }
+  function renderUpdate() {
+    const mine = installedVersion();
+    $('#app-version').textContent = mine.name ? `${mine.name} (build ${mine.code})` : 'Web version: always up to date';
+    const ready = !!(latest && mine.code && latest.versionCode > mine.code);
+    $('#update-card').hidden = !ready;
+    if (ready) $('#update-title').textContent = `Rias ${latest.versionName} is ready`;
+    $('#update-check').textContent = ready ? `Get ${latest.versionName}` : 'Check for updates';
+  }
+  async function checkUpdate(manual) {
+    const mine = installedVersion();
+    if (!mine.code) { if (manual) $('#update-hint').textContent = 'Updates are checked in the Android app.'; return; }
+    if (manual) $('#update-hint').textContent = 'Checking…';
+    try {
+      const r = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      latest = await r.json();
+      state.lastUpdateCheck = Date.now(); save();
+      if (manual) {
+        $('#update-hint').textContent = latest.versionCode > mine.code
+          ? `Version ${latest.versionName} is available.` : `You're on the newest version (${mine.name}).`;
+      }
+    } catch {
+      if (manual) $('#update-hint').textContent = 'Couldn’t check. Are you online?';
+    }
+    renderUpdate();
+  }
+  function getUpdate() {
+    if (!latest || !(Native && Native.openUrl)) return;
+    Native.openUrl(latest.apk);
+    $('#update-hint').textContent = 'Downloading in your browser. When it finishes, tap the file and choose Install (allow it if Android asks).';
+  }
+  $('#update-check').addEventListener('click', () => {
+    const mine = installedVersion();
+    if (latest && mine.code && latest.versionCode > mine.code) getUpdate(); else checkUpdate(true);
+  });
+  $('#update-get').addEventListener('click', getUpdate);
+  function maybeCheckUpdate() {
+    if (Native && Native.appVersion && Date.now() - (state.lastUpdateCheck || 0) > 20 * 3600000) checkUpdate(false);
+  }
+
   $('#reset').addEventListener('click', async () => {
     if (!await ask('Delete everything and start over?')) return;
     try { localStorage.removeItem(KEY); } catch { /* ignore */ }
@@ -5344,8 +6119,12 @@ window.createRiasAvatar = function createRiasAvatar(stage) {
   renderHome();
   setInterval(tick, 20000);
   setInterval(syncCalendar, 15 * 60000);
+  const housekeeping = () => { maybeAutoBackup(); maybeCheckUpdate(); refreshWeather().then(() => { if (currentView === 'home') renderHome(); }); };
+  setTimeout(housekeeping, 1500);
+  $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
+    housekeeping();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
     if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); }
   });

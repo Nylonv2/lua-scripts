@@ -207,8 +207,50 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     $('#food-estimate').hidden = !(ctx.canEstimate && ctx.canEstimate());
     $('#estimate-hint').textContent = '';
   }
+  // Your recent foods (last 30 days, newest first), each once.
+  function recentFoods(limit = 8) {
+    const seen = new Set(), out = [];
+    for (let i = 0; i < 30 && out.length < limit; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const list = (state.food[dateKey(d)] || []).slice().sort((a, b) => b.ts - a.ts);
+      for (const e of list) {
+        const key = e.text.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(e);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
+  }
+  function renderRecent() {
+    const box = $('#food-recent');
+    const list = recentFoods();
+    $('#food-recent-wrap').hidden = !list.length;
+    box.textContent = '';
+    for (const e of list) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'recent-chip';
+      b.textContent = e.text.length > 28 ? `${e.text.slice(0, 27)}…` : e.text;
+      if (e.n && e.n.kcal != null) {
+        const k = document.createElement('small');
+        k.textContent = `${Math.round(e.n.kcal)} kcal`;
+        b.append(k);
+      }
+      b.addEventListener('click', () => {
+        const when = isToday() ? new Date() : new Date(viewDate.getFullYear(), viewDate.getMonth(), viewDate.getDate(), 12);
+        logFood(F.meal.value, e.text, e.kind || 'normal', when, e.n ? { ...e.n } : undefined);
+        dlg.close();
+        if (isToday()) riasLine(ctx.R.food[e.kind] || ctx.R.food.normal);
+        render();
+      });
+      box.append(b);
+    }
+  }
   function openAdd(meal) {
     editing = null;
+    renderRecent();
     $('#food-dialog-title').textContent = 'What did you eat?';
     F.meal.value = meal || 'snack';
     F.text.value = '';
@@ -229,6 +271,7 @@ window.createFoodDiary = function createFoodDiary(ctx) {
     F.text.value = e.text;
     F.kind.value = e.kind || 'normal';
     writeN(e.n);
+    $('#food-recent-wrap').hidden = true;
     $('#food-delete').hidden = false;
     showEstimate();
     dlg.showModal();

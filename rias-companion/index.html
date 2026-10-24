@@ -22,7 +22,12 @@
     <div class="alarm-title" id="alarm-title"></div>
     <p class="alarm-text" id="alarm-text"></p>
     <button type="button" class="alarm-btn primary" id="alarm-done">Done ✓</button>
-    <button type="button" class="alarm-btn" id="alarm-snooze">Snooze 10 min</button>
+    <div class="snooze-row" id="alarm-snooze">
+      <span>Snooze</span>
+      <button type="button" class="alarm-btn" data-snooze="5">5 min</button>
+      <button type="button" class="alarm-btn" data-snooze="10">10 min</button>
+      <button type="button" class="alarm-btn" data-snooze="30">30 min</button>
+    </div>
     <button type="button" class="alarm-btn ghost" id="alarm-dismiss">Dismiss</button>
   </dialog>
 
@@ -78,6 +83,11 @@
           <h1 id="home-hello"></h1>
           <p class="muted" id="home-date"></p>
         </div>
+        <button type="button" class="goodnight-btn" id="home-goodnight" hidden>🌙 Goodnight, Rias</button>
+        <div class="update-card" id="update-card" hidden>
+          <div><b id="update-title">A new version of Rias is ready</b><span>Tap to download, then open the file to install. Your data stays.</span></div>
+          <button type="button" class="btn-primary sm" id="update-get">Update</button>
+        </div>
         <div class="card next-card" id="next-card"></div>
         <div class="tiles">
           <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
@@ -118,6 +128,7 @@
           <button type="button" data-say="Play chess with me">Play chess</button>
           <button type="button" data-say="I need motivation">Motivate me</button>
           <button type="button" data-say="I'm tired">I'm tired</button>
+          <button type="button" data-say="Goodnight, Rias">Goodnight 🌙</button>
           <button type="button" data-photo="1">📷 Send my schedule</button>
         </div>
         <form class="composer" id="composer" autocomplete="off">
@@ -329,6 +340,25 @@
           <p class="small voice-hint" id="ai-hint"></p>
           </section>
           <section class="set-group">
+          <h2>Things Rias remembers</h2>
+          <p class="muted small">What you've told her about your life. She brings it up later. With her AI on she saves these herself; without it, start a message with “Remember that…”.</p>
+          <ul class="mem-list" id="mem-list"></ul>
+          <div class="row mem-add">
+            <input id="mem-input" maxlength="140" placeholder="e.g. I have a test on Friday" aria-label="Something for Rias to remember" enterkeyhint="done">
+            <button type="button" id="mem-add">Add</button>
+          </div>
+          </section>
+          <section class="set-group">
+          <h2>Your day with Rias</h2>
+          <label class="switch"><input name="briefing" type="checkbox"> Morning briefing when I wake up (my day, the weather, how I slept)</label>
+          <div class="field"><span class="field-label">City for the weather</span>
+            <div class="row city-row"><input name="city" placeholder="e.g. Dallas" aria-label="City" enterkeyhint="done"><button type="button" id="city-set">Set</button></div>
+          </div>
+          <p class="small voice-hint" id="city-hint"></p>
+          <label class="switch"><input name="recap" type="checkbox"> Weekly recap on Sunday evening</label>
+          <label class="switch"><input name="windDown" type="checkbox"> Bedtime nudges, and ask how I slept</label>
+          </section>
+          <section class="set-group">
           <h2>Phone calendar &amp; other apps</h2>
           <div class="sync-box">
           <div class="sync-row">
@@ -396,6 +426,22 @@
           </div>
           </section>
           <section class="set-group">
+          <h2>Backup &amp; updates</h2>
+          <p class="muted small">Your reminders, shifts, food diary, chat and what Rias remembers live only on this phone. Save a backup so nothing is lost if you reinstall or switch phones. API keys aren't included.</p>
+          <div class="row">
+            <button type="button" id="backup-save">💾 Save backup</button>
+            <button type="button" id="backup-restore">📂 Restore</button>
+          </div>
+          <input type="file" id="backup-file" accept="application/json,.json" hidden>
+          <label class="switch" id="auto-backup-row"><input name="autoBackup" type="checkbox"> Auto backup every week to Downloads/RiasCompanion</label>
+          <p class="small voice-hint" id="backup-hint"></p>
+          <div class="update-row">
+            <div class="sync-text"><b>App version</b><span id="app-version"></span></div>
+            <button type="button" class="btn-primary sm tonal" id="update-check">Check for updates</button>
+          </div>
+          <p class="small voice-hint" id="update-hint"></p>
+          </section>
+          <section class="set-group">
           <h2>Data</h2>
           <button type="button" id="regen">Rebuild default routine</button>
           <button type="button" id="clear-chat">Clear chat history</button>
@@ -426,7 +472,23 @@
         <label id="date-wrap">Date <input name="date" type="date"></label>
       </div>
       <div class="field"><span class="field-label">Repeat</span>
-        <div class="chips" role="radiogroup" aria-label="Repeat"><label class="chip"><input type="radio" name="repeat" value="once"><span>Once</span></label><label class="chip"><input type="radio" name="repeat" value="daily"><span>Every day</span></label><label class="chip"><input type="radio" name="repeat" value="weekdays"><span>Weekdays</span></label><label class="chip"><input type="radio" name="repeat" value="weekends"><span>Weekends</span></label></div>
+        <div class="chips" role="radiogroup" aria-label="Repeat"><label class="chip"><input type="radio" name="repeat" value="once"><span>Once</span></label><label class="chip"><input type="radio" name="repeat" value="daily"><span>Every day</span></label><label class="chip"><input type="radio" name="repeat" value="weekdays"><span>Weekdays</span></label><label class="chip"><input type="radio" name="repeat" value="weekends"><span>Weekends</span></label><label class="chip"><input type="radio" name="repeat" value="days"><span>Pick days</span></label></div>
+      </div>
+      <div class="daypick" id="days-wrap" role="group" aria-label="Days">
+        <label><input type="checkbox" name="days" value="1"><span>M</span></label><label><input type="checkbox" name="days" value="2"><span>T</span></label><label><input type="checkbox" name="days" value="3"><span>W</span></label><label><input type="checkbox" name="days" value="4"><span>T</span></label><label><input type="checkbox" name="days" value="5"><span>F</span></label><label><input type="checkbox" name="days" value="6"><span>S</span></label><label><input type="checkbox" name="days" value="0"><span>S</span></label>
+      </div>
+      <div class="row">
+        <label>During the day
+          <select name="every">
+            <option value="0">Just once</option>
+            <option value="30">Every 30 min</option>
+            <option value="60">Every hour</option>
+            <option value="120">Every 2 hours</option>
+            <option value="180">Every 3 hours</option>
+            <option value="240">Every 4 hours</option>
+          </select>
+        </label>
+        <label id="until-wrap">Until <input name="until" type="time"></label>
       </div>
       <div class="field"><span class="field-label">Type</span>
         <div class="chips" role="radiogroup" aria-label="Type"><label class="chip"><input type="radio" name="category" value="custom"><span>📌 Other</span></label><label class="chip"><input type="radio" name="category" value="wake"><span>⏰ Wake up</span></label><label class="chip"><input type="radio" name="category" value="meds"><span>💊 Medication</span></label><label class="chip"><input type="radio" name="category" value="water"><span>💧 Water</span></label><label class="chip"><input type="radio" name="category" value="meal"><span>🍽️ Meal</span></label><label class="chip"><input type="radio" name="category" value="exercise"><span>🏃 Exercise</span></label><label class="chip"><input type="radio" name="category" value="work"><span>📚 Work / study</span></label><label class="chip"><input type="radio" name="category" value="break"><span>☕ Break</span></label><label class="chip"><input type="radio" name="category" value="hygiene"><span>🪥 Hygiene</span></label><label class="chip"><input type="radio" name="category" value="social"><span>💬 Social</span></label><label class="chip"><input type="radio" name="category" value="chores"><span>🧹 Chores</span></label><label class="chip"><input type="radio" name="category" value="wind"><span>🌙 Wind down</span></label><label class="chip"><input type="radio" name="category" value="sleep"><span>😴 Sleep</span></label></div>
@@ -505,6 +567,10 @@
           <option value="snack">Snack</option>
         </select>
       </label>
+      <div class="food-recent" id="food-recent-wrap" hidden>
+        <span class="field-label">Tap to log again</span>
+        <div class="chips" id="food-recent"></div>
+      </div>
       <label>What you had <input name="text" required maxlength="120" placeholder="e.g. Chicken wrap and an apple"></label>
       <button type="button" id="food-estimate" class="estimate">✨ Ask Rias to estimate calories &amp; macros</button>
       <p class="muted small" id="estimate-hint"></p>

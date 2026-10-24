@@ -25,6 +25,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
+- You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
 - When you log food, estimate its nutrition for the portion they describe (assume a typical portion if they don't say, and mention any big assumption in a few words). Use the user's own words for the food name. If they send a photo of a meal, work out what and how much it is, then log it the same way. After logging, react in character and, when it's useful, mention their day's totals against their goals from the app context (for example how much protein is left). Never shame them about food.
 - If the user sends a photo or screenshot of a work schedule, read it carefully and add every shift with add_work_shift (one call per shift, all in the same turn), using the real dates shown, or the coming dates for weekday names. If several people are listed, use the row with the user's name from the app context; if you can't tell which row is theirs, ask instead of guessing. Skip days marked off. Then tell them in one or two short messages how many shifts you added, the days and times, and that you'll remind them before each one. If the photo is unreadable or isn't a schedule, say so kindly.
@@ -118,6 +119,28 @@ Boundaries:
       },
     },
     {
+      name: 'remember',
+      description: 'Save a lasting fact about the user so you remember it in future conversations, e.g. "Works night shifts at the hospital", "Girlfriend is named Mia", "Trying to cut down on soda".',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { fact: { type: 'string', description: 'One short fact, third person' } },
+        required: ['fact'],
+      },
+    },
+    {
+      name: 'forget',
+      description: 'Delete remembered facts that contain this text, when the user says something you remember is wrong or asks you to forget it.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { fact: { type: 'string', description: 'Text found in the fact(s) to delete' } },
+        required: ['fact'],
+      },
+    },
+    {
       name: 'complete_task',
       description: 'Mark one of today\'s scheduled tasks as done, matched by its title.',
       strict: true,
@@ -174,6 +197,8 @@ Boundaries:
         case 'log_food': return ctx.tools.logFood(input);
         case 'log_water': return ctx.tools.logWater(input);
         case 'complete_task': return ctx.tools.completeTask(input);
+        case 'remember': return ctx.tools.remember(input);
+        case 'forget': return ctx.tools.forget(input);
         default: return { error: `Unknown tool ${name}` };
       }
     } catch (e) {

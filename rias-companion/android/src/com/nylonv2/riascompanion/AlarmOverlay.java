@@ -131,15 +131,26 @@ final class AlarmOverlay {
                     close(c, wm, notificationId);
                 }
             }));
-            card.addView(button(c, "Snooze 10 min", 0xFF301723, new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    long until = System.currentTimeMillis() + 10 * 60 * 1000L;
-                    Scheduler.recordAction(c, itemId, "snooze", at, until);
-                    Scheduler.addEvent(c, until, text, itemId, title);
-                    close(c, wm, notificationId);
-                }
-            }));
+            LinearLayout row = new LinearLayout(c);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            for (final int mins : new int[] {5, 10, 30}) {
+                Button b = button(c, "Snooze " + mins, 0xFF301723, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        long until = System.currentTimeMillis() + mins * 60 * 1000L;
+                        Scheduler.recordAction(c, itemId, "snooze", at, until);
+                        Scheduler.addEvent(c, until, text, itemId, title);
+                        close(c, wm, notificationId);
+                    }
+                });
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(c, 50), 1f);
+                lp.topMargin = dp(c, 8);
+                if (mins != 5) lp.leftMargin = dp(c, 6);
+                b.setLayoutParams(lp);
+                b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                row.addView(b);
+            }
+            card.addView(row, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         }
         card.addView(button(c, "Dismiss", 0x00000000, new View.OnClickListener() {
             @Override
