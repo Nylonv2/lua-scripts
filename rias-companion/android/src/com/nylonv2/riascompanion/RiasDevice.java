@@ -30,6 +30,7 @@ final class RiasDevice {
     @JavascriptInterface public String call(String who) { return DeviceActions.call(ctx, who); }
     @JavascriptInterface public String text(String who, String message) { return DeviceActions.text(ctx, who, message); }
     @JavascriptInterface public String directions(String place) { return DeviceActions.directions(ctx, place); }
+    @JavascriptInterface public String email(String to, String subject, String body) { return DeviceActions.email(ctx, to, subject, body); }
     @JavascriptInterface public String notifications(double since) { return RiasNotifications.since((long) since); }
     @JavascriptInterface public void playPcm(String base64, int rate) { DeviceActions.playPcm(base64, rate); }
     @JavascriptInterface public void stopPcm() { DeviceActions.stopPcm(); }

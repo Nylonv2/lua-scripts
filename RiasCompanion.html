@@ -1530,6 +1530,10 @@ button:active, .chip:active span { transform: scale(.97); }
               <option value="neutral">Neither (good job)</option>
             </select>
           </label>
+          <label>Sign my emails as
+            <input name="emailSign" maxlength="60" autocomplete="name">
+          </label>
+          <p class="muted small">When Rias writes an email for you, she signs it with this (your full name, or name and business). Leave empty to use your name above.</p>
           </section>
           <section class="set-group" data-cat="voice">
           <h2>Speaking</h2>
@@ -1680,6 +1684,7 @@ button:active, .chip:active span { transform: scale(.97); }
             <li>“Wake me up at 6:30” · “Set an alarm for 7 tomorrow”</li>
             <li>“Volume 40%” · “Turn it up” · “Mute”</li>
             <li>“Call Mom” · “Text Jake I'm running late” · “Directions to Walmart”</li>
+            <li>“Email Mike that I'll be late tomorrow” · “Email jess@gmail.com about Saturday's shoot”</li>
             <li>“Flashlight on” · “Turn on Do Not Disturb” · “Open YouTube”</li>
             <li>“What did I miss?” · “What time is it?” · “What's 15% of 80?” · “Tip on $45”</li>
           </ul>
@@ -3686,7 +3691,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
-- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications. Act when asked, then confirm in one short line (they may be listening, not reading).
+- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -3736,6 +3741,21 @@ Boundaries:
           label: { type: 'string', description: 'What it\'s for, e.g. "pasta", or empty string' },
         },
         required: ['minutes', 'label'],
+      },
+    },
+    {
+      name: 'draft_email',
+      description: 'Write an email for the user and open it in their email app, ready to send; they check it and tap Send themselves. Write it AS THE USER (first person, their normal tone, clear and natural), not as Rias. End with a sign-off such as "Thanks," on its own line; the app adds their name. If you don\'t know who it\'s to or what it should say, ask first instead of guessing.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          to: { type: 'string', description: 'An email address, or a contact\'s name as the user said it (e.g. "Mike", "my boss" only if that\'s a saved contact name). Empty string if unknown.' },
+          subject: { type: 'string', description: 'Short, specific subject line' },
+          body: { type: 'string', description: 'The email text, starting with a greeting like "Hi Mike," and ending with a sign-off line, without the user\'s name' },
+        },
+        required: ['to', 'subject', 'body'],
       },
     },
     {
@@ -3904,6 +3924,7 @@ Boundaries:
         case 'get_weather': return await ctx.tools.getWeather(input);
         case 'set_timer': return ctx.tools.setTimer(input);
         case 'phone_control': return ctx.tools.phone(input);
+        case 'draft_email': return ctx.tools.email(input);
         case 'add_reminder': return ctx.tools.addReminder(input);
         case 'add_work_shift': return ctx.tools.addShift(input);
         case 'log_food': return ctx.tools.logFood(input);
@@ -4924,8 +4945,8 @@ window.NaturalVoice = (() => {
 </script>
   <script>
 // Rias as a voice assistant (Alexa-style): timers and alarms, volume, flashlight,
-// Do Not Disturb, opening apps, calls, texts, directions, reading your notifications,
-// the time, and quick math.
+// Do Not Disturb, opening apps, calls, texts, emails, directions, reading your
+// notifications, the time, and quick math.
 // Commands are understood without her AI; with it on, the AI can also use them through
 // the set_timer / phone_control tools, so any wording works. The phone parts need the
 // Android app (window.RiasDevice); in a browser she says so, except timers and math.
@@ -5114,6 +5135,41 @@ window.createAssistant = function createAssistant(ctx) {
     }
   }
 
+  // ---------- email ----------
+  const signature = () => (st().settings.emailSign || (st().profile && st().profile.name) || '').trim();
+  /**
+   * Opens the email app with the email ready; the user checks it and taps Send.
+   * { to: address, contact name or '', subject, body } → { ok, said } (said = her short confirmation).
+   */
+  function email({ to = '', subject = '', body = '' }) {
+    let text = String(body || '').trim();
+    const sig = signature();
+    // Sign it with your name unless it's already signed.
+    if (sig && !text.slice(-60).toLowerCase().includes(sig.toLowerCase())) text += `${/(thanks|regards|best|cheers|sincerely|talk soon)[,!.]*$/i.test(text) ? '\n' : '\n\n'}${sig}`;
+    const d = D();
+    let res;
+    if (d && d.email) {
+      try { res = String(d.email(String(to || ''), String(subject || ''), text)); } catch { res = 'error'; }
+    } else {
+      // Browser: a mailto link opens the default email app.
+      const addr = /@/.test(to) ? String(to).replace(/\s/g, '') : '';
+      try { window.open(`mailto:${addr}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`, '_blank'); res = `ok:${to}|${addr}`; } catch { res = 'no-app'; }
+    }
+    if (res === 'no-permission') return { ok: false, said: say(`I need access to your contacts to find ${to}'s email. Go to Settings → Assistant → Calls & texts, or give me their email address.`) };
+    if (res === 'not-found') return { ok: false, said: say(`I couldn't find an email address for “${to}” in your contacts. What's their email?`) };
+    if (!String(res).startsWith('ok')) return { ok: false, said: say('I couldn\'t open your email app, {name}.') };
+    const who = String(res).slice(3).split('|')[0] || to;
+    return { ok: true, said: say(`Your email${who ? ` to ${/@/.test(who) ? who : cap(who)}` : ''} is ready${subject ? ` (“${subject}”)` : ''}. Read it over and tap send~`) };
+  }
+  // Without her AI: a plain email from what you said.
+  function quickEmail(to, what) {
+    const first = /@/.test(to) ? '' : ` ${cap(to.split(/\s+/)[0])}`;
+    const line = what.replace(/^(that|saying|to say|about)\s+/i, '').replace(/^i'm\b/i, "I'm").replace(/^./, (c) => c.toUpperCase());
+    const words = line.replace(/[.,!?]+$/, '').split(/\s+/);
+    const subject = words.length <= 8 ? words.join(' ') : `${words.slice(0, 6).join(' ')}…`;
+    return email({ to, subject, body: `Hi${first},\n\n${/[.!?]$/.test(line) ? line : `${line}.`}\n\nThanks,` });
+  }
+
   function readNotifications() {
     const d = D();
     if (!d || !d.notifications) return { ok: false, said: say(NEEDS_APP) };
@@ -5156,6 +5212,7 @@ window.createAssistant = function createAssistant(ctx) {
 
   // ---------- understanding what you said ----------
   let pendingText = null; // "text Jake" → "what should I say?" → your next message is the text
+  let pendingEmail = null; // same for "email Jake" without her AI
 
   /** Returns her reply lines if `text` was an assistant command, else null. */
   function handle(rawText) {
@@ -5165,6 +5222,12 @@ window.createAssistant = function createAssistant(ctx) {
     if (!t) return null;
     const one = (x) => [typeof x === 'string' ? x : x.said];
 
+    if (pendingEmail) {
+      const to = pendingEmail;
+      pendingEmail = null;
+      if (!/^(never ?mind|cancel|forget it|nothing)$/.test(t)) return one(quickEmail(to, rawText.trim()));
+      return [say('Okay, no email.')];
+    }
     if (pendingText) {
       const to = pendingText;
       pendingText = null;
@@ -5221,6 +5284,14 @@ window.createAssistant = function createAssistant(ctx) {
     // Do Not Disturb
     if (/\b(do not disturb|don't disturb|dnd)\b/.test(t)) return one(run(/\b(off|disable|stop|end|turn off|deactivate)\b/.test(t) ? 'dnd_off' : 'dnd_on'));
 
+    // Email: with her AI on she writes it properly (draft_email tool); without it, a short plain one.
+    m = rawText.trim().replace(/[?.!]+$/, '').match(/^(?:(?:hey |ok |okay )?rias[,!.]?\s+)?(?:please\s+|can you\s+|could you\s+)?(?:send |write |draft )?(?:an |a )?e-?mail(?: to)?\s+(\S+@\S+|[a-z][a-z'.-]*(?:\s+[A-Z][a-z'.-]+)?)(?:\s*(?:,|saying|that says|that|about|to say|and say|and tell (?:him|her|them))\s+(.+))?$/i);
+    if (m && /^(?:send |write |draft )?(?:an |a )?e-?mail\b/.test(t)) {
+      if (ctx.aiOn && ctx.aiOn()) return null;
+      if (!m[2]) { pendingEmail = m[1]; return [say(`What should the email to ${/@/.test(m[1]) ? m[1] : cap(m[1])} say?`)]; }
+      return one(quickEmail(m[1], m[2]));
+    }
+
     // Calls, texts, directions
     m = t.match(/^(?:call|phone|ring|dial)\s+(.+)$/);
     if (m && !/^(me|it)\b/.test(m[1])) return one(run('call', m[1].replace(/\s+(on|from) (my )?(phone|mobile|cell)$/, '')));
@@ -5275,7 +5346,7 @@ window.createAssistant = function createAssistant(ctx) {
     return null;
   }
 
-  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, durationText, parseDuration, parseClock };
+  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, email, durationText, parseDuration, parseClock };
 };
 </script>
   <script>
@@ -6919,6 +6990,7 @@ window.createAssistant = function createAssistant(ctx) {
   const Assistant = window.createAssistant({
     get state() { return state; },
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
+    aiOn: () => AI.enabled(),
     addItem(it) {
       const item = { id: uid(), enabled: true, ...it };
       state.items.push(item);
@@ -6944,6 +7016,7 @@ window.createAssistant = function createAssistant(ctx) {
     tools: {
       setTimer({ minutes, label }) { return Assistant.startTimer(Number(minutes) * 60, label); },
       phone({ action, value, message }) { return Assistant.run(action, value, message); },
+      email(input) { return Assistant.email(input); },
       addReminder({ title, time, repeat, date }) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
@@ -7786,6 +7859,8 @@ window.createAssistant = function createAssistant(ctx) {
     sf.elements.name.value = state.profile.name;
     sf.elements.wake.value = state.profile.wake;
     sf.elements.sleep.value = state.profile.sleep;
+    sf.elements.emailSign.value = state.settings.emailSign || '';
+    sf.elements.emailSign.placeholder = state.profile.name;
     sf.elements.checkins.checked = state.settings.checkins;
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
@@ -8065,6 +8140,7 @@ window.createAssistant = function createAssistant(ctx) {
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
+    state.settings.emailSign = sf.elements.emailSign.value.trim();
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {

@@ -25,7 +25,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
-- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications. Act when asked, then confirm in one short line (they may be listening, not reading).
+- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -75,6 +75,21 @@ Boundaries:
           label: { type: 'string', description: 'What it\'s for, e.g. "pasta", or empty string' },
         },
         required: ['minutes', 'label'],
+      },
+    },
+    {
+      name: 'draft_email',
+      description: 'Write an email for the user and open it in their email app, ready to send; they check it and tap Send themselves. Write it AS THE USER (first person, their normal tone, clear and natural), not as Rias. End with a sign-off such as "Thanks," on its own line; the app adds their name. If you don\'t know who it\'s to or what it should say, ask first instead of guessing.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          to: { type: 'string', description: 'An email address, or a contact\'s name as the user said it (e.g. "Mike", "my boss" only if that\'s a saved contact name). Empty string if unknown.' },
+          subject: { type: 'string', description: 'Short, specific subject line' },
+          body: { type: 'string', description: 'The email text, starting with a greeting like "Hi Mike," and ending with a sign-off line, without the user\'s name' },
+        },
+        required: ['to', 'subject', 'body'],
       },
     },
     {
@@ -243,6 +258,7 @@ Boundaries:
         case 'get_weather': return await ctx.tools.getWeather(input);
         case 'set_timer': return ctx.tools.setTimer(input);
         case 'phone_control': return ctx.tools.phone(input);
+        case 'draft_email': return ctx.tools.email(input);
         case 'add_reminder': return ctx.tools.addReminder(input);
         case 'add_work_shift': return ctx.tools.addShift(input);
         case 'log_food': return ctx.tools.logFood(input);

@@ -235,6 +235,58 @@ final class DeviceActions {
         return start(c, i) ? "ok:" + ct.optString("name") : "error";
     }
 
+    /** {name, email} of the best contact match with an email address, {error} without permission, or null. */
+    static JSONObject findEmail(Context c, String who) {
+        if (who == null || who.trim().isEmpty()) return null;
+        try {
+            if (!granted(c, android.Manifest.permission.READ_CONTACTS)) return new JSONObject().put("error", "no-permission");
+            String w = who.trim();
+            try (Cursor cur = c.getContentResolver().query(ContactsContract.CommonDataKinds.Email.CONTENT_URI,
+                    new String[] {ContactsContract.CommonDataKinds.Email.DISPLAY_NAME_PRIMARY, ContactsContract.CommonDataKinds.Email.ADDRESS},
+                    ContactsContract.CommonDataKinds.Email.DISPLAY_NAME_PRIMARY + " LIKE ?", new String[] {"%" + w + "%"},
+                    ContactsContract.CommonDataKinds.Email.IS_SUPER_PRIMARY + " DESC")) {
+                String bestName = null, bestMail = null;
+                int bestScore = -1;
+                String lw = w.toLowerCase(Locale.US);
+                while (cur != null && cur.moveToNext()) {
+                    String n = cur.getString(0), mail = cur.getString(1);
+                    String ln = n == null ? "" : n.toLowerCase(Locale.US);
+                    int score = ln.equals(lw) ? 3 : ln.startsWith(lw) ? 2 : 1;
+                    if (score > bestScore && mail != null) {
+                        bestScore = score;
+                        bestName = n;
+                        bestMail = mail;
+                    }
+                }
+                return bestMail == null ? null : new JSONObject().put("name", bestName).put("email", bestMail);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Opens your email app with the email written out (to, subject, body); you check it and tap Send.
+     * `to` can be an address, a contact's name, or empty. Returns "ok:Name|address", "not-found", "no-permission", "no-app".
+     */
+    static String email(Context c, String to, String subject, String body) {
+        String addr = to == null ? "" : to.trim(), name = addr;
+        if (!addr.isEmpty() && !addr.contains("@")) {
+            JSONObject ct = findEmail(c, addr);
+            if (ct == null) return "not-found";
+            if (ct.has("error")) return ct.optString("error");
+            addr = ct.optString("email");
+            name = ct.optString("name");
+        }
+        addr = addr.replace(" ", "");
+        Uri uri = Uri.parse("mailto:" + addr + "?subject=" + Uri.encode(subject == null ? "" : subject) + "&body=" + Uri.encode(body == null ? "" : body));
+        Intent i = new Intent(Intent.ACTION_SENDTO, uri)
+                .putExtra(Intent.EXTRA_SUBJECT, subject)
+                .putExtra(Intent.EXTRA_TEXT, body);
+        if (!addr.isEmpty()) i.putExtra(Intent.EXTRA_EMAIL, new String[] {addr});
+        return start(c, i) ? "ok:" + name + "|" + addr : "no-app";
+    }
+
     static String directions(Context c, String place) {
         Intent nav = new Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=" + Uri.encode(place)));
         if (start(c, nav)) return "ok";

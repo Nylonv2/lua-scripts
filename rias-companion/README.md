@@ -87,6 +87,8 @@ hush her. Prefer to see the words? Switch the pop-up to *Full panel*.
 She can do this by voice, AI or not:
 - **Timers and wake-ups:** "set a timer for 20 minutes", "how much time is left?", "wake me up at 6:30"
 - **Calls, texts, directions:** "call Mom", "text Jake I'm running late" (you tap Send), "directions to Walmart"
+- **Emails:** "email Mike that I'll be late tomorrow". She writes it as you (with her AI on, a proper email from whatever you
+say), finds the address in your contacts, signs it (*Sign my emails as* under You) and opens your email app; you tap Send
 - **Phone:** "flashlight on", "volume 40%", "turn on Do Not Disturb", "open YouTube"
 - **"What did I miss?"** reads your new notifications aloud
 - **Quick answers:** the time and date, "15% of 80", "tip on $45"
@@ -99,7 +101,7 @@ She can do this by voice, AI or not:
 
 | Section | What's in it |
 |---|---|
-| **You** | Your name, wake-up and bedtime, what she calls you |
+| **You** | Your name, wake-up and bedtime, what she calls you, how your emails are signed |
 | **Her voice** | Speaking out loud, phone voice or natural AI voice, pitch and speed |
 | **Look & pictures** | Theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
 | **Reminders & alarms** | Check-ins, notifications, the pop-up check, which reminders pop up, alarm sound, test buttons |

@@ -1,6 +1,6 @@
 // Rias as a voice assistant (Alexa-style): timers and alarms, volume, flashlight,
-// Do Not Disturb, opening apps, calls, texts, directions, reading your notifications,
-// the time, and quick math.
+// Do Not Disturb, opening apps, calls, texts, emails, directions, reading your
+// notifications, the time, and quick math.
 // Commands are understood without her AI; with it on, the AI can also use them through
 // the set_timer / phone_control tools, so any wording works. The phone parts need the
 // Android app (window.RiasDevice); in a browser she says so, except timers and math.
@@ -189,6 +189,41 @@ window.createAssistant = function createAssistant(ctx) {
     }
   }
 
+  // ---------- email ----------
+  const signature = () => (st().settings.emailSign || (st().profile && st().profile.name) || '').trim();
+  /**
+   * Opens the email app with the email ready; the user checks it and taps Send.
+   * { to: address, contact name or '', subject, body } → { ok, said } (said = her short confirmation).
+   */
+  function email({ to = '', subject = '', body = '' }) {
+    let text = String(body || '').trim();
+    const sig = signature();
+    // Sign it with your name unless it's already signed.
+    if (sig && !text.slice(-60).toLowerCase().includes(sig.toLowerCase())) text += `${/(thanks|regards|best|cheers|sincerely|talk soon)[,!.]*$/i.test(text) ? '\n' : '\n\n'}${sig}`;
+    const d = D();
+    let res;
+    if (d && d.email) {
+      try { res = String(d.email(String(to || ''), String(subject || ''), text)); } catch { res = 'error'; }
+    } else {
+      // Browser: a mailto link opens the default email app.
+      const addr = /@/.test(to) ? String(to).replace(/\s/g, '') : '';
+      try { window.open(`mailto:${addr}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`, '_blank'); res = `ok:${to}|${addr}`; } catch { res = 'no-app'; }
+    }
+    if (res === 'no-permission') return { ok: false, said: say(`I need access to your contacts to find ${to}'s email. Go to Settings → Assistant → Calls & texts, or give me their email address.`) };
+    if (res === 'not-found') return { ok: false, said: say(`I couldn't find an email address for “${to}” in your contacts. What's their email?`) };
+    if (!String(res).startsWith('ok')) return { ok: false, said: say('I couldn\'t open your email app, {name}.') };
+    const who = String(res).slice(3).split('|')[0] || to;
+    return { ok: true, said: say(`Your email${who ? ` to ${/@/.test(who) ? who : cap(who)}` : ''} is ready${subject ? ` (“${subject}”)` : ''}. Read it over and tap send~`) };
+  }
+  // Without her AI: a plain email from what you said.
+  function quickEmail(to, what) {
+    const first = /@/.test(to) ? '' : ` ${cap(to.split(/\s+/)[0])}`;
+    const line = what.replace(/^(that|saying|to say|about)\s+/i, '').replace(/^i'm\b/i, "I'm").replace(/^./, (c) => c.toUpperCase());
+    const words = line.replace(/[.,!?]+$/, '').split(/\s+/);
+    const subject = words.length <= 8 ? words.join(' ') : `${words.slice(0, 6).join(' ')}…`;
+    return email({ to, subject, body: `Hi${first},\n\n${/[.!?]$/.test(line) ? line : `${line}.`}\n\nThanks,` });
+  }
+
   function readNotifications() {
     const d = D();
     if (!d || !d.notifications) return { ok: false, said: say(NEEDS_APP) };
@@ -231,6 +266,7 @@ window.createAssistant = function createAssistant(ctx) {
 
   // ---------- understanding what you said ----------
   let pendingText = null; // "text Jake" → "what should I say?" → your next message is the text
+  let pendingEmail = null; // same for "email Jake" without her AI
 
   /** Returns her reply lines if `text` was an assistant command, else null. */
   function handle(rawText) {
@@ -240,6 +276,12 @@ window.createAssistant = function createAssistant(ctx) {
     if (!t) return null;
     const one = (x) => [typeof x === 'string' ? x : x.said];
 
+    if (pendingEmail) {
+      const to = pendingEmail;
+      pendingEmail = null;
+      if (!/^(never ?mind|cancel|forget it|nothing)$/.test(t)) return one(quickEmail(to, rawText.trim()));
+      return [say('Okay, no email.')];
+    }
     if (pendingText) {
       const to = pendingText;
       pendingText = null;
@@ -296,6 +338,14 @@ window.createAssistant = function createAssistant(ctx) {
     // Do Not Disturb
     if (/\b(do not disturb|don't disturb|dnd)\b/.test(t)) return one(run(/\b(off|disable|stop|end|turn off|deactivate)\b/.test(t) ? 'dnd_off' : 'dnd_on'));
 
+    // Email: with her AI on she writes it properly (draft_email tool); without it, a short plain one.
+    m = rawText.trim().replace(/[?.!]+$/, '').match(/^(?:(?:hey |ok |okay )?rias[,!.]?\s+)?(?:please\s+|can you\s+|could you\s+)?(?:send |write |draft )?(?:an |a )?e-?mail(?: to)?\s+(\S+@\S+|[a-z][a-z'.-]*(?:\s+[A-Z][a-z'.-]+)?)(?:\s*(?:,|saying|that says|that|about|to say|and say|and tell (?:him|her|them))\s+(.+))?$/i);
+    if (m && /^(?:send |write |draft )?(?:an |a )?e-?mail\b/.test(t)) {
+      if (ctx.aiOn && ctx.aiOn()) return null;
+      if (!m[2]) { pendingEmail = m[1]; return [say(`What should the email to ${/@/.test(m[1]) ? m[1] : cap(m[1])} say?`)]; }
+      return one(quickEmail(m[1], m[2]));
+    }
+
     // Calls, texts, directions
     m = t.match(/^(?:call|phone|ring|dial)\s+(.+)$/);
     if (m && !/^(me|it)\b/.test(m[1])) return one(run('call', m[1].replace(/\s+(on|from) (my )?(phone|mobile|cell)$/, '')));
@@ -350,5 +400,5 @@ window.createAssistant = function createAssistant(ctx) {
     return null;
   }
 
-  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, durationText, parseDuration, parseClock };
+  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, email, durationText, parseDuration, parseClock };
 };

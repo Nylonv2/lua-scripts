@@ -1638,6 +1638,7 @@
   const Assistant = window.createAssistant({
     get state() { return state; },
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
+    aiOn: () => AI.enabled(),
     addItem(it) {
       const item = { id: uid(), enabled: true, ...it };
       state.items.push(item);
@@ -1663,6 +1664,7 @@
     tools: {
       setTimer({ minutes, label }) { return Assistant.startTimer(Number(minutes) * 60, label); },
       phone({ action, value, message }) { return Assistant.run(action, value, message); },
+      email(input) { return Assistant.email(input); },
       addReminder({ title, time, repeat, date }) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
@@ -2505,6 +2507,8 @@
     sf.elements.name.value = state.profile.name;
     sf.elements.wake.value = state.profile.wake;
     sf.elements.sleep.value = state.profile.sleep;
+    sf.elements.emailSign.value = state.settings.emailSign || '';
+    sf.elements.emailSign.placeholder = state.profile.name;
     sf.elements.checkins.checked = state.settings.checkins;
     sf.elements.checkinEvery.value = String(state.settings.checkinEvery);
     sf.elements.notify.checked = state.settings.notify;
@@ -2784,6 +2788,7 @@
   sf.addEventListener('submit', (e) => {
     e.preventDefault();
     Object.assign(state.profile, { name: sf.elements.name.value.trim(), wake: sf.elements.wake.value, sleep: sf.elements.sleep.value });
+    state.settings.emailSign = sf.elements.emailSign.value.trim();
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {
