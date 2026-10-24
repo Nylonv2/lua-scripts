@@ -42,6 +42,8 @@ public class MainActivity extends Activity {
     private static final int REQ_FILE = 43;
     private android.webkit.ValueCallback<Uri[]> fileCallback;
     private WebView web;
+    private boolean pageReady;
+    private String pendingShare; // JSON handed to the page once it has loaded
     private TextToSpeech tts;
     private volatile boolean ttsReady;
     /** starting | ready | failed | no-language | error — shown in Settings when she's silent. */
@@ -90,6 +92,12 @@ public class MainActivity extends Activity {
         });
         web.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageFinished(WebView view, String url) {
+                pageReady = true;
+                deliverShare();
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri u = request.getUrl();
                 if ("file".equals(u.getScheme())) return false;
@@ -109,6 +117,76 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(this), "RiasNative");
         setContentView(web);
         web.loadUrl("file:///android_asset/www/index.html");
+        handleShare(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleShare(intent);
+    }
+
+    /** Something shared to Rias: text (a reminder) or an image (a schedule or a meal). */
+    private void handleShare(Intent intent) {
+        if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return;
+        try {
+            JSONObject o = new JSONObject();
+            String type = intent.getType() == null ? "" : intent.getType();
+            String text = intent.getStringExtra(Intent.EXTRA_TEXT);
+            String subject = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+            if (subject != null && text != null && !text.contains(subject)) text = subject + "\n" + text;
+            else if (text == null) text = subject;
+            if (type.startsWith("image/")) {
+                Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                String data = uri == null ? null : imageBase64(uri);
+                if (data == null) return;
+                o.put("type", "image");
+                o.put("data", data);
+                if (text != null) o.put("text", text);
+            } else {
+                if (text == null) return;
+                o.put("type", "text");
+                o.put("text", text);
+            }
+            pendingShare = o.toString();
+            deliverShare();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void deliverShare() {
+        if (!pageReady || pendingShare == null) return;
+        String js = "window.riasShared && window.riasShared(" + pendingShare + ")";
+        pendingShare = null;
+        web.evaluateJavascript(js, null);
+    }
+
+    /** Reads a shared image, shrinks it so the longest side is at most 1800px, returns base64 JPEG. */
+    private String imageBase64(Uri uri) {
+        try {
+            android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+                android.graphics.BitmapFactory.decodeStream(in, null, bounds);
+            }
+            int sample = 1;
+            while (Math.max(bounds.outWidth, bounds.outHeight) / sample > 3600) sample *= 2;
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inSampleSize = sample;
+            android.graphics.Bitmap bm;
+            try (java.io.InputStream in = getContentResolver().openInputStream(uri)) {
+                bm = android.graphics.BitmapFactory.decodeStream(in, null, opts);
+            }
+            if (bm == null) return null;
+            float k = Math.min(1f, 1800f / Math.max(bm.getWidth(), bm.getHeight()));
+            if (k < 1f) bm = android.graphics.Bitmap.createScaledBitmap(bm, Math.round(bm.getWidth() * k), Math.round(bm.getHeight() * k), true);
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            bm.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out);
+            return android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // Back goes to Home (or closes a pop-up) instead of leaving; on Home it sends the app to the background.
@@ -318,6 +396,17 @@ public class MainActivity extends Activity {
                     activity.speakNow(text);
                 }
             });
+        }
+
+        /** Rias's page in Android settings (permissions, battery, notifications). */
+        @JavascriptInterface
+        public void openAppSettings() {
+            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.getPackageName()))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                ctx.startActivity(i);
+            } catch (Exception ignored) {
+            }
         }
 
         @JavascriptInterface

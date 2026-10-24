@@ -101,8 +101,8 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   dinner isn't logged, and at 3 PM if you're behind on water.
 - **Work**: weekly or one-off shifts (overnight shifts work too), a 7-day overview with total hours, and a
   "remind me to leave" time. Rias reminds you when to leave, when the shift starts, and when it ends.
-  **🗓️ Plan my week** sets a whole week on one screen: type a start and end time on each day you work (a start alone
-  fills an end 8 hours later) and leave days off blank; ✕ clears a day, ↺ copies the day above, *Copy last week*,
+  **🗓️ Plan my week** sets a whole week on one screen: tap Start and End on each day you work and pick the time with
+  the tap picker (hour, :00/:15/:30/:45, ±5 min, AM/PM; a start alone fills an end 8 hours later) and leave days off blank; ✕ clears a day, ↺ copies the day above, *Copy last week*,
   ‹ › to plan ahead, and *Repeat this every week* (starts from that week; earlier weeks keep their plan). Or paste/type your schedule: "Mon 9-5", "Tue off", "Wed-Fri 12-8",
   "Thu 7am-3:30pm" (AM/PM is guessed when left out: starts from 1 to 5 are afternoon, and the end comes after the start).
   Changing one week of a repeating schedule only changes that week.
@@ -153,6 +153,20 @@ only to the service you picked. Without a key, or offline, she uses the written 
 
 The Claude SDK is bundled as `vendor/anthropic-sdk.js` (rebuild with `vendor/build-sdk.sh`); Gemini uses Google's
 REST API directly (`ai.js`).
+
+## Sync from your phone
+
+The top of **Reminders** has a *Sync from your phone* section:
+
+- **Phone calendar:** *Connect* asks for calendar permission; once connected it shows how many events it found, when
+  it last synced, and a *Sync now* button. If permission was denied, *Allow* asks again and a link opens Rias's page
+  in Android settings.
+- **Share → Rias:** in Samsung Reminder, Google Keep, Messages or any app, open a reminder and tap **Share → Rias**.
+  With her AI on she creates the reminder (with the right time); without it the new-reminder sheet opens filled in
+  (title and any time like "4:30pm"). Sharing a screenshot or photo sends it to her chat, so a schedule becomes shifts
+  and a meal becomes a food log.
+
+Every time box in the app opens the same tap picker, so it works the same on every phone.
 
 ## Phone calendar
 

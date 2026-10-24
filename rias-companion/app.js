@@ -617,9 +617,7 @@
     const s = streak();
     $('#streak-text').textContent = s ? `done · 🔥 ${s}-day streak` : 'done today';
 
-    // Phone calendar: offer it right here (Android app), until connected or dismissed.
-    const N = window.RiasNative;
-    $('#cal-connect').hidden = !(N && N.calendarEvents) || state.settings.phoneCalendar || state.settings.calCardDismissed;
+    renderSync();
 
     const allDay = allDayEvents();
     $('#allday').hidden = !allDay.length;
@@ -690,17 +688,48 @@
     todayFilter = b.dataset.f;
     renderToday();
   });
-  $('#cal-connect-btn').addEventListener('click', () => {
-    state.settings.phoneCalendar = true;
-    save();
-    enableCalendar();
+  // "Sync from your phone": phone calendar status + the share-to-Rias tip.
+  function renderSync() {
+    const N = window.RiasNative;
+    const status = $('#cal-status'), btn = $('#cal-action');
+    $('#cal-app-settings').hidden = true;
+    if (!(N && N.calendarEvents)) {
+      status.textContent = 'Available in the Android app.';
+      btn.hidden = true;
+      return;
+    }
+    btn.hidden = false;
+    if (!state.settings.phoneCalendar) {
+      status.textContent = 'Not connected. Shows Samsung & Google Calendar events here.';
+      btn.textContent = 'Connect';
+      btn.classList.remove('tonal');
+    } else if (!N.hasCalendarPermission()) {
+      status.textContent = 'Rias needs permission to read your calendar.';
+      btn.textContent = 'Allow';
+      btn.classList.remove('tonal');
+      $('#cal-app-settings').hidden = !N.openAppSettings;
+    } else {
+      const week = state.phoneEvents.length;
+      const when = state.calSyncedAt ? ` · synced ${fmtClock(state.calSyncedAt)}` : '';
+      status.textContent = `Connected · ${week} event${week === 1 ? '' : 's'} this week${when}`;
+      btn.textContent = 'Sync now';
+      btn.classList.add('tonal');
+    }
+  }
+  $('#cal-action').addEventListener('click', () => {
+    const N = window.RiasNative;
+    if (!N) return;
+    if (!state.settings.phoneCalendar || !N.hasCalendarPermission()) {
+      state.settings.phoneCalendar = true;
+      save();
+      enableCalendar();
+    } else {
+      syncCalendar();
+      refresh();
+    }
     renderToday();
   });
-  $('#cal-connect-later').addEventListener('click', () => {
-    state.settings.calCardDismissed = true;
-    save();
-    renderToday();
-  });
+  $('#cal-app-settings').addEventListener('click', () => { const N = window.RiasNative; if (N && N.openAppSettings) N.openAppSettings(); });
 
   // ---------- navigation ----------
   // ---------- pop-up banner ----------
@@ -885,6 +914,54 @@
     estimate: (text) => AI.estimate(text),
     riasLine: (pool) => addMessage('rias', say(pick(pool))),
   };
+  // ---------- time picker sheet: hour / minute / AM-PM taps ----------
+  const tp = { dlg: $('#time-picker'), min: 9 * 60, cb: null };
+  for (let h = 1; h <= 12; h++) $('#tp-hours').insertAdjacentHTML('beforeend', `<button type="button" data-h="${h}">${h}</button>`);
+  for (const m of [0, 15, 30, 45]) $('#tp-mins').insertAdjacentHTML('beforeend', `<button type="button" data-m="${m}">:${String(m).padStart(2, '0')}</button>`);
+  function tpRender() {
+    const h24 = Math.floor(tp.min / 60), m = tp.min % 60, h12 = h24 % 12 || 12, pm = h24 >= 12;
+    $('#tp-preview').textContent = `${h12}:${String(m).padStart(2, '0')} ${pm ? 'PM' : 'AM'}`;
+    for (const b of $('#tp-hours').children) b.classList.toggle('on', Number(b.dataset.h) === h12);
+    for (const b of $('#tp-mins').children) b.classList.toggle('on', Number(b.dataset.m) === m);
+    for (const b of $('#tp-ampm').children) b.classList.toggle('on', (b.dataset.ap === 'pm') === pm);
+  }
+  modCtx.pickTime = (label, value, cb) => {
+    const [h, m] = (value || '09:00').split(':').map(Number);
+    tp.min = h * 60 + m;
+    tp.cb = cb;
+    $('#tp-label').textContent = label;
+    tpRender();
+    tp.dlg.showModal();
+  };
+  $('#tp-form').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const h24 = Math.floor(tp.min / 60), m = tp.min % 60, pm = h24 >= 12;
+    if (b.dataset.h) tp.min = ((Number(b.dataset.h) % 12) + (pm ? 12 : 0)) * 60 + m;
+    else if (b.dataset.m) tp.min = h24 * 60 + Number(b.dataset.m);
+    else if (b.dataset.ap) tp.min = ((h24 % 12) + (b.dataset.ap === 'pm' ? 12 : 0)) * 60 + m;
+    else if (b.dataset.step) tp.min = (tp.min + Number(b.dataset.step) + 1440) % 1440;
+    else if (b.id === 'tp-done') { tp.dlg.close(); if (tp.cb) tp.cb(minToTime(tp.min)); return; }
+    else if (b.id === 'tp-clear') { tp.dlg.close(); if (tp.cb) tp.cb(''); return; }
+    else if (b.id === 'tp-cancel') { tp.dlg.close(); return; }
+    tpRender();
+  });
+
+  // Every other time box in the app uses the same picker instead of the phone's own.
+  for (const el of document.querySelectorAll('input[type=time]')) el.readOnly = true;
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('input[type=time]');
+    if (!el || el.closest('#time-picker')) return;
+    e.preventDefault();
+    const label = el.getAttribute('aria-label') || (el.closest('label') ? el.closest('label').firstChild.textContent.trim() : 'Time');
+    modCtx.pickTime(label, el.value, (value) => {
+      if (!value) return; // these boxes always need a time
+      el.value = value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+
   const Food = window.createFoodDiary(modCtx);
   const Work = window.createWorkSchedule(modCtx);
 
@@ -961,6 +1038,7 @@
       const res = JSON.parse(N.calendarEvents(from.getTime(), to.getTime()));
       if (!res.permission) return;
       state.phoneEvents = res.events || [];
+      state.calSyncedAt = Date.now();
       save();
       renderStatus();
     } catch { /* calendar unavailable */ }
@@ -969,7 +1047,8 @@
   window.riasPermission = (what, granted) => {
     if (what !== 'calendar') return;
     if (granted) { syncCalendar(); refresh(); addMessage('rias', say("I can see your calendar now, {name}. I'll remind you about those events too.")); }
-    else { state.settings.phoneCalendar = false; save(); }
+    // Denied: keep it switched on so Reminders shows "Allow" and the Android settings link.
+    renderToday();
     if (!$('#view-settings').hidden) fillSettings();
   };
   function enableCalendar() {
@@ -1107,6 +1186,50 @@
   $('#qa-food').addEventListener('click', () => { show('food'); Food.openAdd(mealFor(nowMin())); });
   $('#open-settings').addEventListener('click', () => show('settings'));
   $('#qa-mic').hidden = !canListen();
+
+  // ---------- shared from other apps (Android "Share → Rias") ----------
+  // Text: a reminder from Samsung Reminder, Google Keep, a message... Image: a schedule or meal photo.
+  function guessTime(text) {
+    const m = text.match(/\b(?:at\s*)?(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?|am|pm)\b/i) || text.match(/\b(\d{1,2}):(\d{2})\b/);
+    if (!m) return null;
+    let h = Number(m[1]) % 24;
+    const ap = (m[3] || '').toLowerCase()[0];
+    if (ap === 'p' && h < 12) h += 12;
+    if (ap === 'a' && h === 12) h = 0;
+    return minToTime(h * 60 + Number(m[2] || 0));
+  }
+  window.riasShared = (item) => {
+    if (!state.profile || !item) return;
+    if (item.type === 'image' && item.data) {
+      show('chat');
+      // Same path as the 📷 button: Rias's AI reads it (schedule → shifts, meal → food log).
+      const thumbImg = new Image();
+      thumbImg.onload = () => {
+        const k = Math.min(1, 360 / Math.max(thumbImg.width, thumbImg.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(thumbImg.width * k); c.height = Math.round(thumbImg.height * k);
+        c.getContext('2d').drawImage(thumbImg, 0, 0, c.width, c.height);
+        userSays(item.text || 'I shared this with you. Can you add it to my schedule or food log?', { full: item.data, thumb: c.toDataURL('image/jpeg', 0.7) });
+      };
+      thumbImg.onerror = () => userSays(item.text || 'I shared a picture with you.', { full: item.data, thumb: '' });
+      thumbImg.src = `data:image/jpeg;base64,${item.data}`;
+      return;
+    }
+    const text = String(item.text || '').trim();
+    if (!text) return;
+    if (AI.enabled()) {
+      show('chat');
+      userSays(`Please add this as a reminder for me: “${text}”`);
+      return;
+    }
+    // Without AI: open the new-reminder sheet filled in.
+    show('today');
+    openEditor(null);
+    const firstLine = text.split('\n').find((l) => l.trim()) || text;
+    ef.elements.title.value = firstLine.replace(/\s+/g, ' ').slice(0, 60);
+    const t = guessTime(text);
+    if (t) ef.elements.time.value = t;
+  };
 
   // ---------- today events / editor ----------
   const editor = $('#editor');

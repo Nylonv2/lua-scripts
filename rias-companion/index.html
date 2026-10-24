@@ -131,18 +131,19 @@
             </div>
           </div>
         </div>
-        <div class="connect-card" id="cal-connect" hidden>
-          <span class="connect-ic"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
-          <div class="connect-body">
-            <b>See your phone's calendar here</b>
-            <p>Events from Samsung Calendar and Google Calendar show up with your reminders, and Rias reminds you about them.</p>
-            <div class="connect-actions">
-              <button type="button" class="btn-primary" id="cal-connect-btn">Connect calendar</button>
-              <button type="button" class="btn-text" id="cal-connect-later">Not now</button>
-            </div>
-            <p class="fine">Samsung Reminder and Google reminders can't be read by other apps. Add them as calendar events, or just tell Rias.</p>
+        <section class="sync-card" id="sync-card" aria-labelledby="sync-title">
+          <h3 class="sync-title" id="sync-title">Sync from your phone</h3>
+          <div class="sync-row">
+            <span class="sync-ic cal"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
+            <div class="sync-text"><b>Phone calendar</b><span id="cal-status"></span></div>
+            <button type="button" class="btn-primary sm" id="cal-action"></button>
           </div>
-        </div>
+          <button type="button" class="btn-text sync-link" id="cal-app-settings" hidden>Open Android settings to allow calendar access</button>
+          <div class="sync-row">
+            <span class="sync-ic share"><svg class="ic" aria-hidden="true"><use href="#i-send"/></svg></span>
+            <div class="sync-text"><b>Reminders from other apps</b><span>In Samsung Reminder or any app, open a reminder, tap <b>Share</b>, then pick <b>Rias</b>. Screenshots work too.</span></div>
+          </div>
+        </section>
         <div class="segmented" id="today-filter" role="tablist" aria-label="Show">
           <button type="button" data-f="all" class="active" role="tab">All</button>
           <button type="button" data-f="todo" role="tab">To do</button>
@@ -410,6 +411,26 @@
     </form>
   </dialog>
 
+  <!-- Time picker (used by the week planner) -->
+  <dialog id="time-picker" class="sheet">
+    <form method="dialog" id="tp-form" class="stack">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="tp-preview" id="tp-preview" aria-live="polite"></div>
+      <p class="tp-label" id="tp-label"></p>
+      <div class="tp-section">Hour</div>
+      <div class="tp-hours" id="tp-hours"></div>
+      <div class="tp-section">Minutes</div>
+      <div class="tp-mins" id="tp-mins"></div>
+      <div class="tp-fine"><button type="button" data-step="-5">− 5 min</button><button type="button" data-step="5">+ 5 min</button></div>
+      <div class="tp-ampm" id="tp-ampm"><button type="button" data-ap="am">AM</button><button type="button" data-ap="pm">PM</button></div>
+      <div class="row sheet-actions">
+        <button type="button" id="tp-clear" class="danger">Clear</button>
+        <button type="button" id="tp-cancel">Cancel</button>
+        <button type="button" id="tp-done" class="primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Week planner -->
   <dialog id="planner" class="planner">
     <form method="dialog" id="planner-form" class="stack">
@@ -419,7 +440,7 @@
         <button type="button" id="pl-next" aria-label="Next week">›</button>
       </div>
       <label>Job or place <input name="label" maxlength="40" placeholder="Work"></label>
-      <p class="muted small">Type a start and end time on each day you work. Leave days off blank. ↺ copies the day above, ✕ clears a day.</p>
+      <p class="muted small">Tap <b>Start</b> and <b>End</b> on each day you work. Leave days off blank. ↺ copies the day above, ✕ clears a day.</p>
       <div class="pl-head"><span></span><span>Start</span><span>End</span><span></span></div>
       <div class="pl-days" id="pl-days"></div>
       <details class="pl-paste">

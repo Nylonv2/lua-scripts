@@ -163,8 +163,15 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     row.querySelector('.pl-end').value = on ? end || '' : '';
     syncRow(row);
   }
+  const pretty = (t) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
   function syncRow(row) {
     const st = row.querySelector('.pl-start').value, en = row.querySelector('.pl-end').value;
+    for (const b of row.querySelectorAll('.pl-time')) {
+      const v = b.dataset.for === 'start' ? st : en;
+      b.textContent = v ? pretty(v) : b.dataset.for === 'start' ? 'Start' : 'End';
+      b.classList.toggle('empty', !v);
+      b.setAttribute('aria-label', `${row.dataset.name} ${b.dataset.for}: ${v ? pretty(v) : 'not set'}`);
+    }
     const on = !!(st && en);
     row.classList.toggle('on', on);
     row.querySelector('.pl-state').textContent = on ? `${Math.round(hours({ start: st, end: en }) * 10) / 10} h` : 'Off';
@@ -202,13 +209,13 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
       row.className = `pl-day${dateKey(d) === today ? ' today' : ''}`;
       row.dataset.date = dateKey(d);
       row.innerHTML = '<div class="pl-label"><b></b><small></small><span class="pl-state"></span></div>'
-        + '<input type="time" class="pl-start"><input type="time" class="pl-end">'
+        + '<input type="hidden" class="pl-start"><input type="hidden" class="pl-end">'
+        + '<button type="button" class="pl-time" data-for="start"></button><button type="button" class="pl-time" data-for="end"></button>'
         + '<button type="button" class="pl-act"></button>';
       const name = d.toLocaleDateString([], { weekday: 'long' });
       row.querySelector('.pl-label b').textContent = DAYS[d.getDay()];
       row.querySelector('.pl-label small').textContent = d.getDate();
-      row.querySelector('.pl-start').setAttribute('aria-label', `${name} start`);
-      row.querySelector('.pl-end').setAttribute('aria-label', `${name} end`);
+      row.dataset.name = name;
       box.append(row);
       const sh = ctx.shiftsOn(d)[0];
       setRow(row, !!sh, sh && sh.start, sh && sh.end);
@@ -238,20 +245,30 @@ window.createWorkSchedule = function createWorkSchedule(ctx) {
     const next = row.nextElementSibling;
     if (next) syncRow(next);
   });
-  const edited = (e) => {
-    const row = e.target.closest('.pl-day');
-    if (!row || !e.target.matches('input[type=time]')) return;
-    // Typing a start on an empty day fills an 8-hour end you can change.
-    const st = row.querySelector('.pl-start'), en = row.querySelector('.pl-end');
-    if (e.type === 'change' && e.target === st && st.value && !en.value) {
-      const [h, m] = st.value.split(':').map(Number);
-      en.value = hhmm((h * 60 + m + 8 * 60) % 1440);
-    }
-    syncRow(row);
-    if (row.nextElementSibling) syncRow(row.nextElementSibling);
-  };
-  $('#pl-days').addEventListener('input', edited);
-  $('#pl-days').addEventListener('change', edited);
+  // Tapping a time opens Rias's own time picker (works the same on every phone).
+  $('#pl-days').addEventListener('click', (e) => {
+    const b = e.target.closest('.pl-time');
+    if (!b) return;
+    const row = b.closest('.pl-day');
+    const input = row.querySelector(b.dataset.for === 'start' ? '.pl-start' : '.pl-end');
+    const fallback = b.dataset.for === 'start' ? '09:00' : (() => {
+      const st = row.querySelector('.pl-start').value;
+      if (!st) return '17:00';
+      const [h, m] = st.split(':').map(Number);
+      return hhmm((h * 60 + m + 8 * 60) % 1440);
+    })();
+    ctx.pickTime(`${row.dataset.name} · ${b.dataset.for === 'start' ? 'start' : 'end'}`, input.value || fallback, (value) => {
+      input.value = value || '';
+      // Setting a start on an empty day fills an 8-hour end you can change.
+      const en = row.querySelector('.pl-end');
+      if (b.dataset.for === 'start' && value && !en.value) {
+        const [h, m] = value.split(':').map(Number);
+        en.value = hhmm((h * 60 + m + 8 * 60) % 1440);
+      }
+      syncRow(row);
+      if (row.nextElementSibling) syncRow(row.nextElementSibling);
+    });
+  });
   $('#pl-copy').addEventListener('click', () => {
     for (const r of rows()) {
       const sh = ctx.shiftsOn(addDays(new Date(`${r.dataset.date}T12:00`), -7))[0];
