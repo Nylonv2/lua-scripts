@@ -1362,7 +1362,7 @@
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
     if (view === 'work') Work.render();
-    if (view === 'biz' && Replies) { if (Replies.pane === 'msgs') Replies.render(); else if (Replies.pane === 'tr') Translator.render(); else Biz.render(); }
+    if (view === 'biz' && Biz) { if (bizPane === 'tr') Translator.render(); else Biz.render(); }
     if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
@@ -1802,19 +1802,13 @@
     // "Translate" / "interpreter": the live translator.
     openTranslator() {
       if (HEADLESS || !Translator) return null;
-      setTimeout(() => { show('biz'); Replies.setPane('tr'); }, 400);
+      setTimeout(() => { show('biz'); setBizPane('tr'); }, 400);
       return say('Opening the translator. Pick the languages and tap Start~');
-    },
-    // "Help me reply to Jake": the Assistant tab's reply helper.
-    replyHelp(name) {
-      if (HEADLESS || !Replies) return null;
-      setTimeout(() => { show('biz'); Replies.helpWith(name); }, 400);
-      return say(name ? `Let's answer ${name} together~` : 'Pick a message and I\'ll suggest replies~');
     },
     // "Find me clients": open the Assistant tab's search.
     findClients() {
       if (HEADLESS || !Biz) return null;
-      setTimeout(() => { show('biz'); Replies.setPane('clients'); Biz.openFind(); }, 500);
+      setTimeout(() => { show('biz'); setBizPane('clients'); Biz.openFind(); }, 500);
       return say('Let\'s find you some clients. Pick who I should look for~');
     },
     addItem(it) {
@@ -1902,7 +1896,16 @@
     sendEmail: (opts) => Assistant.email(opts),
   });
   const Translator = HEADLESS ? null : window.createTranslator({ ...modCtx, ai: AI });
-  const Replies = HEADLESS ? null : window.createReplyHelper({ ...modCtx, ai: AI, renderClients: () => Biz.render(), renderTranslate: () => Translator.render() });
+  // Assistant tab: the Clients / Translate switch at the top.
+  let bizPane = 'clients';
+  function setBizPane(p) {
+    bizPane = p;
+    for (const b of document.querySelectorAll('#biz-seg button')) b.classList.toggle('active', b.dataset.pane === p);
+    $('#pane-clients').hidden = p !== 'clients';
+    $('#pane-tr').hidden = p !== 'tr';
+    if (p === 'tr') Translator.render(); else Biz.render();
+  }
+  if (!HEADLESS) $('#biz-seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-pane]'); if (b) setBizPane(b.dataset.pane); });
 
   // Phone calendar (Android app only): events from Samsung/Google Calendar.
   function syncCalendar() {
@@ -3487,7 +3490,6 @@
     // You talked to her from the widget while the app was in the background: show that conversation.
     if (changedElsewhere()) { restoring = true; location.reload(); return; }
     housekeeping();
-    if (currentView === 'biz' && Replies && Replies.pane === 'msgs') Replies.render();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
     if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); renderAssist(); }
   });
