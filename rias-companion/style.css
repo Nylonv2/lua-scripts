@@ -1220,3 +1220,12 @@ button:active, .chip:active span { transform: scale(.97); }
 .set-cat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .set-cat-head .page-title { margin: 0; font-size: 1.5rem; }
 .set-cat-head .icon-btn { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: rgba(var(--glass), .55); font-size: 1.5rem; line-height: 1; padding: 0; }
+/* Month → day: tap to edit, add for that day */
+.dd-list li[data-id] { cursor: pointer; padding: 6px 8px; margin: 0 -8px; border-radius: 10px; }
+.dd-list li[data-id]:active { background: rgba(255, 255, 255, .06); }
+.dd-title { flex: 1; min-width: 0; }
+.dd-tag { flex: none; color: var(--muted); font-size: .85rem; }
+.dd-add { width: 100%; margin-top: 12px; padding: 12px; border-radius: 999px; font-weight: 600; color: #fff; }
+.dd-head { flex-wrap: wrap; }
+.dd-head > div { flex: 1; }
+.dd-quick-add { flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(240, 207, 133, .5); background: rgba(var(--a2), .18); color: #fff; font-weight: 600; font-size: .86rem; }

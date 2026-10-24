@@ -1861,14 +1861,17 @@
   const ef = $('#edit-form');
   let editingId = null;
 
-  function openEditor(item) {
+  // `onDate` (YYYY-MM-DD): a new one-time reminder on that day (from the month calendar).
+  function openEditor(item, onDate) {
     editingId = item ? item.id : null;
-    $('#edit-title').textContent = item ? 'Edit reminder' : 'New reminder';
+    const otherDay = !item && onDate && onDate !== dateKey();
+    $('#edit-title').textContent = item ? 'Edit reminder' : otherDay
+      ? `New reminder · ${new Date(`${onDate}T12:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}` : 'New reminder';
     ef.elements.title.value = item ? item.title : '';
-    ef.elements.time.value = item ? item.time : minToTime(Math.ceil((nowMin() + 15) / 15) * 15);
+    ef.elements.time.value = item ? item.time : otherDay ? '09:00' : minToTime(Math.ceil((nowMin() + 15) / 15) * 15);
     ef.elements.category.value = item ? item.category : 'custom';
     ef.elements.repeat.value = item ? item.repeat : 'once';
-    ef.elements.date.value = (item && item.date) || dateKey();
+    ef.elements.date.value = (item && item.date) || onDate || dateKey();
     ef.elements.popup.value = (item && item.popup) || 'default';
     const days = (item && item.days) || [new Date().getDay()];
     for (const b of ef.querySelectorAll('[name=days]')) b.checked = days.includes(Number(b.value));
@@ -1890,6 +1893,7 @@
   $('#edit-delete').addEventListener('click', () => {
     state.items = state.items.filter((it) => it.id !== editingId);
     updateSummary(); save(); editor.close(); renderToday(); renderFeed(); renderStatus();
+    if (!$('#month-pane').hidden) renderMonth();
   });
   ef.addEventListener('submit', () => {
     const data = {
@@ -1911,10 +1915,13 @@
       const item = { id: uid(), ...data };
       state.items.push(item);
       // Don't instantly ping for something created in the past today.
-      if (toMin(item.time) <= nowMin()) (state.fired[dateKey()] ||= {})[item.id] = 'silent';
-      addMessage('rias', say(`Noted. I'll remind you: ${item.title} at ${fmtTime(item.time)}.`));
+      if (toMin(item.time) <= nowMin() && (item.repeat !== 'once' || item.date === dateKey())) (state.fired[dateKey()] ||= {})[item.id] = 'silent';
+      const on = item.repeat === 'once' && item.date && item.date !== dateKey()
+        ? ` on ${new Date(`${item.date}T12:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}` : '';
+      addMessage('rias', say(`Noted. I'll remind you: ${item.title} at ${fmtTime(item.time)}${on}.`));
     }
     updateSummary(); save(); renderToday(); renderStatus();
+    if (!$('#month-pane').hidden) renderMonth();
   });
 
   $('#add').addEventListener('click', () => openEditor(null));
@@ -1984,6 +1991,13 @@
     head.querySelector('.eyebrow').textContent = d.toLocaleDateString([], { weekday: 'long' });
     head.querySelector('h3').textContent = d.toLocaleDateString([], { month: 'long', day: 'numeric' });
     head.querySelector('.dd-score').textContent = st.past && st.s && st.s.total ? `${st.s.done}/${st.s.total} done` : st.past ? '' : 'Planned';
+    const quick = document.createElement('button');
+    quick.type = 'button';
+    quick.className = 'dd-quick-add';
+    quick.textContent = '＋ Add';
+    quick.setAttribute('aria-label', `Add a reminder on ${d.toLocaleDateString([], { month: 'long', day: 'numeric' })}`);
+    quick.addEventListener('click', () => openEditor(null, st.k));
+    head.append(quick);
     box.append(head);
     const facts = [];
     for (const sh of st.shifts) facts.push(`💼 ${sh.label || 'Work'} ${fmtTime(sh.start)}–${fmtTime(sh.end)}`);
@@ -2002,17 +2016,35 @@
     const ul = document.createElement('ul');
     ul.className = 'dd-list';
     if (!items.length) ul.innerHTML = '<li class="muted">Nothing planned.</li>';
-    for (const it of items.slice(0, 40)) {
+    for (const it of items.slice(0, 60)) {
       const li = document.createElement('li');
       const status = log[it.id];
       li.className = status || (st.past && st.k !== dateKey() ? 'missed' : '');
-      li.innerHTML = '<span class="dd-dot"></span><span class="dd-time"></span><span class="dd-title"></span>';
+      li.dataset.id = it.baseId || it.id;
+      li.dataset.src = it.source || '';
+      li.innerHTML = '<span class="dd-dot"></span><span class="dd-time"></span><span class="dd-title"></span><span class="dd-tag"></span>';
       li.querySelector('.dd-time').textContent = fmtTime(it.time);
       li.querySelector('.dd-title').textContent = it.title;
+      li.querySelector('.dd-tag').textContent = it.source === 'work' ? '💼' : it.source === 'calendar' ? '📅' : it.repeat && it.repeat !== 'once' ? '↻' : '›';
       ul.append(li);
     }
     box.append(ul);
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'btn-primary dd-add';
+    add.textContent = `＋ Add a reminder on ${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    add.addEventListener('click', () => openEditor(null, st.k));
+    box.append(add);
   }
+  // Tap a reminder in the day: edit it (repeating ones change every day they repeat); shifts open Work.
+  $('#m-detail').addEventListener('click', (e) => {
+    const li = e.target.closest('.dd-list li[data-id]');
+    if (!li) return;
+    if (li.dataset.src === 'work') { show('work'); return; }
+    if (li.dataset.src === 'calendar') return; // edit it in the phone's calendar
+    const item = state.items.find((x) => x.id === li.dataset.id);
+    if (item) openEditor(item);
+  });
 
   // ---------- swipe on reminders ----------
   const SWIPE_OPEN = 168;
