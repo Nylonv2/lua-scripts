@@ -20,12 +20,9 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.net.Uri;
 import android.os.Build;
-import android.os.SystemClock;
 import android.provider.ContactsContract;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Base64;
-import android.view.KeyEvent;
 
 import org.json.JSONObject;
 
@@ -33,8 +30,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The phone things Rias can do when you ask (by voice, chat, widget or a routine):
- * timers, music, volume, flashlight, Do Not Disturb, opening apps, calls, texts,
+ * The phone things Rias can do when you ask (by voice, chat or the widget):
+ * timers, volume, flashlight, Do Not Disturb, opening apps, calls, texts,
  * directions and playing her voice. Each returns a short result string the app turns
  * into her answer ("ok", "no-permission", "not-found", ...).
  */
@@ -105,49 +102,7 @@ final class DeviceActions {
         nm.createNotificationChannel(ch);
     }
 
-    // ---------- music & volume ----------
-    static String media(Context c, String action) {
-        AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
-        if (am == null) return "error";
-        int code;
-        switch (action) {
-            case "play": code = KeyEvent.KEYCODE_MEDIA_PLAY; break;
-            case "pause": code = KeyEvent.KEYCODE_MEDIA_PAUSE; break;
-            case "next": code = KeyEvent.KEYCODE_MEDIA_NEXT; break;
-            case "previous": code = KeyEvent.KEYCODE_MEDIA_PREVIOUS; break;
-            default: code = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE;
-        }
-        long now = SystemClock.uptimeMillis();
-        am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0));
-        am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, code, 0));
-        return "ok";
-    }
-
-    /** "Play <something> on Spotify / YouTube": asks the music app to search and play it. */
-    static String playSearch(Context c, String query, String app) {
-        String pkg = null;
-        String a = app == null ? "" : app.toLowerCase(Locale.US);
-        if (a.contains("spotify")) pkg = "com.spotify.music";
-        else if (a.contains("youtube music") || a.equals("ytmusic")) pkg = "com.google.android.apps.youtube.music";
-        else if (a.contains("youtube")) pkg = "com.google.android.youtube";
-        else if (a.contains("pandora")) pkg = "com.pandora.android";
-        else if (a.contains("amazon")) pkg = "com.amazon.mp3";
-        else if (a.contains("apple")) pkg = "com.apple.android.music";
-        if ("com.google.android.youtube".equals(pkg)) {
-            Intent yt = new Intent(Intent.ACTION_SEARCH).setPackage(pkg).putExtra("query", query);
-            if (start(c, yt)) return "ok";
-            return start(c, new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))) ? "ok" : "no-app";
-        }
-        Intent i = new Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH)
-                .putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/*")
-                .putExtra(android.app.SearchManager.QUERY, query);
-        if (pkg != null) i.setPackage(pkg);
-        if (start(c, i)) return "ok";
-        if (pkg != null && "com.spotify.music".equals(pkg)
-                && start(c, new Intent(Intent.ACTION_VIEW, Uri.parse("spotify:search:" + Uri.encode(query))))) return "ok";
-        return start(c, new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(query)))) ? "ok" : "no-app";
-    }
-
+    // ---------- volume ----------
     /** action: up, down, mute, unmute, set (level 0-100). Returns the new level in percent. */
     static String volume(Context c, String action, int level) {
         AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);

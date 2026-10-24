@@ -23,8 +23,6 @@ final class RiasDevice {
 
     @JavascriptInterface public void timerStart(String id, double endsAt, String label) { DeviceActions.timerStart(ctx, id, (long) endsAt, label); }
     @JavascriptInterface public void timerCancel(String id) { DeviceActions.timerCancel(ctx, id); }
-    @JavascriptInterface public String media(String action) { return DeviceActions.media(ctx, action); }
-    @JavascriptInterface public String playSearch(String query, String app) { return DeviceActions.playSearch(ctx, query, app); }
     @JavascriptInterface public String volume(String action, int level) { return DeviceActions.volume(ctx, action, level); }
     @JavascriptInterface public String flashlight(boolean on) { return DeviceActions.flashlight(ctx, on); }
     @JavascriptInterface public String dnd(boolean on) { return DeviceActions.dnd(ctx, on); }
@@ -32,9 +30,6 @@ final class RiasDevice {
     @JavascriptInterface public String call(String who) { return DeviceActions.call(ctx, who); }
     @JavascriptInterface public String text(String who, String message) { return DeviceActions.text(ctx, who, message); }
     @JavascriptInterface public String directions(String place) { return DeviceActions.directions(ctx, place); }
-    @JavascriptInterface public void sleepSound(String key, int minutes) { SoundService.play(ctx, key, minutes); }
-    @JavascriptInterface public void sleepStop() { SoundService.stop(ctx); }
-    @JavascriptInterface public String sleepPlaying() { return SoundService.playing; }
     @JavascriptInterface public String notifications(double since) { return RiasNotifications.since((long) since); }
     @JavascriptInterface public void playPcm(String base64, int rate) { DeviceActions.playPcm(base64, rate); }
     @JavascriptInterface public void stopPcm() { DeviceActions.stopPcm(); }

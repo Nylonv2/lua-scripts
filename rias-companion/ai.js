@@ -25,7 +25,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
-- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for music, volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions, sleep sounds, reading notifications and routines. Act when asked, then confirm in one short line (they may be listening, not reading).
+- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications. Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -59,9 +59,9 @@ Boundaries:
     required: [...Object.keys(NUTRITION_PROPS), 'kind', 'note'],
   };
   const ESTIMATE_PROMPT = 'Estimate the nutrition of this food for the portion described (assume a typical single portion if none is given). Food: ';
-  const PHONE_ACTIONS = ['play_music', 'pause_music', 'resume_music', 'next_track', 'previous_track', 'volume_up', 'volume_down', 'volume_set', 'mute', 'unmute',
-    'flashlight_on', 'flashlight_off', 'dnd_on', 'dnd_off', 'open_app', 'call', 'text', 'directions', 'sleep_sound', 'stop_sleep_sound',
-    'read_notifications', 'cancel_timers', 'timer_status', 'run_routine'];
+  const PHONE_ACTIONS = ['volume_up', 'volume_down', 'volume_set', 'mute', 'unmute',
+    'flashlight_on', 'flashlight_off', 'dnd_on', 'dnd_off', 'open_app', 'call', 'text', 'directions',
+    'read_notifications', 'cancel_timers', 'timer_status'];
   const TOOLS = [
     {
       name: 'set_timer',
@@ -79,15 +79,15 @@ Boundaries:
     },
     {
       name: 'phone_control',
-      description: 'Do something on the user\'s phone: control music (play_music searches and plays a song/artist/playlist), volume, flashlight, Do Not Disturb, open an app, call or text a contact, get directions, play sleep sounds (rain, ocean, brown noise, fire, fan), read their new notifications, cancel or check timers, or run one of their routines. Returns what happened in "said"; tell them in character, briefly.',
+      description: 'Do something on the user\'s phone: volume, flashlight, Do Not Disturb, open an app, call or text a contact, get directions, read their new notifications, or cancel/check timers. Returns what happened in "said"; tell them in character, briefly.',
       strict: true,
       input_schema: {
         type: 'object',
         additionalProperties: false,
         properties: {
           action: { type: 'string', enum: PHONE_ACTIONS },
-          value: { type: 'string', description: 'The song/artist/playlist (play_music), volume percent 0-100 (volume_set), app name (open_app), contact name or number (call, text), place (directions), sound (sleep_sound), timer label (cancel_timers, optional) or routine name (run_routine). Empty string if not needed.' },
-          message: nullable({ type: 'string', description: 'For text: the message to send. For sleep_sound: minutes to play, e.g. "45". Otherwise null.' }),
+          value: { type: 'string', description: 'Volume percent 0-100 (volume_set), app name (open_app), contact name or number (call, text), place (directions) or timer label (cancel_timers, optional). Empty string if not needed.' },
+          message: nullable({ type: 'string', description: 'For text: the message to send. Otherwise null.' }),
         },
         required: ['action', 'value', 'message'],
       },

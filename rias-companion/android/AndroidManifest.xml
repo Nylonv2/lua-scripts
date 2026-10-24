@@ -18,7 +18,6 @@
     <!-- Answering widget/notification messages in the background -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Assistant: "Hey Rias", calls by voice, Do Not Disturb -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
@@ -29,7 +28,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
-    <!-- Open apps by name, play music, maps, voice typing -->
+    <!-- Open apps by name, maps, voice typing -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -160,11 +159,6 @@
             android:name=".WakeService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
-
-        <service
-            android:name=".SoundService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
 
         <receiver android:name=".TimerReceiver" android:exported="false" />
 

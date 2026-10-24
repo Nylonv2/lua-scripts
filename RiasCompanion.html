@@ -1262,13 +1262,6 @@ button:active, .chip:active span { transform: scale(.97); }
 .perm-txt b { font-weight: 600; font-size: .95rem; }
 .perm-txt small { color: var(--muted); font-size: .78rem; }
 .perm-row button { flex: none; padding: 7px 14px; }
-.routine { padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .45); display: flex; flex-direction: column; gap: 8px; }
-.routine + .routine { margin-top: 10px; }
-.rt-head { display: flex; align-items: flex-end; gap: 8px; }
-.rt-phrase { flex: 1; min-width: 0; }
-.rt-head button { flex: none; width: 42px; height: 42px; padding: 0; border-radius: 12px; }
-.rt-opts { display: flex; flex-wrap: wrap; gap: 6px; }
-#routine-add { margin-top: 10px; }
 .say-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .88rem; line-height: 1.4; }
 </style>
 </head>
@@ -1665,61 +1658,14 @@ button:active, .chip:active span { transform: scale(.97); }
           <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
           </section>
           <section class="set-group" data-cat="assist">
-          <h2>Music &amp; sleep sounds</h2>
-          <label>Play music with
-            <select name="musicApp">
-              <option value="">My phone's default music app</option>
-              <option value="spotify">Spotify</option>
-              <option value="youtube music">YouTube Music</option>
-              <option value="youtube">YouTube</option>
-              <option value="amazon music">Amazon Music</option>
-              <option value="pandora">Pandora</option>
-              <option value="apple music">Apple Music</option>
-            </select>
-          </label>
-          <div class="row">
-            <label>Sleep sound
-              <select name="sleepSound">
-                <option value="rain">🌧 Rain</option>
-                <option value="ocean">🌊 Ocean waves</option>
-                <option value="brown">🟤 Brown noise</option>
-                <option value="fire">🔥 Fireplace</option>
-                <option value="fan">🌀 Fan</option>
-              </select>
-            </label>
-            <label>Stops after
-              <select name="sleepMinutes">
-                <option value="15">15 min</option>
-                <option value="30">30 min</option>
-                <option value="45">45 min</option>
-                <option value="60">1 hour</option>
-                <option value="120">2 hours</option>
-                <option value="480">All night</option>
-              </select>
-            </label>
-          </div>
-          <div class="row">
-            <button type="button" id="sleep-try">▶ Try it</button>
-            <button type="button" id="sleep-stop">■ Stop</button>
-          </div>
-          </section>
-          <section class="set-group" data-cat="assist">
-          <h2>Routines</h2>
-          <p class="muted small">One phrase, several things. Say the phrase to her (or tap ▶).</p>
-          <div id="routine-list"></div>
-          <button type="button" id="routine-add">＋ New routine</button>
-          </section>
-          <section class="set-group" data-cat="assist">
           <h2>Things you can say</h2>
           <ul class="say-list">
             <li>“Set a timer for 20 minutes” · “How much time is left?” · “Cancel the timer”</li>
             <li>“Wake me up at 6:30” · “Set an alarm for 7 tomorrow”</li>
-            <li>“Play Taylor Swift on Spotify” · “Pause” · “Skip” · “Volume 40%”</li>
+            <li>“Volume 40%” · “Turn it up” · “Mute”</li>
             <li>“Call Mom” · “Text Jake I'm running late” · “Directions to Walmart”</li>
             <li>“Flashlight on” · “Turn on Do Not Disturb” · “Open YouTube”</li>
-            <li>“Play rain sounds for an hour” · “Stop the sounds”</li>
             <li>“What did I miss?” · “What time is it?” · “What's 15% of 80?” · “Tip on $45”</li>
-            <li>“Good morning” · “Goodnight” · your own routines</li>
           </ul>
           <p class="muted small">With her AI on, you can say these any way you like.</p>
           </section>
@@ -3733,7 +3679,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
-- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for music, volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions, sleep sounds, reading notifications and routines. Act when asked, then confirm in one short line (they may be listening, not reading).
+- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications. Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -3767,9 +3713,9 @@ Boundaries:
     required: [...Object.keys(NUTRITION_PROPS), 'kind', 'note'],
   };
   const ESTIMATE_PROMPT = 'Estimate the nutrition of this food for the portion described (assume a typical single portion if none is given). Food: ';
-  const PHONE_ACTIONS = ['play_music', 'pause_music', 'resume_music', 'next_track', 'previous_track', 'volume_up', 'volume_down', 'volume_set', 'mute', 'unmute',
-    'flashlight_on', 'flashlight_off', 'dnd_on', 'dnd_off', 'open_app', 'call', 'text', 'directions', 'sleep_sound', 'stop_sleep_sound',
-    'read_notifications', 'cancel_timers', 'timer_status', 'run_routine'];
+  const PHONE_ACTIONS = ['volume_up', 'volume_down', 'volume_set', 'mute', 'unmute',
+    'flashlight_on', 'flashlight_off', 'dnd_on', 'dnd_off', 'open_app', 'call', 'text', 'directions',
+    'read_notifications', 'cancel_timers', 'timer_status'];
   const TOOLS = [
     {
       name: 'set_timer',
@@ -3787,15 +3733,15 @@ Boundaries:
     },
     {
       name: 'phone_control',
-      description: 'Do something on the user\'s phone: control music (play_music searches and plays a song/artist/playlist), volume, flashlight, Do Not Disturb, open an app, call or text a contact, get directions, play sleep sounds (rain, ocean, brown noise, fire, fan), read their new notifications, cancel or check timers, or run one of their routines. Returns what happened in "said"; tell them in character, briefly.',
+      description: 'Do something on the user\'s phone: volume, flashlight, Do Not Disturb, open an app, call or text a contact, get directions, read their new notifications, or cancel/check timers. Returns what happened in "said"; tell them in character, briefly.',
       strict: true,
       input_schema: {
         type: 'object',
         additionalProperties: false,
         properties: {
           action: { type: 'string', enum: PHONE_ACTIONS },
-          value: { type: 'string', description: 'The song/artist/playlist (play_music), volume percent 0-100 (volume_set), app name (open_app), contact name or number (call, text), place (directions), sound (sleep_sound), timer label (cancel_timers, optional) or routine name (run_routine). Empty string if not needed.' },
-          message: nullable({ type: 'string', description: 'For text: the message to send. For sleep_sound: minutes to play, e.g. "45". Otherwise null.' }),
+          value: { type: 'string', description: 'Volume percent 0-100 (volume_set), app name (open_app), contact name or number (call, text), place (directions) or timer label (cancel_timers, optional). Empty string if not needed.' },
+          message: nullable({ type: 'string', description: 'For text: the message to send. Otherwise null.' }),
         },
         required: ['action', 'value', 'message'],
       },
@@ -4970,9 +4916,9 @@ window.NaturalVoice = (() => {
 })();
 </script>
   <script>
-// Rias as a voice assistant (Alexa-style): timers and alarms, music, volume, flashlight,
-// Do Not Disturb, opening apps, calls, texts, directions, sleep sounds, reading your
-// notifications, routines ("Good morning", "Goodnight"), the time, and quick math.
+// Rias as a voice assistant (Alexa-style): timers and alarms, volume, flashlight,
+// Do Not Disturb, opening apps, calls, texts, directions, reading your notifications,
+// the time, and quick math.
 // Commands are understood without her AI; with it on, the AI can also use them through
 // the set_timer / phone_control tools, so any wording works. The phone parts need the
 // Android app (window.RiasDevice); in a browser she says so, except timers and math.
@@ -5101,9 +5047,6 @@ window.createAssistant = function createAssistant(ctx) {
     if (!d || !d[fn]) return null;
     try { return String(d[fn](...args)); } catch { return 'error'; }
   }
-  const musicApp = () => st().settings.musicApp || '';
-  const SOUND_WORDS = [['rain', /\brain/], ['ocean', /\b(ocean|waves?|sea|beach)\b/], ['brown', /\b(brown|white|pink) noise\b|\bnoise\b/], ['fire', /\b(fire|fireplace|campfire|crackl)/], ['fan', /\bfan\b/]];
-  const SOUND_NAMES = { rain: 'rain', ocean: 'ocean waves', brown: 'brown noise', fire: 'the fireplace', fan: 'the fan' };
 
   /** Runs one phone action. Returns { ok, said } (said = what she tells you), or { error }. */
   function run(action, value = '', message = null) {
@@ -5112,15 +5055,6 @@ window.createAssistant = function createAssistant(ctx) {
     const fail = (line) => ({ ok: false, said: say(line) });
     const needApp = () => fail(NEEDS_APP);
     switch (action) {
-      case 'play_music': {
-        const res = deviceCall('playSearch', v, musicApp());
-        if (res == null) return needApp();
-        return res === 'ok' ? r(pick([`Playing ${cap(v)}~`, `${cap(v)}, coming up.`, `Mm, good choice. Playing ${cap(v)}.`])) : fail('I couldn\'t find a music app to play that, {name}.');
-      }
-      case 'pause_music': return deviceCall('media', 'pause') == null ? needApp() : r(pick(['Paused.', 'Music paused~']));
-      case 'resume_music': return deviceCall('media', 'play') == null ? needApp() : r(pick(['Playing.', 'Back on~']));
-      case 'next_track': return deviceCall('media', 'next') == null ? needApp() : r(pick(['Skipped.', 'Next one~']));
-      case 'previous_track': return deviceCall('media', 'previous') == null ? needApp() : r('Going back one.');
       case 'volume_up': case 'volume_down': case 'mute': case 'unmute': case 'volume_set': {
         const res = deviceCall('volume', action.replace('volume_', ''), Math.max(0, Math.min(100, parseInt(v, 10) || 50)));
         if (res == null) return needApp();
@@ -5163,23 +5097,12 @@ window.createAssistant = function createAssistant(ctx) {
         if (res == null) return needApp();
         return res === 'ok' ? r(`Directions to ${cap(v)}. Drive safe, {name}.`) : fail('I couldn\'t open maps.');
       }
-      case 'sleep_sound': {
-        const key = (SOUND_WORDS.find(([, re]) => re.test(v.toLowerCase())) || [st().settings.sleepSound || 'rain'])[0];
-        const mins = parseInt(message, 10) || st().settings.sleepMinutes || 45;
-        if (deviceCall('sleepSound', key, mins) == null) return needApp();
-        return r(`Playing ${SOUND_NAMES[key]} for ${durationText(mins * 60)}. Sleep well~`);
-      }
-      case 'stop_sleep_sound': return deviceCall('sleepStop') == null ? needApp() : r('Sounds off.');
       case 'read_notifications': return readNotifications();
       case 'cancel_timers': {
         const n = cancelTimers(v.toLowerCase());
         return n ? r(n > 1 ? `Cancelled ${n} timers.` : 'Timer cancelled.') : fail('There\'s no timer running.');
       }
       case 'timer_status': return r(timerStatus());
-      case 'run_routine': {
-        const rt = findRoutine(v);
-        return rt ? { ok: true, said: runRoutine(rt).join(' ') } : fail(`I don't have a routine called “${v}”.`);
-      }
       default: return { error: `Unknown action ${action}` };
     }
   }
@@ -5202,31 +5125,6 @@ window.createAssistant = function createAssistant(ctx) {
       return `${app}${ns.length > 2 ? ` (${ns.length})` : ''}: ${last}`;
     });
     return { ok: true, said: `${list.length === 1 ? 'One new notification.' : `${list.length} new notifications.`} ${parts.join('. ')}.` };
-  }
-
-  // ---------- routines ----------
-  const DEFAULT_ROUTINES = [
-    { id: 'morning', phrase: 'good morning', brief: true, dnd: 'off', sound: 'stop', music: '', volume: '' },
-    { id: 'night', phrase: 'goodnight', brief: false, tomorrow: true, dnd: 'on', sound: 'rain', minutes: 45, music: '', volume: '' },
-  ];
-  const routines = () => (st().settings.routines ||= DEFAULT_ROUTINES.map((r) => ({ ...r })));
-  const clean = (s) => s.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
-  function findRoutine(text) {
-    const t = clean(text).replace(/^(hey |ok |okay )?rias /, '').replace(/ rias$/, '').replace(/good night/g, 'goodnight');
-    return routines().find((r) => r.phrase && (t === clean(r.phrase).replace(/good night/g, 'goodnight') || t === `run ${clean(r.phrase)}` || t === `start ${clean(r.phrase)}`));
-  }
-  function runRoutine(rt) {
-    const out = [];
-    if (rt.dnd === 'on' || rt.dnd === 'off') run(rt.dnd === 'on' ? 'dnd_on' : 'dnd_off');
-    if (rt.volume !== '' && rt.volume != null && !isNaN(rt.volume)) run('volume_set', String(rt.volume));
-    if (rt.brief) out.push(ctx.briefing());
-    if (rt.tomorrow) out.push(ctx.tomorrowLine());
-    if (rt.sound === 'stop') { if (D() && D().sleepPlaying && D().sleepPlaying()) run('stop_sleep_sound'); }
-    else if (rt.sound) { const r = run('sleep_sound', rt.sound, String(rt.minutes || 45)); if (r.ok) out.push(r.said); }
-    if (rt.music) { const r = run('play_music', rt.music); out.push(r.said); }
-    if (rt.say) out.push(say(rt.say));
-    if (!out.length) out.push(say(pick(['Done~', 'All set, {name}.'])));
-    return out.filter(Boolean);
   }
 
   // ---------- quick math ----------
@@ -5267,10 +5165,6 @@ window.createAssistant = function createAssistant(ctx) {
       return [say('Okay, I won\'t send it.')];
     }
 
-    // Routines first ("good morning", "goodnight", your own).
-    const rt = findRoutine(t);
-    if (rt) return runRoutine(rt);
-
     // Timers
     if (/\btimer\b/.test(t) || /^(start )?(a )?\d/.test(t) && /\b(minute|second|hour)s?\b.*\btimer\b/.test(t)) {
       if (/\b(cancel|stop|delete|remove|clear|end|turn off)\b/.test(t)) {
@@ -5301,27 +5195,6 @@ window.createAssistant = function createAssistant(ctx) {
         return [setAlarm(`${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`, '')];
       }
       return [say('What time should I wake you, {name}?')];
-    }
-
-    // Sleep / ambient sounds (before music, so "play rain sounds" isn't a song search)
-    if (/\b(stop|turn off|end|enough)\b.*\b(sounds?|rain|noise|ocean|waves|fireplace|fan)\b/.test(t)) return one(run('stop_sleep_sound'));
-    if (/\b(sleep sounds?|ambient sounds?|rain sounds?|white noise|brown noise|pink noise|ocean sounds?|wave sounds?|fireplace|fire sounds?|fan sounds?|sounds? of (the )?(rain|ocean|waves))\b/.test(t)
-      || /^play (some )?(rain|ocean|waves|noise)$/.test(t)) {
-      const mins = (parseDuration(t) / 60) || '';
-      return one(run('sleep_sound', t, mins ? String(Math.round(mins)) : null));
-    }
-
-    // Music
-    if (/^(pause|stop)( the| my)?( music| song| playback| it)?$/.test(t)) return one(run('pause_music'));
-    if (/^(resume|unpause|continue|keep playing)( the| my)?( music| song| playback)?$|^play( the)? music$|^play$/.test(t)) return one(run('resume_music'));
-    if (/^(next|skip)( song| track| this( song)?| it)?$|^play the next (song|track)$/.test(t)) return one(run('next_track'));
-    if (/^(previous|last|go back|back)( song| track| one)?$|^play the (previous|last) (song|track)$/.test(t)) return one(run('previous_track'));
-    m = t.match(/^(?:play|put on|listen to)\s+(.+?)(?:\s+on\s+(spotify|youtube music|youtube|pandora|amazon music|apple music))?$/);
-    if (m && !/^(a |some )?(game|games|trivia|music$)/.test(m[1])) {
-      const d = D();
-      if (!d) return [say(NEEDS_APP)];
-      const res = deviceCall('playSearch', m[1].replace(/^(some|the song|the album|the playlist|my)\s+/, (x) => (x.startsWith('my') ? x : '')), m[2] || musicApp());
-      return [say(res === 'ok' ? pick([`Playing ${cap(m[1])}~`, `${cap(m[1])}, coming right up.`]) : 'I couldn\'t find a music app to play that, {name}.')];
     }
 
     // Volume
@@ -5366,7 +5239,7 @@ window.createAssistant = function createAssistant(ctx) {
 
     // Open apps
     m = t.match(/^(?:open|launch|start|go to)\s+(?:the\s+)?(.+?)(?:\s+app)?$/);
-    if (m && !/\b(timer|routine|music)\b/.test(m[1])) {
+    if (m && !/\b(timer)\b/.test(m[1])) {
       const page = ctx.openPage && ctx.openPage(m[1]);
       if (page) return [say(page)];
       return one(run('open_app', m[1]));
@@ -5390,14 +5263,12 @@ window.createAssistant = function createAssistant(ctx) {
     // "Stop" / "be quiet"
     if (/^(stop|stop talking|be quiet|shush|quiet|shut up|that's all|never ?mind)$/.test(t)) {
       ctx.stopSpeaking();
-      const d = D();
-      if (d && d.sleepPlaying && d.sleepPlaying() && /^stop$/.test(t)) d.sleepStop();
       return [say(pick(['Okay~', 'Mm, I\'ll hush.', 'As you wish.']))];
     }
     return null;
   }
 
-  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, routines, DEFAULT_ROUTINES, durationText, parseDuration, parseClock };
+  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, durationText, parseDuration, parseClock };
 };
 </script>
   <script>
@@ -6759,7 +6630,7 @@ window.createAssistant = function createAssistant(ctx) {
       const lateLine = logSleep();
       if (lateLine) setTimeout(() => addMessage('rias', lateLine), 3200);
     }
-    // Assistant commands (timers, music, calls, routines…) answer right away, AI or not.
+    // Assistant commands (timers, calls, phone controls…) answer right away, AI or not.
     if (!photo) {
       const cmd = Assistant.handle(text);
       if (cmd) {
@@ -7013,29 +6884,18 @@ window.createAssistant = function createAssistant(ctx) {
       + (overLimit() ? ' · Limit reached: she uses her own words until next month.' : lim ? ` · limit $${lim}` : '') + '. An estimate from list prices; your Anthropic bill is the real number.';
   }
 
-  // ---------- assistant (Alexa-style commands: timers, music, calls, routines…) ----------
+  // ---------- assistant (Alexa-style commands: timers, calls, phone controls…) ----------
   const PAGES = [[/^(chat|messages?)$/, 'chat'], [/^(reminders?|today|to ?do( list)?|tasks?|calendar)$/, 'today'], [/^(food|diary|food diary|meals?)$/, 'food'],
     [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home']];
-  function tomorrowLine() {
-    const d = new Date(Date.now() + 86400000);
-    const items = itemsOn(d).filter((it) => !it.source).sort((a, b) => toMin(a.time) - toMin(b.time));
-    const wake = items.find((it) => it.category === 'wake') || items[0];
-    const shifts = shiftsOn(d);
-    const parts = [];
-    if (wake) parts.push(wake.category === 'wake' ? `I'll wake you at ${fmtTime(wake.time)}` : `first up is ${wake.title} at ${fmtTime(wake.time)}`);
-    if (shifts.length) parts.push(`you work ${fmtTime(shifts[0].start)}–${fmtTime(shifts[0].end)}`);
-    return say(parts.length ? `Tomorrow ${parts.join(', and ')}. Sleep well, {name}~` : 'Nothing early tomorrow, so sleep in a little, {name}~');
-  }
   const Assistant = window.createAssistant({
     get state() { return state; },
-    save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking, tomorrowLine,
+    save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     addItem(it) {
       const item = { id: uid(), enabled: true, ...it };
       state.items.push(item);
       refresh(); save();
       return item;
     },
-    briefing: () => briefingText(),
     nowText: () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     openPage(name) {
       if (HEADLESS) return null;
@@ -7841,7 +7701,7 @@ window.createAssistant = function createAssistant(ctx) {
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
     { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
-    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, phone controls, music, sleep sounds, routines' },
+    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, the home-button pop-up, phone controls' },
     { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
     { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
@@ -7928,11 +7788,7 @@ window.createAssistant = function createAssistant(ctx) {
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
-    sf.elements.musicApp.value = state.settings.musicApp || '';
-    sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
-    sf.elements.sleepMinutes.value = String(state.settings.sleepMinutes || 45);
     renderAssist();
-    renderRoutines();
     fillVoices();
     voiceHint();
     const o = voiceOpts();
@@ -8181,8 +8037,7 @@ window.createAssistant = function createAssistant(ctx) {
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
-      wakeMode: sf.elements.wakeMode.value, musicApp: sf.elements.musicApp.value,
-      sleepSound: sf.elements.sleepSound.value, sleepMinutes: Number(sf.elements.sleepMinutes.value) || 45,
+      wakeMode: sf.elements.wakeMode.value,
     });
     applyWake();
     Object.assign(state.settings, {
@@ -8321,78 +8176,6 @@ window.createAssistant = function createAssistant(ctx) {
           : s.wakeRunning ? (mode === 'charging' ? 'On: she listens while your phone is charging.' : 'On: say “Hey Rias” anytime.')
             : 'Starting… If it doesn’t start, reopen the app.';
   }
-  // Settings → Sleep sounds: try one.
-  $('#sleep-try').addEventListener('click', () => {
-    const d = Dev();
-    if (!d || !d.sleepSound) { $('#wake-hint').textContent = 'Sleep sounds need the Android app.'; return; }
-    d.sleepSound(sf.elements.sleepSound.value, Number(sf.elements.sleepMinutes.value) || 45);
-  });
-  $('#sleep-stop').addEventListener('click', () => { const d = Dev(); if (d && d.sleepStop) d.sleepStop(); });
-
-  // Settings → Routines.
-  const SOUND_OPTS = [['', 'No sounds'], ['stop', 'Stop sleep sounds'], ['rain', '🌧 Rain'], ['ocean', '🌊 Ocean'], ['brown', '🟤 Brown noise'], ['fire', '🔥 Fireplace'], ['fan', '🌀 Fan']];
-  function renderRoutines() {
-    const box = $('#routine-list');
-    box.textContent = '';
-    for (const rt of Assistant.routines()) {
-      const card = document.createElement('div');
-      card.className = 'routine';
-      card.dataset.id = rt.id;
-      card.innerHTML = `
-        <div class="rt-head"><label class="rt-phrase">When I say <input data-k="phrase" placeholder="e.g. I'm home"></label>
-          <button type="button" class="rt-run" aria-label="Run it">▶</button><button type="button" class="rt-del" aria-label="Delete">🗑</button></div>
-        <div class="rt-opts">
-          <label class="chip"><input type="checkbox" data-k="brief"><span>Briefing (weather &amp; plan)</span></label>
-          <label class="chip"><input type="checkbox" data-k="tomorrow"><span>Tomorrow's plan</span></label>
-        </div>
-        <div class="row">
-          <label>Do Not Disturb <select data-k="dnd"><option value="">Leave it</option><option value="on">Turn on</option><option value="off">Turn off</option></select></label>
-          <label>Volume <select data-k="volume"><option value="">Leave it</option><option value="0">Silent</option><option value="20">20%</option><option value="40">40%</option><option value="60">60%</option><option value="80">80%</option><option value="100">Max</option></select></label>
-        </div>
-        <div class="row">
-          <label>Sounds <select data-k="sound"></select></label>
-          <label>For <select data-k="minutes"><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="480">All night</option></select></label>
-        </div>
-        <label>Play music <input data-k="music" placeholder="e.g. lofi beats (leave empty for none)"></label>
-        <label>She says <input data-k="say" placeholder="Optional, e.g. Welcome home, {name}~"></label>`;
-      const snd = card.querySelector('[data-k=sound]');
-      for (const [v, l] of SOUND_OPTS) snd.append(new Option(l, v));
-      for (const el of card.querySelectorAll('[data-k]')) {
-        const k = el.dataset.k;
-        if (el.type === 'checkbox') el.checked = !!rt[k];
-        else el.value = rt[k] == null ? (k === 'minutes' ? '45' : '') : String(rt[k]);
-      }
-      box.append(card);
-    }
-  }
-  $('#routine-list').addEventListener('change', (e) => {
-    const card = e.target.closest('.routine');
-    const el = e.target.closest('[data-k]');
-    if (!card || !el) return;
-    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
-    if (!rt) return;
-    rt[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.dataset.k === 'minutes' ? Number(el.value) : el.value.trim();
-    save();
-  });
-  $('#routine-list').addEventListener('click', (e) => {
-    const card = e.target.closest('.routine');
-    if (!card) return;
-    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
-    if (e.target.closest('.rt-del')) {
-      state.settings.routines = Assistant.routines().filter((r) => r !== rt);
-      save(); renderRoutines();
-    } else if (e.target.closest('.rt-run') && rt && rt.phrase) {
-      show('chat');
-      userSays(rt.phrase);
-    }
-  });
-  $('#routine-add').addEventListener('click', () => {
-    Assistant.routines().push({ id: uid(), phrase: '', brief: false, dnd: '', sound: '', minutes: 45, music: '', volume: '', say: '' });
-    save(); renderRoutines();
-    const inputs = $('#routine-list').querySelectorAll('[data-k=phrase]');
-    if (inputs.length) inputs[inputs.length - 1].focus();
-  });
-
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
     const hint = $('#voice-hint'), btn = $('#tts-settings');

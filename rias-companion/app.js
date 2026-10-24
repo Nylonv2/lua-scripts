@@ -1356,7 +1356,7 @@
       const lateLine = logSleep();
       if (lateLine) setTimeout(() => addMessage('rias', lateLine), 3200);
     }
-    // Assistant commands (timers, music, calls, routines…) answer right away, AI or not.
+    // Assistant commands (timers, calls, phone controls…) answer right away, AI or not.
     if (!photo) {
       const cmd = Assistant.handle(text);
       if (cmd) {
@@ -1610,29 +1610,18 @@
       + (overLimit() ? ' · Limit reached: she uses her own words until next month.' : lim ? ` · limit $${lim}` : '') + '. An estimate from list prices; your Anthropic bill is the real number.';
   }
 
-  // ---------- assistant (Alexa-style commands: timers, music, calls, routines…) ----------
+  // ---------- assistant (Alexa-style commands: timers, calls, phone controls…) ----------
   const PAGES = [[/^(chat|messages?)$/, 'chat'], [/^(reminders?|today|to ?do( list)?|tasks?|calendar)$/, 'today'], [/^(food|diary|food diary|meals?)$/, 'food'],
     [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home']];
-  function tomorrowLine() {
-    const d = new Date(Date.now() + 86400000);
-    const items = itemsOn(d).filter((it) => !it.source).sort((a, b) => toMin(a.time) - toMin(b.time));
-    const wake = items.find((it) => it.category === 'wake') || items[0];
-    const shifts = shiftsOn(d);
-    const parts = [];
-    if (wake) parts.push(wake.category === 'wake' ? `I'll wake you at ${fmtTime(wake.time)}` : `first up is ${wake.title} at ${fmtTime(wake.time)}`);
-    if (shifts.length) parts.push(`you work ${fmtTime(shifts[0].start)}–${fmtTime(shifts[0].end)}`);
-    return say(parts.length ? `Tomorrow ${parts.join(', and ')}. Sleep well, {name}~` : 'Nothing early tomorrow, so sleep in a little, {name}~');
-  }
   const Assistant = window.createAssistant({
     get state() { return state; },
-    save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking, tomorrowLine,
+    save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     addItem(it) {
       const item = { id: uid(), enabled: true, ...it };
       state.items.push(item);
       refresh(); save();
       return item;
     },
-    briefing: () => briefingText(),
     nowText: () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     openPage(name) {
       if (HEADLESS) return null;
@@ -2438,7 +2427,7 @@
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
     { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
-    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, phone controls, music, sleep sounds, routines' },
+    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, the home-button pop-up, phone controls' },
     { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
     { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
@@ -2525,11 +2514,7 @@
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
-    sf.elements.musicApp.value = state.settings.musicApp || '';
-    sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
-    sf.elements.sleepMinutes.value = String(state.settings.sleepMinutes || 45);
     renderAssist();
-    renderRoutines();
     fillVoices();
     voiceHint();
     const o = voiceOpts();
@@ -2778,8 +2763,7 @@
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
-      wakeMode: sf.elements.wakeMode.value, musicApp: sf.elements.musicApp.value,
-      sleepSound: sf.elements.sleepSound.value, sleepMinutes: Number(sf.elements.sleepMinutes.value) || 45,
+      wakeMode: sf.elements.wakeMode.value,
     });
     applyWake();
     Object.assign(state.settings, {
@@ -2918,78 +2902,6 @@
           : s.wakeRunning ? (mode === 'charging' ? 'On: she listens while your phone is charging.' : 'On: say “Hey Rias” anytime.')
             : 'Starting… If it doesn’t start, reopen the app.';
   }
-  // Settings → Sleep sounds: try one.
-  $('#sleep-try').addEventListener('click', () => {
-    const d = Dev();
-    if (!d || !d.sleepSound) { $('#wake-hint').textContent = 'Sleep sounds need the Android app.'; return; }
-    d.sleepSound(sf.elements.sleepSound.value, Number(sf.elements.sleepMinutes.value) || 45);
-  });
-  $('#sleep-stop').addEventListener('click', () => { const d = Dev(); if (d && d.sleepStop) d.sleepStop(); });
-
-  // Settings → Routines.
-  const SOUND_OPTS = [['', 'No sounds'], ['stop', 'Stop sleep sounds'], ['rain', '🌧 Rain'], ['ocean', '🌊 Ocean'], ['brown', '🟤 Brown noise'], ['fire', '🔥 Fireplace'], ['fan', '🌀 Fan']];
-  function renderRoutines() {
-    const box = $('#routine-list');
-    box.textContent = '';
-    for (const rt of Assistant.routines()) {
-      const card = document.createElement('div');
-      card.className = 'routine';
-      card.dataset.id = rt.id;
-      card.innerHTML = `
-        <div class="rt-head"><label class="rt-phrase">When I say <input data-k="phrase" placeholder="e.g. I'm home"></label>
-          <button type="button" class="rt-run" aria-label="Run it">▶</button><button type="button" class="rt-del" aria-label="Delete">🗑</button></div>
-        <div class="rt-opts">
-          <label class="chip"><input type="checkbox" data-k="brief"><span>Briefing (weather &amp; plan)</span></label>
-          <label class="chip"><input type="checkbox" data-k="tomorrow"><span>Tomorrow's plan</span></label>
-        </div>
-        <div class="row">
-          <label>Do Not Disturb <select data-k="dnd"><option value="">Leave it</option><option value="on">Turn on</option><option value="off">Turn off</option></select></label>
-          <label>Volume <select data-k="volume"><option value="">Leave it</option><option value="0">Silent</option><option value="20">20%</option><option value="40">40%</option><option value="60">60%</option><option value="80">80%</option><option value="100">Max</option></select></label>
-        </div>
-        <div class="row">
-          <label>Sounds <select data-k="sound"></select></label>
-          <label>For <select data-k="minutes"><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="480">All night</option></select></label>
-        </div>
-        <label>Play music <input data-k="music" placeholder="e.g. lofi beats (leave empty for none)"></label>
-        <label>She says <input data-k="say" placeholder="Optional, e.g. Welcome home, {name}~"></label>`;
-      const snd = card.querySelector('[data-k=sound]');
-      for (const [v, l] of SOUND_OPTS) snd.append(new Option(l, v));
-      for (const el of card.querySelectorAll('[data-k]')) {
-        const k = el.dataset.k;
-        if (el.type === 'checkbox') el.checked = !!rt[k];
-        else el.value = rt[k] == null ? (k === 'minutes' ? '45' : '') : String(rt[k]);
-      }
-      box.append(card);
-    }
-  }
-  $('#routine-list').addEventListener('change', (e) => {
-    const card = e.target.closest('.routine');
-    const el = e.target.closest('[data-k]');
-    if (!card || !el) return;
-    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
-    if (!rt) return;
-    rt[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.dataset.k === 'minutes' ? Number(el.value) : el.value.trim();
-    save();
-  });
-  $('#routine-list').addEventListener('click', (e) => {
-    const card = e.target.closest('.routine');
-    if (!card) return;
-    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
-    if (e.target.closest('.rt-del')) {
-      state.settings.routines = Assistant.routines().filter((r) => r !== rt);
-      save(); renderRoutines();
-    } else if (e.target.closest('.rt-run') && rt && rt.phrase) {
-      show('chat');
-      userSays(rt.phrase);
-    }
-  });
-  $('#routine-add').addEventListener('click', () => {
-    Assistant.routines().push({ id: uid(), phrase: '', brief: false, dnd: '', sound: '', minutes: 45, music: '', volume: '', say: '' });
-    save(); renderRoutines();
-    const inputs = $('#routine-list').querySelectorAll('[data-k=phrase]');
-    if (inputs.length) inputs[inputs.length - 1].focus();
-  });
-
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
     const hint = $('#voice-hint'), btn = $('#tts-settings');

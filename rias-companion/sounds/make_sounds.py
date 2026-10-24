@@ -2,8 +2,7 @@
 """Builds Rias's alarm sounds from scratch (pure synthesis, nothing sampled).
 
 Run:  python3 sounds/make_sounds.py   (needs numpy and ffmpeg with libvorbis)
-Writes sounds/alarm_<name>.ogg and the sleep loops sounds/ambient_<name>.ogg
-(`--ambient` builds only those). The Android build copies them into res/raw.
+Writes sounds/alarm_<name>.ogg. The Android build copies them into res/raw.
 Each clip is short; the app loops it while an alarm is ringing.
 """
 import pathlib
@@ -113,76 +112,6 @@ def pulse():
     return tone * swell * 0.5
 
 
-def lowpass(x, a):
-    """One-pole low-pass (a near 1 = darker)."""
-    y = np.empty_like(x)
-    acc = 0.0
-    for i, v in enumerate(x):
-        acc = a * acc + (1 - a) * v
-        y[i] = acc
-    return y
-
-
-def loopable(x, fade=2.0):
-    """Crossfade the tail into the head so the clip loops without a click."""
-    n = int(fade * RATE)
-    head, body, tail = x[:n], x[n:-n], x[-n:]
-    w = np.linspace(0, 1, n)
-    return np.concatenate([tail * (1 - w) + head * w, body])
-
-
-AMB_SEC = 24
-
-
-def amb_rain():
-    # Steady rain: soft filtered noise plus scattered drops.
-    noise = rng.standard_normal(int((AMB_SEC + 2) * RATE))
-    bed = lowpass(noise, 0.82) * 0.6 + lowpass(noise, 0.97) * 0.8
-    for _ in range(900):
-        at = rng.uniform(0, AMB_SEC + 1.8)
-        place(bed, note(rng.uniform(1800, 5200), 0.05, ((1, 1),), decay=90) * rng.uniform(0.05, 0.25), at)
-    return loopable(bed)
-
-
-def amb_ocean():
-    # Waves: dark noise swelling in and out every ~8 seconds.
-    t = t_axis(AMB_SEC + 2)
-    noise = rng.standard_normal(len(t))
-    surf = lowpass(noise, 0.93)
-    swell = 0.25 + 0.75 * (0.5 + 0.5 * np.sin(2 * np.pi * t / 8.0 - np.pi / 2)) ** 2
-    hiss = lowpass(noise, 0.6) * 0.15 * swell ** 3
-    return loopable(surf * swell + hiss)
-
-
-def amb_brown():
-    # Brown noise: deep, even rumble (great for sleep and focus).
-    noise = rng.standard_normal(int((AMB_SEC + 2) * RATE))
-    b = np.cumsum(noise)
-    b = b - lowpass(b, 0.9995)  # keep it from drifting
-    return loopable(b)
-
-
-def amb_fire():
-    # Fireplace: low roar with random crackles and pops.
-    noise = rng.standard_normal(int((AMB_SEC + 2) * RATE))
-    roar = lowpass(noise, 0.985) * 1.5
-    for _ in range(700):
-        at = rng.uniform(0, AMB_SEC + 1.9)
-        n = int(rng.uniform(0.002, 0.012) * RATE)
-        pop = rng.standard_normal(n) * np.exp(-np.linspace(0, 6, n)) * rng.uniform(0.2, 1.2)
-        place(roar, pop, at)
-    return loopable(roar)
-
-
-def amb_fan():
-    # A soft fan: smooth noise with a faint low hum.
-    t = t_axis(AMB_SEC + 2)
-    noise = rng.standard_normal(len(t))
-    return loopable(lowpass(noise, 0.9) + 0.12 * np.sin(2 * np.pi * 60 * t))
-
-
-AMBIENT = {'rain': amb_rain, 'ocean': amb_ocean, 'brown': amb_brown, 'fire': amb_fire, 'fan': amb_fan}
-
 SOUNDS = {'chime': chime, 'harp': harp, 'musicbox': music_box, 'magic': magic, 'classic': classic, 'pulse': pulse}
 
 
@@ -201,10 +130,5 @@ def write(name, data, prefix='alarm', quality='4'):
 
 
 if __name__ == '__main__':
-    import sys
-    if '--ambient' not in sys.argv:
-        for name, fn in SOUNDS.items():
-            write(name, fn())
-    # Sleep / ambient loops (Hey Rias, play rain sounds).
-    for name, fn in AMBIENT.items():
-        write(name, fn() * 0.7, 'ambient', '1')
+    for name, fn in SOUNDS.items():
+        write(name, fn())

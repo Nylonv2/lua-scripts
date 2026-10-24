@@ -1,6 +1,6 @@
-// Rias as a voice assistant (Alexa-style): timers and alarms, music, volume, flashlight,
-// Do Not Disturb, opening apps, calls, texts, directions, sleep sounds, reading your
-// notifications, routines ("Good morning", "Goodnight"), the time, and quick math.
+// Rias as a voice assistant (Alexa-style): timers and alarms, volume, flashlight,
+// Do Not Disturb, opening apps, calls, texts, directions, reading your notifications,
+// the time, and quick math.
 // Commands are understood without her AI; with it on, the AI can also use them through
 // the set_timer / phone_control tools, so any wording works. The phone parts need the
 // Android app (window.RiasDevice); in a browser she says so, except timers and math.
@@ -129,9 +129,6 @@ window.createAssistant = function createAssistant(ctx) {
     if (!d || !d[fn]) return null;
     try { return String(d[fn](...args)); } catch { return 'error'; }
   }
-  const musicApp = () => st().settings.musicApp || '';
-  const SOUND_WORDS = [['rain', /\brain/], ['ocean', /\b(ocean|waves?|sea|beach)\b/], ['brown', /\b(brown|white|pink) noise\b|\bnoise\b/], ['fire', /\b(fire|fireplace|campfire|crackl)/], ['fan', /\bfan\b/]];
-  const SOUND_NAMES = { rain: 'rain', ocean: 'ocean waves', brown: 'brown noise', fire: 'the fireplace', fan: 'the fan' };
 
   /** Runs one phone action. Returns { ok, said } (said = what she tells you), or { error }. */
   function run(action, value = '', message = null) {
@@ -140,15 +137,6 @@ window.createAssistant = function createAssistant(ctx) {
     const fail = (line) => ({ ok: false, said: say(line) });
     const needApp = () => fail(NEEDS_APP);
     switch (action) {
-      case 'play_music': {
-        const res = deviceCall('playSearch', v, musicApp());
-        if (res == null) return needApp();
-        return res === 'ok' ? r(pick([`Playing ${cap(v)}~`, `${cap(v)}, coming up.`, `Mm, good choice. Playing ${cap(v)}.`])) : fail('I couldn\'t find a music app to play that, {name}.');
-      }
-      case 'pause_music': return deviceCall('media', 'pause') == null ? needApp() : r(pick(['Paused.', 'Music paused~']));
-      case 'resume_music': return deviceCall('media', 'play') == null ? needApp() : r(pick(['Playing.', 'Back on~']));
-      case 'next_track': return deviceCall('media', 'next') == null ? needApp() : r(pick(['Skipped.', 'Next one~']));
-      case 'previous_track': return deviceCall('media', 'previous') == null ? needApp() : r('Going back one.');
       case 'volume_up': case 'volume_down': case 'mute': case 'unmute': case 'volume_set': {
         const res = deviceCall('volume', action.replace('volume_', ''), Math.max(0, Math.min(100, parseInt(v, 10) || 50)));
         if (res == null) return needApp();
@@ -191,23 +179,12 @@ window.createAssistant = function createAssistant(ctx) {
         if (res == null) return needApp();
         return res === 'ok' ? r(`Directions to ${cap(v)}. Drive safe, {name}.`) : fail('I couldn\'t open maps.');
       }
-      case 'sleep_sound': {
-        const key = (SOUND_WORDS.find(([, re]) => re.test(v.toLowerCase())) || [st().settings.sleepSound || 'rain'])[0];
-        const mins = parseInt(message, 10) || st().settings.sleepMinutes || 45;
-        if (deviceCall('sleepSound', key, mins) == null) return needApp();
-        return r(`Playing ${SOUND_NAMES[key]} for ${durationText(mins * 60)}. Sleep well~`);
-      }
-      case 'stop_sleep_sound': return deviceCall('sleepStop') == null ? needApp() : r('Sounds off.');
       case 'read_notifications': return readNotifications();
       case 'cancel_timers': {
         const n = cancelTimers(v.toLowerCase());
         return n ? r(n > 1 ? `Cancelled ${n} timers.` : 'Timer cancelled.') : fail('There\'s no timer running.');
       }
       case 'timer_status': return r(timerStatus());
-      case 'run_routine': {
-        const rt = findRoutine(v);
-        return rt ? { ok: true, said: runRoutine(rt).join(' ') } : fail(`I don't have a routine called “${v}”.`);
-      }
       default: return { error: `Unknown action ${action}` };
     }
   }
@@ -230,31 +207,6 @@ window.createAssistant = function createAssistant(ctx) {
       return `${app}${ns.length > 2 ? ` (${ns.length})` : ''}: ${last}`;
     });
     return { ok: true, said: `${list.length === 1 ? 'One new notification.' : `${list.length} new notifications.`} ${parts.join('. ')}.` };
-  }
-
-  // ---------- routines ----------
-  const DEFAULT_ROUTINES = [
-    { id: 'morning', phrase: 'good morning', brief: true, dnd: 'off', sound: 'stop', music: '', volume: '' },
-    { id: 'night', phrase: 'goodnight', brief: false, tomorrow: true, dnd: 'on', sound: 'rain', minutes: 45, music: '', volume: '' },
-  ];
-  const routines = () => (st().settings.routines ||= DEFAULT_ROUTINES.map((r) => ({ ...r })));
-  const clean = (s) => s.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
-  function findRoutine(text) {
-    const t = clean(text).replace(/^(hey |ok |okay )?rias /, '').replace(/ rias$/, '').replace(/good night/g, 'goodnight');
-    return routines().find((r) => r.phrase && (t === clean(r.phrase).replace(/good night/g, 'goodnight') || t === `run ${clean(r.phrase)}` || t === `start ${clean(r.phrase)}`));
-  }
-  function runRoutine(rt) {
-    const out = [];
-    if (rt.dnd === 'on' || rt.dnd === 'off') run(rt.dnd === 'on' ? 'dnd_on' : 'dnd_off');
-    if (rt.volume !== '' && rt.volume != null && !isNaN(rt.volume)) run('volume_set', String(rt.volume));
-    if (rt.brief) out.push(ctx.briefing());
-    if (rt.tomorrow) out.push(ctx.tomorrowLine());
-    if (rt.sound === 'stop') { if (D() && D().sleepPlaying && D().sleepPlaying()) run('stop_sleep_sound'); }
-    else if (rt.sound) { const r = run('sleep_sound', rt.sound, String(rt.minutes || 45)); if (r.ok) out.push(r.said); }
-    if (rt.music) { const r = run('play_music', rt.music); out.push(r.said); }
-    if (rt.say) out.push(say(rt.say));
-    if (!out.length) out.push(say(pick(['Done~', 'All set, {name}.'])));
-    return out.filter(Boolean);
   }
 
   // ---------- quick math ----------
@@ -295,10 +247,6 @@ window.createAssistant = function createAssistant(ctx) {
       return [say('Okay, I won\'t send it.')];
     }
 
-    // Routines first ("good morning", "goodnight", your own).
-    const rt = findRoutine(t);
-    if (rt) return runRoutine(rt);
-
     // Timers
     if (/\btimer\b/.test(t) || /^(start )?(a )?\d/.test(t) && /\b(minute|second|hour)s?\b.*\btimer\b/.test(t)) {
       if (/\b(cancel|stop|delete|remove|clear|end|turn off)\b/.test(t)) {
@@ -329,27 +277,6 @@ window.createAssistant = function createAssistant(ctx) {
         return [setAlarm(`${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`, '')];
       }
       return [say('What time should I wake you, {name}?')];
-    }
-
-    // Sleep / ambient sounds (before music, so "play rain sounds" isn't a song search)
-    if (/\b(stop|turn off|end|enough)\b.*\b(sounds?|rain|noise|ocean|waves|fireplace|fan)\b/.test(t)) return one(run('stop_sleep_sound'));
-    if (/\b(sleep sounds?|ambient sounds?|rain sounds?|white noise|brown noise|pink noise|ocean sounds?|wave sounds?|fireplace|fire sounds?|fan sounds?|sounds? of (the )?(rain|ocean|waves))\b/.test(t)
-      || /^play (some )?(rain|ocean|waves|noise)$/.test(t)) {
-      const mins = (parseDuration(t) / 60) || '';
-      return one(run('sleep_sound', t, mins ? String(Math.round(mins)) : null));
-    }
-
-    // Music
-    if (/^(pause|stop)( the| my)?( music| song| playback| it)?$/.test(t)) return one(run('pause_music'));
-    if (/^(resume|unpause|continue|keep playing)( the| my)?( music| song| playback)?$|^play( the)? music$|^play$/.test(t)) return one(run('resume_music'));
-    if (/^(next|skip)( song| track| this( song)?| it)?$|^play the next (song|track)$/.test(t)) return one(run('next_track'));
-    if (/^(previous|last|go back|back)( song| track| one)?$|^play the (previous|last) (song|track)$/.test(t)) return one(run('previous_track'));
-    m = t.match(/^(?:play|put on|listen to)\s+(.+?)(?:\s+on\s+(spotify|youtube music|youtube|pandora|amazon music|apple music))?$/);
-    if (m && !/^(a |some )?(game|games|trivia|music$)/.test(m[1])) {
-      const d = D();
-      if (!d) return [say(NEEDS_APP)];
-      const res = deviceCall('playSearch', m[1].replace(/^(some|the song|the album|the playlist|my)\s+/, (x) => (x.startsWith('my') ? x : '')), m[2] || musicApp());
-      return [say(res === 'ok' ? pick([`Playing ${cap(m[1])}~`, `${cap(m[1])}, coming right up.`]) : 'I couldn\'t find a music app to play that, {name}.')];
     }
 
     // Volume
@@ -394,7 +321,7 @@ window.createAssistant = function createAssistant(ctx) {
 
     // Open apps
     m = t.match(/^(?:open|launch|start|go to)\s+(?:the\s+)?(.+?)(?:\s+app)?$/);
-    if (m && !/\b(timer|routine|music)\b/.test(m[1])) {
+    if (m && !/\b(timer)\b/.test(m[1])) {
       const page = ctx.openPage && ctx.openPage(m[1]);
       if (page) return [say(page)];
       return one(run('open_app', m[1]));
@@ -418,12 +345,10 @@ window.createAssistant = function createAssistant(ctx) {
     // "Stop" / "be quiet"
     if (/^(stop|stop talking|be quiet|shush|quiet|shut up|that's all|never ?mind)$/.test(t)) {
       ctx.stopSpeaking();
-      const d = D();
-      if (d && d.sleepPlaying && d.sleepPlaying() && /^stop$/.test(t)) d.sleepStop();
       return [say(pick(['Okay~', 'Mm, I\'ll hush.', 'As you wish.']))];
     }
     return null;
   }
 
-  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, routines, DEFAULT_ROUTINES, durationText, parseDuration, parseClock };
+  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, durationText, parseDuration, parseClock };
 };
