@@ -39,7 +39,16 @@ final class RiasDevice {
     @JavascriptInterface public void playPcm(String base64, int rate) { DeviceActions.playPcm(base64, rate); }
     @JavascriptInterface public void stopPcm() { DeviceActions.stopPcm(); }
     @JavascriptInterface public boolean pcmPlaying() { return DeviceActions.pcmPlaying(); }
-    @JavascriptInterface public void sayNative(String text) { RiasVoice.say(ctx, text, true); }
+    @JavascriptInterface
+    public void sayNative(final String text) {
+        // Start the voice engine on the main thread (this is called from the page's JS thread).
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                RiasVoice.say(ctx, text, true);
+            }
+        });
+    }
     @JavascriptInterface public void openSettings(String what) { DeviceActions.openSettings(ctx, what); }
     @JavascriptInterface public void wake(String mode) { WakeService.setMode(ctx, mode); }
 

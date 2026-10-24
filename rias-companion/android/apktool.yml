@@ -19,5 +19,5 @@ usesFramework:
   tag: null
 version: 2.10.0
 versionInfo:
-  versionCode: '42'
-  versionName: '6.2'
+  versionCode: '43'
+  versionName: '6.3'

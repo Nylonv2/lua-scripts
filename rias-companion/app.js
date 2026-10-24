@@ -97,14 +97,19 @@
   state.settings = { ...blank().settings, ...state.settings };
   state.ai = { ...blank().ai, ...state.ai };
   let restoring = false; // a backup is being restored: don't overwrite it before the reload
-  // What this copy last wrote. If storage holds something else, the other copy (the app, or the
-  // hidden one answering the chat widget) changed it: reload to pick that up instead of overwriting it.
-  let lastSaved = localStorage.getItem(KEY);
-  const changedElsewhere = () => { try { return localStorage.getItem(KEY) !== lastSaved; } catch { return false; } };
+  // The hidden copy that answers the widget / assistant stamps each save. If the stamp moved since
+  // this page loaded, reload to pick up that conversation instead of overwriting it.
+  const STAMP = 'rias-headless-stamp';
+  const readStamp = () => { try { return localStorage.getItem(STAMP) || ''; } catch { return ''; } };
+  const stampSeen = readStamp();
+  const changedElsewhere = () => !HEADLESS && readStamp() !== stampSeen;
   const save = () => {
     if (restoring) return;
-    if (!HEADLESS && changedElsewhere()) { restoring = true; location.reload(); return; }
-    try { lastSaved = JSON.stringify(state); localStorage.setItem(KEY, lastSaved); } catch { /* storage full / private mode */ }
+    if (changedElsewhere()) { restoring = true; location.reload(); return; }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      if (HEADLESS) localStorage.setItem(STAMP, String(Date.now()));
+    } catch { /* storage full / private mode */ }
     syncNative();
   };
 
@@ -2271,15 +2276,61 @@
     if (!file) return;
     try {
       setPicture(await shrinkPicture(file));
-      $('#pic-hint').textContent = 'Picture updated. It stays on this phone and is never uploaded.';
+      if (!loadPicture()) return; // couldn't be stored (setPicture explained why)
+      // Picking a photo means "show her like this": switch Home and Chat to it right away.
+      state.settings.homeChar = 'picture';
+      sf.elements.homeChar.value = 'picture';
+      save(); renderHome(); pushLook(); refreshPicPreviews();
+      $('#pic-hint').textContent = 'Picture updated: she shows it on Home and in Chat now. (To go back, set Home screen → Animated Rias.) It stays on this phone.';
     } catch {
       $('#pic-hint').textContent = 'That file couldn’t be opened as a picture. Try a JPG or PNG.';
     }
   });
   $('#pic-reset').addEventListener('click', () => {
     setPicture('');
+    if (state.settings.homeChar === 'picture') { state.settings.homeChar = 'animated'; sf.elements.homeChar.value = 'animated'; save(); renderHome(); }
+    pushLook(); refreshPicPreviews();
     $('#pic-hint').textContent = 'Back to the default picture.';
   });
+
+  // Settings → Assistant → Pop-up look: how she appears when you long-press home.
+  const ASSIST_PIC_KEY = 'rias-assist-picture';
+  function refreshPicPreviews() {
+    const own = (() => { try { return localStorage.getItem(ASSIST_PIC_KEY) || ''; } catch { return ''; } })();
+    const mode = sf.elements.assistChar ? sf.elements.assistChar.value : 'same';
+    const img = $('#assist-pic-preview');
+    if (!img) return;
+    const home = state.settings.homeChar === 'picture' && loadPicture();
+    const src = mode === 'own' ? own : mode === 'picture' ? loadPicture() : mode === 'same' && home ? loadPicture() : '';
+    img.src = src || DEFAULT_PIC;
+    $('#assist-pic-desc').textContent = src ? '' : 'Animated Rias';
+    $('#assist-pic-choose').hidden = mode !== 'own';
+  }
+  function initAssistPic() {
+    sf.elements.assistChar.addEventListener('change', () => {
+      state.settings.assistChar = sf.elements.assistChar.value;
+      save(); pushLook(); refreshPicPreviews();
+      if (state.settings.assistChar === 'own' && !localStorage.getItem(ASSIST_PIC_KEY)) $('#assist-pic-file').click();
+    });
+    $('#assist-pic-choose').addEventListener('click', () => $('#assist-pic-file').click());
+    $('#assist-pic-file').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const data = await shrinkPicture(file);
+        try { localStorage.setItem(ASSIST_PIC_KEY, data); } catch { /* preview only */ }
+        const N = window.RiasNative;
+        if (N && N.setAssistPicture) N.setAssistPicture(data.split(',')[1]);
+        state.settings.assistChar = 'own';
+        sf.elements.assistChar.value = 'own';
+        save(); pushLook(); refreshPicPreviews();
+        $('#assist-pic-hint').textContent = 'Pop-up picture updated. Long-press home to see it.';
+      } catch {
+        $('#assist-pic-hint').textContent = 'That file couldn’t be opened as a picture. Try a JPG or PNG.';
+      }
+    });
+  }
 
   // ---------- Android app: hand reminders to the phone's alarm system ----------
   // window.RiasNative only exists inside the Android app. There, every reminder and
@@ -2470,6 +2521,8 @@
     fillNaturalVoices();
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
+    sf.elements.assistChar.value = state.settings.assistChar || 'same';
+    refreshPicPreviews();
     sf.elements.musicApp.value = state.settings.musicApp || '';
     sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
     sf.elements.sleepMinutes.value = String(state.settings.sleepMinutes || 45);
@@ -2590,6 +2643,7 @@
     if (!N || !N.setPref || HEADLESS) return;
     try {
       N.setPref('homeChar', state.settings.homeChar !== 'picture' || !loadPicture() ? 'animated' : 'picture');
+      N.setPref('assistChar', state.settings.assistChar || 'same');
       N.setPref('outfit', outfitNow());
     } catch { /* older app */ }
   }
@@ -2800,6 +2854,7 @@
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });
   sf.elements.geminiKey.addEventListener('input', () => { sf.elements.voiceKey.value = sf.elements.geminiKey.value; });

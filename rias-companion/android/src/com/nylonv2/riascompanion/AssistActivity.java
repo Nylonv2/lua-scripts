@@ -50,6 +50,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
     private SpeechRecognizer rec;
     private boolean listening, waiting, userTouched, started;
     private String lastAnswer = "";
+    private long doneAt;
     private final Runnable closeRun = new Runnable() {
         @Override
         public void run() {
@@ -64,6 +65,11 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                 main.postDelayed(this, 300);
                 return;
             }
+            // Her voice can take a moment to start after the words appear.
+            if (System.currentTimeMillis() - doneAt < 2500) {
+                main.postDelayed(this, 300);
+                return;
+            }
             // She asked you something: keep the conversation going.
             if (lastAnswer.trim().endsWith("?")) startListening();
             else {
@@ -72,6 +78,10 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
             }
         }
     };
+
+    static java.io.File pictureFile(android.content.Context c) {
+        return new java.io.File(c.getFilesDir(), "assist-picture.jpg");
+    }
 
     private int dp(float v) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
@@ -117,9 +127,16 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                 JSONObject j = new JSONObject();
                 try {
                     j.put("theme", p.getString("theme", "crimson"));
-                    j.put("homeChar", p.getString("homeChar", "animated"));
                     j.put("outfit", p.getString("outfit", ""));
-                    j.put("pic", AlarmActivity.dataUrl(Scheduler.pictureFile(AssistActivity.this)));
+                    // Settings → Assistant → Pop-up look: same as Home, animated, her picture, or one just for here.
+                    String mode = p.getString("assistChar", "same");
+                    String mine = AlarmActivity.dataUrl(Scheduler.pictureFile(AssistActivity.this));
+                    String own = AlarmActivity.dataUrl(pictureFile(AssistActivity.this));
+                    String pic = "own".equals(mode) ? (own.isEmpty() ? mine : own)
+                            : "picture".equals(mode) ? mine
+                            : "same".equals(mode) && "picture".equals(p.getString("homeChar", "animated")) ? mine : "";
+                    j.put("homeChar", pic.isEmpty() ? "animated" : "picture");
+                    j.put("pic", pic);
                 } catch (Exception ignored) {
                 }
                 return j.toString();
@@ -364,6 +381,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
     @Override
     public void onDone() {
         waiting = false;
+        doneAt = System.currentTimeMillis();
         main.removeCallbacks(afterSpeech);
         main.postDelayed(afterSpeech, 700);
     }

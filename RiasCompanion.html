@@ -1630,6 +1630,27 @@ button:active, .chip:active span { transform: scale(.97); }
           <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
           </section>
           <section class="set-group" data-cat="assist">
+          <h2>Pop-up look</h2>
+          <p class="muted small">How she appears in the pop-up when you long-press home.</p>
+          <div class="pic-row">
+            <img class="pic-preview" id="assist-pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="How she looks in the pop-up">
+            <div class="stack grow">
+              <label>Show
+                <select name="assistChar">
+                  <option value="same">Same as Home</option>
+                  <option value="animated">Animated Rias</option>
+                  <option value="picture">My chosen picture (from Look &amp; feel)</option>
+                  <option value="own">A different picture just for the pop-up</option>
+                </select>
+              </label>
+              <small class="muted" id="assist-pic-desc"></small>
+              <button type="button" id="assist-pic-choose" hidden>Choose pop-up picture</button>
+            </div>
+          </div>
+          <input type="file" id="assist-pic-file" accept="image/*" hidden>
+          <p class="muted small" id="assist-pic-hint">Pictures stay on this phone and are never uploaded.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
           <h2>What she's allowed to do</h2>
           <div class="perm-row" id="perm-mic"></div>
           <div class="perm-row" id="perm-calls"></div>
@@ -5473,14 +5494,19 @@ window.createAssistant = function createAssistant(ctx) {
   state.settings = { ...blank().settings, ...state.settings };
   state.ai = { ...blank().ai, ...state.ai };
   let restoring = false; // a backup is being restored: don't overwrite it before the reload
-  // What this copy last wrote. If storage holds something else, the other copy (the app, or the
-  // hidden one answering the chat widget) changed it: reload to pick that up instead of overwriting it.
-  let lastSaved = localStorage.getItem(KEY);
-  const changedElsewhere = () => { try { return localStorage.getItem(KEY) !== lastSaved; } catch { return false; } };
+  // The hidden copy that answers the widget / assistant stamps each save. If the stamp moved since
+  // this page loaded, reload to pick up that conversation instead of overwriting it.
+  const STAMP = 'rias-headless-stamp';
+  const readStamp = () => { try { return localStorage.getItem(STAMP) || ''; } catch { return ''; } };
+  const stampSeen = readStamp();
+  const changedElsewhere = () => !HEADLESS && readStamp() !== stampSeen;
   const save = () => {
     if (restoring) return;
-    if (!HEADLESS && changedElsewhere()) { restoring = true; location.reload(); return; }
-    try { lastSaved = JSON.stringify(state); localStorage.setItem(KEY, lastSaved); } catch { /* storage full / private mode */ }
+    if (changedElsewhere()) { restoring = true; location.reload(); return; }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      if (HEADLESS) localStorage.setItem(STAMP, String(Date.now()));
+    } catch { /* storage full / private mode */ }
     syncNative();
   };
 
@@ -7647,15 +7673,61 @@ window.createAssistant = function createAssistant(ctx) {
     if (!file) return;
     try {
       setPicture(await shrinkPicture(file));
-      $('#pic-hint').textContent = 'Picture updated. It stays on this phone and is never uploaded.';
+      if (!loadPicture()) return; // couldn't be stored (setPicture explained why)
+      // Picking a photo means "show her like this": switch Home and Chat to it right away.
+      state.settings.homeChar = 'picture';
+      sf.elements.homeChar.value = 'picture';
+      save(); renderHome(); pushLook(); refreshPicPreviews();
+      $('#pic-hint').textContent = 'Picture updated: she shows it on Home and in Chat now. (To go back, set Home screen → Animated Rias.) It stays on this phone.';
     } catch {
       $('#pic-hint').textContent = 'That file couldn’t be opened as a picture. Try a JPG or PNG.';
     }
   });
   $('#pic-reset').addEventListener('click', () => {
     setPicture('');
+    if (state.settings.homeChar === 'picture') { state.settings.homeChar = 'animated'; sf.elements.homeChar.value = 'animated'; save(); renderHome(); }
+    pushLook(); refreshPicPreviews();
     $('#pic-hint').textContent = 'Back to the default picture.';
   });
+
+  // Settings → Assistant → Pop-up look: how she appears when you long-press home.
+  const ASSIST_PIC_KEY = 'rias-assist-picture';
+  function refreshPicPreviews() {
+    const own = (() => { try { return localStorage.getItem(ASSIST_PIC_KEY) || ''; } catch { return ''; } })();
+    const mode = sf.elements.assistChar ? sf.elements.assistChar.value : 'same';
+    const img = $('#assist-pic-preview');
+    if (!img) return;
+    const home = state.settings.homeChar === 'picture' && loadPicture();
+    const src = mode === 'own' ? own : mode === 'picture' ? loadPicture() : mode === 'same' && home ? loadPicture() : '';
+    img.src = src || DEFAULT_PIC;
+    $('#assist-pic-desc').textContent = src ? '' : 'Animated Rias';
+    $('#assist-pic-choose').hidden = mode !== 'own';
+  }
+  function initAssistPic() {
+    sf.elements.assistChar.addEventListener('change', () => {
+      state.settings.assistChar = sf.elements.assistChar.value;
+      save(); pushLook(); refreshPicPreviews();
+      if (state.settings.assistChar === 'own' && !localStorage.getItem(ASSIST_PIC_KEY)) $('#assist-pic-file').click();
+    });
+    $('#assist-pic-choose').addEventListener('click', () => $('#assist-pic-file').click());
+    $('#assist-pic-file').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const data = await shrinkPicture(file);
+        try { localStorage.setItem(ASSIST_PIC_KEY, data); } catch { /* preview only */ }
+        const N = window.RiasNative;
+        if (N && N.setAssistPicture) N.setAssistPicture(data.split(',')[1]);
+        state.settings.assistChar = 'own';
+        sf.elements.assistChar.value = 'own';
+        save(); pushLook(); refreshPicPreviews();
+        $('#assist-pic-hint').textContent = 'Pop-up picture updated. Long-press home to see it.';
+      } catch {
+        $('#assist-pic-hint').textContent = 'That file couldn’t be opened as a picture. Try a JPG or PNG.';
+      }
+    });
+  }
 
   // ---------- Android app: hand reminders to the phone's alarm system ----------
   // window.RiasNative only exists inside the Android app. There, every reminder and
@@ -7846,6 +7918,8 @@ window.createAssistant = function createAssistant(ctx) {
     fillNaturalVoices();
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
+    sf.elements.assistChar.value = state.settings.assistChar || 'same';
+    refreshPicPreviews();
     sf.elements.musicApp.value = state.settings.musicApp || '';
     sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
     sf.elements.sleepMinutes.value = String(state.settings.sleepMinutes || 45);
@@ -7966,6 +8040,7 @@ window.createAssistant = function createAssistant(ctx) {
     if (!N || !N.setPref || HEADLESS) return;
     try {
       N.setPref('homeChar', state.settings.homeChar !== 'picture' || !loadPicture() ? 'animated' : 'picture');
+      N.setPref('assistChar', state.settings.assistChar || 'same');
       N.setPref('outfit', outfitNow());
     } catch { /* older app */ }
   }
@@ -8176,6 +8251,7 @@ window.createAssistant = function createAssistant(ctx) {
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });
   sf.elements.geminiKey.addEventListener('input', () => { sf.elements.voiceKey.value = sf.elements.geminiKey.value; });

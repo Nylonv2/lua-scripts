@@ -371,6 +371,27 @@
           <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
           </section>
           <section class="set-group" data-cat="assist">
+          <h2>Pop-up look</h2>
+          <p class="muted small">How she appears in the pop-up when you long-press home.</p>
+          <div class="pic-row">
+            <img class="pic-preview" id="assist-pic-preview" src="icons/icon.svg" alt="How she looks in the pop-up">
+            <div class="stack grow">
+              <label>Show
+                <select name="assistChar">
+                  <option value="same">Same as Home</option>
+                  <option value="animated">Animated Rias</option>
+                  <option value="picture">My chosen picture (from Look &amp; feel)</option>
+                  <option value="own">A different picture just for the pop-up</option>
+                </select>
+              </label>
+              <small class="muted" id="assist-pic-desc"></small>
+              <button type="button" id="assist-pic-choose" hidden>Choose pop-up picture</button>
+            </div>
+          </div>
+          <input type="file" id="assist-pic-file" accept="image/*" hidden>
+          <p class="muted small" id="assist-pic-hint">Pictures stay on this phone and are never uploaded.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
           <h2>What she's allowed to do</h2>
           <div class="perm-row" id="perm-mic"></div>
           <div class="perm-row" id="perm-calls"></div>

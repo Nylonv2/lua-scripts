@@ -14,6 +14,9 @@ import android.speech.tts.Voice;
  */
 final class RiasVoice {
     private static TextToSpeech tts;
+    /** From say() until she finishes (covers the second or so the voice engine takes to start). */
+    private static volatile boolean pending;
+    private static volatile long pendingSince;
 
     private RiasVoice() {}
 
@@ -33,7 +36,8 @@ final class RiasVoice {
     /** Is she still talking (native voice)? */
     static boolean speaking() {
         try {
-            return tts != null && tts.isSpeaking();
+            if (pending && System.currentTimeMillis() - pendingSince > 90000) pending = false; // never stuck
+            return pending || (tts != null && tts.isSpeaking());
         } catch (Exception e) {
             return false;
         }
@@ -43,6 +47,8 @@ final class RiasVoice {
     static void say(Context ctx, final String text, final boolean assistant) {
         stop();
         if (text == null || text.isEmpty()) return;
+        pending = true;
+        pendingSince = System.currentTimeMillis();
         final Context c = ctx.getApplicationContext();
         final SharedPreferences p = c.getSharedPreferences("rias", Context.MODE_PRIVATE);
         final TextToSpeech[] holder = new TextToSpeech[1];
@@ -50,8 +56,17 @@ final class RiasVoice {
             @Override
             public void onInit(int status) {
                 TextToSpeech t = holder[0];
-                if (status != TextToSpeech.SUCCESS || t == null || t != tts) return;
+                if (status != TextToSpeech.SUCCESS || t == null || t != tts) {
+                    if (t == tts) pending = false;
+                    return;
+                }
                 try {
+                    t.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
+                        @Override public void onStart(String id) { }
+                        @Override public void onDone(String id) { pending = false; }
+                        @Override public void onError(String id) { pending = false; }
+                        @Override public void onStop(String id, boolean interrupted) { pending = false; }
+                    });
                     t.setAudioAttributes(new AudioAttributes.Builder().setUsage(assistant ? AudioAttributes.USAGE_ASSISTANT : AudioAttributes.USAGE_ALARM)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
                     String name = p.getString("voiceName", "");
@@ -65,8 +80,9 @@ final class RiasVoice {
                     }
                     t.setPitch(p.getFloat("voicePitch", 0.95f));
                     t.setSpeechRate(p.getFloat("voiceRate", 0.9f));
-                    t.speak(text.replace("~", "").replace("\n", ". "), TextToSpeech.QUEUE_FLUSH, null, assistant ? "rias-reply" : "rias-alarm");
+                    if (t.speak(text.replace("~", "").replace("\n", ". "), TextToSpeech.QUEUE_FLUSH, null, assistant ? "rias-reply" : "rias-alarm") != TextToSpeech.SUCCESS) pending = false;
                 } catch (Exception ignored) {
+                    pending = false;
                 }
             }
         });
@@ -74,6 +90,7 @@ final class RiasVoice {
     }
 
     static void stop() {
+        pending = false;
         if (tts == null) return;
         try {
             tts.stop();

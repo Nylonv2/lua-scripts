@@ -658,7 +658,7 @@ public class MainActivity extends Activity {
         /** Look settings the assistant sheet uses: homeChar (animated / picture), outfit. */
         @JavascriptInterface
         public void setPref(String key, String value) {
-            if (!"homeChar".equals(key) && !"outfit".equals(key)) return;
+            if (!"homeChar".equals(key) && !"outfit".equals(key) && !"assistChar".equals(key)) return;
             ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString(key, value == null ? "" : value).apply();
         }
 
@@ -807,6 +807,20 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setPicture(String base64) {
             java.io.File f = Scheduler.pictureFile(ctx);
+            if (base64 == null || base64.isEmpty()) {
+                f.delete();
+                return;
+            }
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) {
+                out.write(android.util.Base64.decode(base64, android.util.Base64.DEFAULT));
+            } catch (Exception ignored) {
+            }
+        }
+
+        /** Settings → Assistant → a picture just for the pop-up. */
+        @JavascriptInterface
+        public void setAssistPicture(String base64) {
+            java.io.File f = AssistActivity.pictureFile(ctx);
             if (base64 == null || base64.isEmpty()) {
                 f.delete();
                 return;
