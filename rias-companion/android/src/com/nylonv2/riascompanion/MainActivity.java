@@ -41,6 +41,9 @@ public class MainActivity extends Activity {
     private static final int REQ_CALENDAR = 2;
     private static final int REQ_FILE = 43;
     private static final int REQ_SAVE = 44;
+    private static final int REQ_SOUND = 45;
+    /** The alarm sound playing inside the app, if any. */
+    private static android.media.Ringtone ringing;
     /** Backup text waiting for the user to pick where to save it. */
     private String pendingSave;
     private android.webkit.ValueCallback<Uri[]> fileCallback;
@@ -250,6 +253,20 @@ public class MainActivity extends Activity {
                 fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
                 fileCallback = null;
             }
+            return;
+        }
+        if (requestCode == REQ_SOUND) {
+            if (resultCode != RESULT_OK || data == null) return;
+            Uri picked = data.getParcelableExtra(android.media.RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+            if (picked == null) return;
+            String title = "Your sound";
+            try {
+                android.media.Ringtone r = android.media.RingtoneManager.getRingtone(this, picked);
+                if (r != null) title = r.getTitle(this);
+            } catch (Exception ignored) {
+            }
+            web.evaluateJavascript("window.riasSoundPicked && window.riasSoundPicked(" + JSONObject.quote(picked.toString())
+                    + ", " + JSONObject.quote(title) + ")", null);
             return;
         }
         if (requestCode == REQ_SAVE) {
@@ -565,6 +582,68 @@ public class MainActivity extends Activity {
             }
         }
 
+        // ---------- alarm sounds ----------
+        /** Settings → Alarm sound: {key, uri, title, ring}. */
+        @JavascriptInterface
+        public void setAlarmSound(String json) {
+            Scheduler.saveSound(ctx, json);
+        }
+
+        /** Plays an alarm sound in the app (the pop-up, or a preview in Settings). */
+        @JavascriptInterface
+        public void alarmStart(String key, boolean loop, boolean vibrate) {
+            alarmStop();
+            try {
+                if (vibrate) {
+                    android.os.Vibrator v = (android.os.Vibrator) ctx.getSystemService(Context.VIBRATOR_SERVICE);
+                    if (v != null) v.vibrate(new long[] {0, 400, 250, 400}, -1);
+                }
+                Uri u = Scheduler.soundUri(ctx, key);
+                if (u == null) return;
+                android.media.Ringtone r = android.media.RingtoneManager.getRingtone(ctx, u);
+                if (r == null) return;
+                r.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                if (Build.VERSION.SDK_INT >= 28) r.setLooping(loop && !"voice".equals(key));
+                r.play();
+                ringing = r;
+            } catch (Exception ignored) {
+            }
+        }
+
+        @JavascriptInterface
+        public void alarmStop() {
+            try {
+                if (ringing != null) ringing.stop();
+            } catch (Exception ignored) {
+            }
+            ringing = null;
+        }
+
+        /** "From my phone…": Android's sound picker (alarms, ringtones, notification sounds). */
+        @JavascriptInterface
+        public void pickSound(final String current) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Intent i = new Intent(android.media.RingtoneManager.ACTION_RINGTONE_PICKER)
+                            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TYPE, android.media.RingtoneManager.TYPE_ALL)
+                            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_TITLE, "Rias's alarm sound")
+                            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                            .putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI,
+                                    android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM));
+                    if (current != null && !current.isEmpty()) {
+                        i.putExtra(android.media.RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(current));
+                    }
+                    try {
+                        activity.startActivityForResult(i, REQ_SOUND);
+                    } catch (Exception ignored) {
+                    }
+                }
+            });
+        }
+
         /** Home screen widget data: upcoming items and her lines. */
         @JavascriptInterface
         public void setWidget(String json) {
@@ -610,10 +689,9 @@ public class MainActivity extends Activity {
             } else if ("battery".equals(what) && Build.VERSION.SDK_INT >= 23) {
                 i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + pkg));
             } else if ("channel".equals(what) && Build.VERSION.SDK_INT >= 26) {
-                Scheduler.ensureAlarmChannel(ctx);
                 i = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                         .putExtra(Settings.EXTRA_APP_PACKAGE, pkg)
-                        .putExtra(Settings.EXTRA_CHANNEL_ID, "rias_alarms");
+                        .putExtra(Settings.EXTRA_CHANNEL_ID, Scheduler.currentAlarmChannel(ctx));
             } else if ("exact".equals(what) && Build.VERSION.SDK_INT >= 31) {
                 i = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + pkg));
             } else if ("fullScreen".equals(what)) {
@@ -722,6 +800,9 @@ public class MainActivity extends Activity {
                 activity.pitch = (float) pitch;
                 activity.rate = (float) rate;
             }
+            // Remembered for the alarm screen, which talks with the app closed.
+            ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit()
+                    .putString("voiceName", activity.voiceName).putFloat("voicePitch", (float) pitch).putFloat("voiceRate", (float) rate).apply();
             activity.applyVoice();
         }
 

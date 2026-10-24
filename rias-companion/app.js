@@ -61,6 +61,7 @@
       checkins: true, checkinEvery: 120, notify: true, praise: 'neutral', voice: true, voiceName: '', voicePitch: 0.95, voiceRate: 0.9,
       commute: 30, workReminders: true, foodReminders: true, waterGoal: 8, phoneCalendar: false, alarmPopup: true,
       autoBackup: true, briefing: true, city: '', recap: true, windDown: true,
+      alarmSound: 'chime', alarmSoundUri: '', alarmSoundTitle: '', alarmRing: true,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
@@ -365,6 +366,46 @@
     if (!alarmFor(item) || document.hidden) return;
     showAlarmCard(item, text);
   }
+
+  // ---------- alarm sounds ----------
+  // Built-in sounds are synthesized by sounds/make_sounds.py; the Android app can also use any phone sound.
+  const SOUNDS = [
+    ['chime', '🔔 Crimson Chime'], ['harp', '🎼 Harp'], ['musicbox', '🎶 Music Box'], ['magic', '✨ Magic Circle'],
+    ['classic', '⏰ Classic Beep'], ['pulse', '💗 Soft Pulse'], ['phone', '📱 My phone\'s alarm', true], ['custom', '🎵 From my phone…', true],
+    ['voice', '🗣️ Chime + Rias says it'], ['silent', '🔕 Vibrate only'],
+  ];
+  const soundChoices = () => SOUNDS.filter(([, , nat]) => !nat || (window.RiasNative && window.RiasNative.pickSound));
+  const soundLabel = (k) => (k === 'custom' && state.settings.alarmSoundTitle ? `🎵 ${state.settings.alarmSoundTitle}` : (SOUNDS.find((x) => x[0] === k) || SOUNDS[0])[1]);
+  const soundSrc = (k) => (window.RIAS_SOUNDS || {})[k] || `sounds/alarm_${k}.ogg`;
+  let webAudio = null, ringTimer = 0;
+  function startSound(key, loop, vibrate = true) {
+    stopSound();
+    const N = window.RiasNative;
+    if (N && N.alarmStart) {
+      try { N.alarmStart(key, loop, vibrate); } catch { /* older app */ }
+    } else {
+      if (vibrate && navigator.vibrate) navigator.vibrate([400, 250, 400]);
+      if (key !== 'silent') {
+        webAudio = new Audio(soundSrc(['voice', 'phone', 'custom'].includes(key) ? 'chime' : key));
+        webAudio.loop = loop && key !== 'voice';
+        webAudio.play().catch(() => { /* autoplay blocked */ });
+      }
+    }
+    if (loop) ringTimer = setTimeout(stopSound, 3 * 60000); // like a real alarm, it gives up after a while
+  }
+  function stopSound() {
+    clearTimeout(ringTimer);
+    const N = window.RiasNative;
+    if (N && N.alarmStop) { try { N.alarmStop(); } catch { /* older app */ } }
+    if (webAudio) { webAudio.pause(); webAudio = null; }
+  }
+  // The Android app needs the choice for alarms that fire while it's closed.
+  function pushSound() {
+    const N = window.RiasNative;
+    if (!(N && N.setAlarmSound)) return;
+    const st = state.settings;
+    try { N.setAlarmSound(JSON.stringify({ key: st.alarmSound || 'chime', uri: st.alarmSoundUri || '', title: st.alarmSoundTitle || '', ring: st.alarmRing !== false })); } catch { /* ignore */ }
+  }
   function showAlarmCard(item, text) {
     if (alarmDlg.open) { alarmQueue.push([item, text]); return; }
     alarmItem = item;
@@ -373,11 +414,13 @@
     $('#alarm-text').textContent = text;
     $('#alarm-done').hidden = $('#alarm-snooze').hidden = !item.id; // tests only get Dismiss
     alarmDlg.showModal();
-    const N = window.RiasNative;
-    if (N && N.buzz) { try { N.buzz(); } catch { /* older app */ } }
-    else if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
+    const key = item.sound || state.settings.alarmSound || 'chime';
+    startSound(key, state.settings.alarmRing !== false);
+    // "Chime + Rias says it": she reads it out even if her voice is off for chat.
+    if (key === 'voice' && state.settings.voice === false) setTimeout(() => speak(text, true), 1200);
   }
   function closeAlarm() {
+    stopSound();
     if (alarmDlg.open) alarmDlg.close();
     alarmItem = null;
     const next = alarmQueue.shift();
@@ -1668,6 +1711,8 @@
     const days = (item && item.days) || [new Date().getDay()];
     for (const b of ef.querySelectorAll('[name=days]')) b.checked = days.includes(Number(b.value));
     ef.elements.every.value = String((item && item.every) || 0);
+    fillSoundSelect(ef.elements.sound, 'Default sound (from Settings)');
+    ef.elements.sound.value = (item && item.sound) || '';
     ef.elements.until.value = (item && item.until) || '20:00';
     $('#edit-delete').hidden = !item;
     syncRepeatFields();
@@ -1691,6 +1736,7 @@
       popup: ef.elements.popup.value === 'default' ? undefined : ef.elements.popup.value,
       days: ef.elements.repeat.value === 'days' ? [...ef.querySelectorAll('[name=days]:checked')].map((b) => Number(b.value)) : undefined,
       every: Number(ef.elements.every.value) || undefined,
+      sound: ef.elements.sound.value || undefined,
       until: Number(ef.elements.every.value) ? ef.elements.until.value : undefined,
     };
     if (data.repeat === 'days' && !data.days.length) data.repeat = 'daily';
@@ -1897,7 +1943,7 @@
         if (withBrief) briefed = true;
         events.push({
           at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${withBrief ? `\n${brief}` : ''}`,
-          itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it),
+          itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}),
         });
       }
       if (brief && !briefed && at(d, w) > now) events.push({ at: at(d, w), text: `${say(pick(R.greet.morning))}\n${brief}` });
@@ -1927,7 +1973,7 @@
     }
     for (const sn of state.snoozes) {
       const it = findItem(sn.id);
-      if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmFor(it) });
+      if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}) });
     }
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
     const last = new Date(); last.setDate(last.getDate() + days);
@@ -2008,9 +2054,61 @@
     sf.elements.city.value = (state.weather && state.weather.place) || '';
     $('#city-hint').textContent = weatherFor(new Date()) ? `Today: ${weatherLine(new Date(), true)}` : state.weather ? '' : 'Set your city and Rias tells you the weather each morning.';
     renderMemory();
+    renderSounds();
+    sf.elements.alarmRing.checked = state.settings.alarmRing !== false;
     backupHint();
     renderUpdate();
   }
+  // Settings → Alarm sound. Tapping one plays it; the choice applies right away.
+  function fillSoundSelect(sel, first) {
+    sel.textContent = '';
+    for (const [k, label] of [['', first]].concat(soundChoices().filter(([k]) => k !== 'custom' || state.settings.alarmSoundUri))) {
+      const o = document.createElement('option');
+      o.value = k;
+      o.textContent = k ? soundLabel(k) : label;
+      sel.append(o);
+    }
+  }
+  function renderSounds() {
+    const box = $('#sound-list');
+    box.textContent = '';
+    for (const [k] of soundChoices()) {
+      const l = document.createElement('label');
+      l.className = 'chip';
+      l.innerHTML = '<input type="radio" name="alarmSound"><span></span>';
+      l.querySelector('input').value = k;
+      l.querySelector('input').checked = (state.settings.alarmSound || 'chime') === k;
+      l.querySelector('span').textContent = soundLabel(k);
+      box.append(l);
+    }
+    $('#sound-hint').textContent = state.settings.alarmSound === 'voice'
+      ? 'A chime, then Rias reads the reminder out loud.'
+      : state.settings.alarmSound === 'silent' ? 'No sound, just vibration.' : '';
+  }
+  $('#sound-list').addEventListener('click', (e) => {
+    const input = e.target.closest('input[name=alarmSound]');
+    if (!input) return;
+    const k = input.value;
+    if (k === 'custom') {
+      // Keep the old choice until a sound is actually picked.
+      input.checked = false;
+      const prev = sf.querySelector(`input[name=alarmSound][value="${state.settings.alarmSound || 'chime'}"]`);
+      if (prev) prev.checked = true;
+      window.RiasNative.pickSound(state.settings.alarmSoundUri || '');
+      return;
+    }
+    state.settings.alarmSound = k;
+    save(); pushSound(); renderSounds();
+    startSound(k, false);
+    if (k === 'voice') setTimeout(() => speak(say('It\'s time, {name}. This is how I\'ll call you.'), true), 1200);
+  });
+  window.riasSoundPicked = (uri, title) => {
+    Object.assign(state.settings, { alarmSound: 'custom', alarmSoundUri: uri, alarmSoundTitle: title });
+    save(); pushSound(); renderSounds();
+    startSound('custom', false);
+  };
+  sf.elements.alarmRing.addEventListener('change', () => { state.settings.alarmRing = sf.elements.alarmRing.checked; save(); pushSound(); });
+
   // Settings → Things Rias remembers.
   function renderMemory() {
     const ul = $('#mem-list');
@@ -2070,6 +2168,7 @@
       briefing: sf.elements.briefing.checked,
       recap: sf.elements.recap.checked,
       windDown: sf.elements.windDown.checked,
+      alarmRing: sf.elements.alarmRing.checked,
     });
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
@@ -2399,6 +2498,7 @@
   setInterval(syncCalendar, 15 * 60000);
   const housekeeping = () => { maybeAutoBackup(); maybeCheckUpdate(); refreshWeather().then(() => { if (currentView === 'home') renderHome(); }); };
   setTimeout(housekeeping, 1500);
+  pushSound();
   $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;

@@ -56,7 +56,8 @@ final class AlarmOverlay {
     }
 
     static void show(final Context ctx, final String text, final String title, final String itemId,
-                     final long at, final int notificationId) {
+                     final long at, final int notificationId, final String sound) {
+        if ("voice".equals(sound)) RiasVoice.sayLater(ctx, text, 1200);
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
@@ -234,6 +235,7 @@ final class AlarmOverlay {
     }
 
     private static void close(Context c, WindowManager wm, int notificationId) {
+        RiasVoice.stop();
         remove(wm);
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null && notificationId != 0) nm.cancel(notificationId);

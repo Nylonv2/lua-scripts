@@ -22,7 +22,7 @@ final class Scheduler {
     private static final String KEY_EVENTS = "events";
     private static final String KEY_LAST_FIRED = "lastFired";
     private static final String CHANNEL = "rias_reminders";
-    /** Reminders shown alarm-style (full screen over the lock screen, alarm sound). */
+    /** The old single alarm channel; now each alarm sound has its own (see alarmChannel). */
     private static final String ALARM_CHANNEL = "rias_alarms";
     private static final String KEY_ACTIONS = "actions";
     /** Reminders older than this when the alarm finally runs (phone was off, etc.) are dropped. */
@@ -94,7 +94,7 @@ final class Scheduler {
             if (at > last && at <= now + 5000 && now - at <= STALE_MS) {
                 String text = o.optString("text", "Rias is calling for you.");
                 if (o.optBoolean("alarm", false)) {
-                    showAlarm(c, text, o.optString("title", ""), o.optString("itemId", ""), at);
+                    showAlarm(c, text, o.optString("title", ""), o.optString("itemId", ""), at, o.optString("sound", ""), false);
                 } else {
                     show(c, text, (int) (at / 1000), false);
                 }
@@ -116,22 +116,118 @@ final class Scheduler {
         nm.createNotificationChannel(ch);
     }
 
-    static void ensureAlarmChannel(Context c) {
-        if (Build.VERSION.SDK_INT < 26) return;
+    // ---------- alarm sounds ----------
+    private static final String KEY_SOUND = "alarmSound";
+    /** Alarms ring at most this long before going quiet (the notification stays). */
+    private static final long RING_MS = 3 * 60 * 1000L;
+
+    /** {key, uri, title, ring} from Settings → Alarm sound. */
+    static void saveSound(Context c, String json) {
+        prefs(c).edit().putString(KEY_SOUND, json).apply();
+    }
+
+    static JSONObject soundPrefs(Context c) {
+        try {
+            return new JSONObject(prefs(c).getString(KEY_SOUND, "{}"));
+        } catch (Exception e) {
+            return new JSONObject();
+        }
+    }
+
+    /** The reminder's own sound, else the one chosen in Settings. */
+    static String soundKey(Context c, String own) {
+        if (own != null && !own.isEmpty()) return own;
+        return soundPrefs(c).optString("key", "chime");
+    }
+
+    static android.net.Uri soundUri(Context c, String key) {
+        if ("silent".equals(key)) return null;
+        if ("phone".equals(key)) return android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM);
+        if ("custom".equals(key)) {
+            String u = soundPrefs(c).optString("uri", "");
+            return u.isEmpty() ? android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM) : android.net.Uri.parse(u);
+        }
+        String name = "voice".equals(key) ? "chime" : key;
+        if (c.getResources().getIdentifier("alarm_" + name, "raw", c.getPackageName()) == 0) name = "chime";
+        return android.net.Uri.parse("android.resource://" + c.getPackageName() + "/raw/alarm_" + name);
+    }
+
+    private static String soundLabel(String key) {
+        switch (key) {
+            case "harp": return "Harp";
+            case "musicbox": return "Music box";
+            case "magic": return "Magic circle";
+            case "classic": return "Classic beep";
+            case "pulse": return "Soft pulse";
+            case "phone": return "Phone alarm";
+            case "custom": return "Your sound";
+            case "voice": return "Rias's voice";
+            case "silent": return "Vibrate only";
+            default: return "Crimson chime";
+        }
+    }
+
+    /** A channel's sound can't change once made, so each alarm sound gets its own channel. */
+    static String alarmChannel(Context c, String key) {
+        String id = "custom".equals(key)
+                ? "rias_alarm_custom_" + Integer.toHexString(soundPrefs(c).optString("uri", "").hashCode())
+                : "rias_alarm_" + key;
+        if (Build.VERSION.SDK_INT < 26) return id;
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm == null || nm.getNotificationChannel(ALARM_CHANNEL) != null) return;
-        NotificationChannel ch = new NotificationChannel(ALARM_CHANNEL, "Reminder pop-ups",
+        if (nm == null || nm.getNotificationChannel(id) != null) return id;
+        for (NotificationChannel old : nm.getNotificationChannels()) {
+            String oid = old.getId();
+            if (oid.equals(ALARM_CHANNEL) || (oid.startsWith("rias_alarm_custom_") && !oid.equals(id))) nm.deleteNotificationChannel(oid);
+        }
+        NotificationChannel ch = new NotificationChannel(id, "Reminder pop-ups · " + soundLabel(key),
                 NotificationManager.IMPORTANCE_HIGH);
         ch.setDescription("Reminders that pop up in the middle of the screen, like an alarm");
         ch.enableVibration(true);
         ch.setVibrationPattern(new long[] {0, 400, 250, 400, 250, 400});
-        ch.setSound(android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION),
-                new android.media.AudioAttributes.Builder()
-                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build());
+        android.net.Uri u = soundUri(c, key);
+        if (u == null) {
+            ch.setSound(null, null);
+        } else {
+            ch.setSound(u, new android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build());
+        }
         ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(ch);
+        return id;
+    }
+
+    static String currentAlarmChannel(Context c) {
+        return alarmChannel(c, soundKey(c, ""));
+    }
+
+    /** After RING_MS, an alarm nobody answered stops ringing but stays in the notifications. */
+    private static void scheduleQuiet(Context c, int id, String text, String title, String itemId, long at, String sound) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        Intent i = new Intent(c, AlarmReceiver.class).setAction(AlarmReceiver.ACTION_QUIET)
+                .putExtra(AlarmActivity.EXTRA_TEXT, text)
+                .putExtra(AlarmActivity.EXTRA_TITLE, title)
+                .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
+                .putExtra(AlarmActivity.EXTRA_AT, at)
+                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id)
+                .putExtra(AlarmActivity.EXTRA_SOUND, sound);
+        PendingIntent pi = PendingIntent.getBroadcast(c, id * 4 + 3, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + RING_MS, pi);
+    }
+
+    static void handleQuiet(Context c, Intent in) {
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        int id = in.getIntExtra(AlarmActivity.EXTRA_NOTIFICATION, 0);
+        if (nm == null || id == 0) return;
+        for (android.service.notification.StatusBarNotification sb : nm.getActiveNotifications()) {
+            if (sb.getId() != id) continue;
+            showAlarm(c, in.getStringExtra(AlarmActivity.EXTRA_TEXT), in.getStringExtra(AlarmActivity.EXTRA_TITLE),
+                    in.getStringExtra(AlarmActivity.EXTRA_ITEM), in.getLongExtra(AlarmActivity.EXTRA_AT, 0),
+                    in.getStringExtra(AlarmActivity.EXTRA_SOUND), true);
+            return;
+        }
     }
 
     /** Android 14+ only lets apps pop up over the lock screen once you allow it in Settings. */
@@ -143,9 +239,10 @@ final class Scheduler {
 
     /** A reminder as an alarm: full-screen pop-up when locked, heads-up pop-up when in use. */
     @SuppressWarnings("deprecation")
-    static void showAlarm(Context c, String text, String title, String itemId, long at) {
+    static void showAlarm(Context c, String text, String title, String itemId, long at, String sound, boolean quiet) {
         if (MainActivity.visible) return; // the app shows its own pop-up
-        ensureAlarmChannel(c);
+        String key = soundKey(c, sound);
+        String channel = alarmChannel(c, key);
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
         int id = (int) (at / 1000);
@@ -155,13 +252,19 @@ final class Scheduler {
                 .putExtra(AlarmActivity.EXTRA_TITLE, title)
                 .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
                 .putExtra(AlarmActivity.EXTRA_AT, at)
-                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id);
+                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id)
+                .putExtra(AlarmActivity.EXTRA_SOUND, key);
         PendingIntent pop = PendingIntent.getActivity(c, id, alarm,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         int icon = c.getResources().getIdentifier("ic_stat_rias", "drawable", c.getPackageName());
-        Notification.Builder b = Build.VERSION.SDK_INT >= 26
-                ? new Notification.Builder(c, ALARM_CHANNEL)
-                : new Notification.Builder(c).setPriority(Notification.PRIORITY_MAX).setDefaults(Notification.DEFAULT_ALL);
+        Notification.Builder b;
+        if (Build.VERSION.SDK_INT >= 26) {
+            b = new Notification.Builder(c, channel);
+        } else {
+            b = new Notification.Builder(c).setPriority(Notification.PRIORITY_MAX)
+                    .setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_LIGHTS)
+                    .setSound(soundUri(c, key), android.media.AudioManager.STREAM_ALARM);
+        }
         b.setSmallIcon(icon != 0 ? icon : android.R.drawable.ic_popup_reminder)
                 .setContentTitle(title == null || title.isEmpty() ? "Rias" : "Rias · " + title)
                 .setContentText(text)
@@ -171,8 +274,10 @@ final class Scheduler {
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
                 .setShowWhen(true)
-                .setContentIntent(pop)
-                .setFullScreenIntent(pop, true);
+                .setContentIntent(pop);
+        // Going quiet re-posts the same alarm without sound; otherwise it pops up full screen.
+        if (quiet) b.setOnlyAlertOnce(true);
+        else b.setFullScreenIntent(pop, true);
         if (itemId != null && !itemId.isEmpty()) {
             b.addAction(0, "Done ✓", actionIntent(c, AlarmReceiver.ACTION_DONE, id, text, title, itemId, at, 0));
             b.addAction(0, "Snooze 10 min", actionIntent(c, AlarmReceiver.ACTION_SNOOZE, id, text, title, itemId, at, 10));
@@ -180,12 +285,18 @@ final class Scheduler {
         }
         android.graphics.Bitmap pic = picture(c);
         if (pic != null) b.setLargeIcon(pic);
-        nm.notify(id, b.build());
+        Notification n = b.build();
+        // Like a real alarm: the sound repeats until you answer (or for RING_MS).
+        boolean ring = !quiet && soundPrefs(c).optBoolean("ring", true) && !"voice".equals(key) && !"silent".equals(key);
+        if (ring) n.flags |= Notification.FLAG_INSISTENT;
+        nm.notify(id, n);
+        if (ring) scheduleQuiet(c, id, text, title, itemId, at, sound);
+        if (quiet) return;
         // Unlocked and in use: Android shrinks the alarm to a banner. With "Appear on top" allowed,
         // draw the card over the current app, then open the full alarm screen on top of it
         // (the card stays if Android refuses to open the screen).
         if (AlarmOverlay.phoneInUse(c) && AlarmOverlay.allowed(c)) {
-            AlarmOverlay.show(c, text, title, itemId, at, id);
+            AlarmOverlay.show(c, text, title, itemId, at, id, key);
             try {
                 c.startActivity(alarm);
             } catch (Exception ignored) {
@@ -232,8 +343,7 @@ final class Scheduler {
             o.put("notifications", enabled(c));
             boolean channel = true;
             if (Build.VERSION.SDK_INT >= 26 && nm != null) {
-                ensureAlarmChannel(c);
-                NotificationChannel ch = nm.getNotificationChannel(ALARM_CHANNEL);
+                NotificationChannel ch = nm.getNotificationChannel(currentAlarmChannel(c));
                 channel = ch == null || ch.getImportance() >= NotificationManager.IMPORTANCE_HIGH;
             }
             o.put("channel", channel);

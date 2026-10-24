@@ -4,6 +4,7 @@
     python3 build_standalone.py --fragment OUT.html   -> body-only version for embedding
 """
 import base64
+import json
 import pathlib
 import re
 import sys
@@ -23,6 +24,10 @@ for js in ('food.js', 'work.js', 'vendor/anthropic-sdk.js', 'ai.js', 'rias-avata
 html = html.replace('<script src="app.js"></script>', f"<script>\n{read('app.js')}</script>")
 html = re.sub(r'\s*<link rel="(manifest|apple-touch-icon)"[^>]*>', '', html)
 html = html.replace('icons/icon.svg', icon)
+# The alarm sounds ride along as data URIs (they're small).
+sounds = {p.stem.replace('alarm_', ''): 'data:audio/ogg;base64,' + base64.b64encode(p.read_bytes()).decode()
+          for p in sorted((here / 'sounds').glob('alarm_*.ogg'))}
+html = html.replace('<script>\n', '<script>window.RIAS_SOUNDS = ' + json.dumps(sounds) + ';</script>\n<script>\n', 1)
 
 if '--fragment' in sys.argv:
     out = pathlib.Path(sys.argv[sys.argv.index('--fragment') + 1])

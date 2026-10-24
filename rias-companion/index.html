@@ -412,6 +412,12 @@
             <p class="muted small">Ticked types get the big pop-up. The rest come as normal notifications. You can also change it for a single reminder when you edit it.</p>
             <div class="chips" id="alarm-cat-list"></div>
           </fieldset>
+          <div class="field">
+            <span class="field-label">Alarm sound <small>· tap one to hear it</small></span>
+            <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
+            <p class="small voice-hint" id="sound-hint"></p>
+          </div>
+          <label class="switch"><input name="alarmRing" type="checkbox"> Keep ringing until I answer (stops after 3 minutes)</label>
           <p class="test-label">Try them out</p>
           <div class="test-row">
             <button type="button" id="test-alarm">⏰ Pop-up</button>
@@ -490,6 +496,7 @@
         </label>
         <label id="until-wrap">Until <input name="until" type="time"></label>
       </div>
+      <label>Alarm sound <select name="sound"></select></label>
       <div class="field"><span class="field-label">Type</span>
         <div class="chips" role="radiogroup" aria-label="Type"><label class="chip"><input type="radio" name="category" value="custom"><span>📌 Other</span></label><label class="chip"><input type="radio" name="category" value="wake"><span>⏰ Wake up</span></label><label class="chip"><input type="radio" name="category" value="meds"><span>💊 Medication</span></label><label class="chip"><input type="radio" name="category" value="water"><span>💧 Water</span></label><label class="chip"><input type="radio" name="category" value="meal"><span>🍽️ Meal</span></label><label class="chip"><input type="radio" name="category" value="exercise"><span>🏃 Exercise</span></label><label class="chip"><input type="radio" name="category" value="work"><span>📚 Work / study</span></label><label class="chip"><input type="radio" name="category" value="break"><span>☕ Break</span></label><label class="chip"><input type="radio" name="category" value="hygiene"><span>🪥 Hygiene</span></label><label class="chip"><input type="radio" name="category" value="social"><span>💬 Social</span></label><label class="chip"><input type="radio" name="category" value="chores"><span>🧹 Chores</span></label><label class="chip"><input type="radio" name="category" value="wind"><span>🌙 Wind down</span></label><label class="chip"><input type="radio" name="category" value="sleep"><span>😴 Sleep</span></label></div>
       </div>

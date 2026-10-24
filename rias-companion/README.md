@@ -127,6 +127,15 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   outside the app (notifications allowed, pop-up alerts set to sound/pop on screen, *Appear on top*, full screen over
   the lock screen, not put to sleep by battery saving, exact alarms), each with a **Fix** button that opens the
   right Android settings page. If reminders don't show up outside the app, fix everything here first.
+- **Alarm sounds** (Settings → Notifications → *Alarm sound*, tap one to hear it): six original sounds made for the
+  app (🔔 Crimson Chime, 🎼 Harp, 🎶 Music Box, ✨ Magic Circle, ⏰ Classic Beep, 💗 Soft Pulse), 📱 your phone's own
+  alarm sound, 🎵 any alarm/ringtone/notification sound on your phone (Android's sound picker), 🗣️ *Chime + Rias says
+  it* (she reads the reminder out loud on the alarm screen, in your chosen voice), or 🔕 vibrate only. *Keep ringing
+  until I answer* repeats the sound like a real alarm until you tap Done, Snooze or Dismiss; after 3 minutes it goes
+  quiet but stays in your notifications. Any reminder can have its own sound (*Alarm sound* in the reminder editor).
+  The sounds are synthesized from scratch by `sounds/make_sounds.py` (numpy + ffmpeg), nothing sampled. On Android
+  each sound gets its own notification channel ("Reminder pop-ups · Harp"…), because Android fixes a channel's sound
+  once it exists.
 - **Choose which reminders pop up:** under *Which reminders pop up like an alarm*, tick the reminder types that get
   the big pop-up (default: wake up, medication, work shifts, phone calendar, sleep, other); the rest arrive as
   normal notifications. When adding or editing a reminder, *When it's due* overrides it for that one reminder.

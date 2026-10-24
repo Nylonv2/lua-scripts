@@ -32,6 +32,7 @@ public class AlarmActivity extends Activity {
     static final String EXTRA_ITEM = "itemId";
     static final String EXTRA_AT = "at";
     static final String EXTRA_NOTIFICATION = "notificationId";
+    static final String EXTRA_SOUND = "sound";
 
     private static final int CRIMSON = 0xFFC8173A;
     private static final int GOLD = 0xFFE3B866;
@@ -73,6 +74,8 @@ public class AlarmActivity extends Activity {
         final String itemId = in.getStringExtra(EXTRA_ITEM);
         final long at = in.getLongExtra(EXTRA_AT, System.currentTimeMillis());
         final int notificationId = in.getIntExtra(EXTRA_NOTIFICATION, 0);
+        // "Chime + Rias says it": she reads the reminder out loud once the screen is up.
+        if ("voice".equals(in.getStringExtra(EXTRA_SOUND))) RiasVoice.sayLater(this, text, 1200);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -198,6 +201,7 @@ public class AlarmActivity extends Activity {
     }
 
     private void close(int notificationId) {
+        RiasVoice.stop();
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null && notificationId != 0) nm.cancel(notificationId);
         finish();
