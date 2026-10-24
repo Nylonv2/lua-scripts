@@ -10,5 +10,9 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Scheduler.scheduleNext(context);
         RiasWidget.update(context);
+        RiasChatWidget.update(context);
+        // "Hey Rias" again (Android 14+ only allows that once the app is opened).
+        String wake = WakeService.mode(context);
+        if (!"off".equals(wake)) WakeService.setMode(context, wake);
     }
 }

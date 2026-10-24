@@ -200,6 +200,22 @@ In the Android app, **Connect** in **Settings → Phone calendar & other apps** 
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
 
+## Rias as your voice assistant (6.0)
+
+Settings → **Assistant** has everything below. It works without her AI too. With the AI on, you can say these any way you like.
+
+- **“Hey Rias”, hands-free.** Turn on *Listen for her name* (only while charging, or always). Say “Hey Rias, …” and she pops up, listens, answers out loud, and keeps listening if she asked you something. Android shows a small “listening” notification while it's on. Allow *Appear on top* so she can pop up over other apps.
+- **Your phone's assistant.** Set Rias as the *Digital assistant app* (Settings → Assistant → Set up), and long-pressing home (or power on some phones) opens her instead of Google.
+- **Timers and alarms.** “Set a timer for 20 minutes”, “pasta timer for 8 minutes”, “how much time is left?”, “cancel the timer”, “wake me up at 6:30”. Timers count down in the notification shade and ring as an alarm, even with the app closed.
+- **Music.** “Play Taylor Swift on Spotify”, “pause”, “skip”, “go back”, “volume 40%”, “turn it up”, “mute”. Pick your music app under *Music & sleep sounds*.
+- **Calls, texts and directions.** “Call Mom”, “Text Jake I'm running late” (she writes it out and you tap Send), “Directions to Walmart”. Calls and texts by name need *Calls & texts* allowed.
+- **Phone controls.** “Flashlight on”, “turn on Do Not Disturb”, “open YouTube” (or one of her pages: “open food”).
+- **Sleep sounds.** Rain, ocean waves, brown noise, fireplace and fan, made from scratch for the app. “Play rain sounds for an hour”, “stop the sounds”. They fade out at the end.
+- **“What did I miss?”** She reads your new notifications aloud. Needs *Read notifications* allowed; nothing is stored or uploaded.
+- **Routines.** “Good morning” gives the briefing and stops sleep sounds. “Goodnight” turns on Do Not Disturb, starts rain and tells you tomorrow's first thing. Edit them or make your own: one phrase, then any mix of briefing, tomorrow's plan, Do Not Disturb, volume, sounds, music and a line from her.
+- **Quick answers.** The time and date, “what's 15% of 80”, “tip on $45”, simple math.
+- **Her natural voice.** Settings → You & her voice → *Voice type: Natural AI voice*. It's an original voice styled to fit her (elegant, warm, a little low and teasing), not a copy of any actor's voice. It uses Google's Gemini text-to-speech with your free Gemini key, so it needs internet. Pick from 7 voices; *Warm* is the default. If it can't connect (or the free quota runs out), she uses the phone voice.
+
 ## Talk to her from the home screen (5.4)
 
 - **Chat widget.** Long-press your home screen → Widgets → Rias → **Rias · Chat**. It shows her picture and her latest line, two quick buttons ("How's my day?", "Talk to me"), a **Say something to Rias…** bar and a 🎙 mic.

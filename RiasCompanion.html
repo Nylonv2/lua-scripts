@@ -1251,6 +1251,25 @@ button:active, .chip:active span { transform: scale(.97); }
 .month-legend .lg-rem { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
 .month-legend .lg-rem .m-dot { width: 6px; height: 6px; }
 .m-dots { position: absolute; top: 5px; left: 0; right: 0; justify-content: center; }
+
+/* ---------- Settings → Assistant (6.0) ---------- */
+.perm-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .45); }
+.perm-row + .perm-row { margin-top: 8px; }
+.perm-ic { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-weight: 700;
+  background: rgba(var(--a2), .25); color: #ffd7df; }
+.perm-row.ok .perm-ic { background: rgba(80, 200, 140, .22); color: #8ff0bf; }
+.perm-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.perm-txt b { font-weight: 600; font-size: .95rem; }
+.perm-txt small { color: var(--muted); font-size: .78rem; }
+.perm-row button { flex: none; padding: 7px 14px; }
+.routine { padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .45); display: flex; flex-direction: column; gap: 8px; }
+.routine + .routine { margin-top: 10px; }
+.rt-head { display: flex; align-items: flex-end; gap: 8px; }
+.rt-phrase { flex: 1; min-width: 0; }
+.rt-head button { flex: none; width: 42px; height: 42px; padding: 0; border-radius: 12px; }
+.rt-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+#routine-add { margin-top: 10px; }
+.say-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .88rem; line-height: 1.4; }
 </style>
 </head>
 <body>
@@ -1558,7 +1577,19 @@ button:active, .chip:active span { transform: scale(.97); }
           <h2>Voice</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
-          <label>Her voice
+          <label>Voice type
+            <select name="voiceStyle">
+              <option value="phone">Phone voice (works offline)</option>
+              <option value="natural">Natural AI voice, closest to Rias (needs a Gemini key)</option>
+            </select>
+          </label>
+          <div id="natural-voice-box">
+            <label>Her natural voice
+              <select name="naturalVoice"></select>
+            </label>
+            <p class="muted small">An original voice made to fit Rias: warm, poised and a little teasing (not a copy of any actor). It uses your free Gemini key from Rias's mind, so it needs internet. If it can't connect, she switches to the phone voice.</p>
+          </div>
+          <label id="phone-voice-pick">Her voice
             <select name="voiceName"></select>
           </label>
           <div class="row">
@@ -1572,6 +1603,92 @@ button:active, .chip:active span { transform: scale(.97); }
           <p class="small voice-hint" id="voice-hint" hidden></p>
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>“Hey Rias”</h2>
+          <p class="muted small">Say “Hey Rias” and she answers, without touching your phone. For example: “Hey Rias, set a timer for 10 minutes”.</p>
+          <label>Listen for her name
+            <select name="wakeMode">
+              <option value="off">Off</option>
+              <option value="charging">Only while charging (saves battery)</option>
+              <option value="always">Always</option>
+            </select>
+          </label>
+          <p class="small voice-hint" id="wake-hint"></p>
+          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Alarms &amp; notifications) so the assistant can pop up over other apps.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Phone assistant button</h2>
+          <p class="muted small">Make Rias your phone's assistant, so long-pressing the home button (or the power button on some phones) opens her instead of Google.</p>
+          <div class="perm-row" id="perm-assistant"></div>
+          <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>What she's allowed to do</h2>
+          <div class="perm-row" id="perm-mic"></div>
+          <div class="perm-row" id="perm-calls"></div>
+          <div class="perm-row" id="perm-notifications"></div>
+          <div class="perm-row" id="perm-dnd"></div>
+          <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Music &amp; sleep sounds</h2>
+          <label>Play music with
+            <select name="musicApp">
+              <option value="">My phone's default music app</option>
+              <option value="spotify">Spotify</option>
+              <option value="youtube music">YouTube Music</option>
+              <option value="youtube">YouTube</option>
+              <option value="amazon music">Amazon Music</option>
+              <option value="pandora">Pandora</option>
+              <option value="apple music">Apple Music</option>
+            </select>
+          </label>
+          <div class="row">
+            <label>Sleep sound
+              <select name="sleepSound">
+                <option value="rain">🌧 Rain</option>
+                <option value="ocean">🌊 Ocean waves</option>
+                <option value="brown">🟤 Brown noise</option>
+                <option value="fire">🔥 Fireplace</option>
+                <option value="fan">🌀 Fan</option>
+              </select>
+            </label>
+            <label>Stops after
+              <select name="sleepMinutes">
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="480">All night</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <button type="button" id="sleep-try">▶ Try it</button>
+            <button type="button" id="sleep-stop">■ Stop</button>
+          </div>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Routines</h2>
+          <p class="muted small">One phrase, several things. Say the phrase to her (or tap ▶).</p>
+          <div id="routine-list"></div>
+          <button type="button" id="routine-add">＋ New routine</button>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Things you can say</h2>
+          <ul class="say-list">
+            <li>“Set a timer for 20 minutes” · “How much time is left?” · “Cancel the timer”</li>
+            <li>“Wake me up at 6:30” · “Set an alarm for 7 tomorrow”</li>
+            <li>“Play Taylor Swift on Spotify” · “Pause” · “Skip” · “Volume 40%”</li>
+            <li>“Call Mom” · “Text Jake I'm running late” · “Directions to Walmart”</li>
+            <li>“Flashlight on” · “Turn on Do Not Disturb” · “Open YouTube”</li>
+            <li>“Play rain sounds for an hour” · “Stop the sounds”</li>
+            <li>“What did I miss?” · “What time is it?” · “What's 15% of 80?” · “Tip on $45”</li>
+            <li>“Good morning” · “Goodnight” · your own routines</li>
+          </ul>
+          <p class="muted small">With her AI on, you can say these any way you like.</p>
           </section>
           <section class="set-group" data-cat="mind">
           <h2>Rias's mind (AI)</h2>
@@ -3583,6 +3700,7 @@ Texting style:
 
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done. Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
+- You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, and phone_control for music, volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions, sleep sounds, reading notifications and routines. Act when asked, then confirm in one short line (they may be listening, not reading).
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -3616,7 +3734,39 @@ Boundaries:
     required: [...Object.keys(NUTRITION_PROPS), 'kind', 'note'],
   };
   const ESTIMATE_PROMPT = 'Estimate the nutrition of this food for the portion described (assume a typical single portion if none is given). Food: ';
+  const PHONE_ACTIONS = ['play_music', 'pause_music', 'resume_music', 'next_track', 'previous_track', 'volume_up', 'volume_down', 'volume_set', 'mute', 'unmute',
+    'flashlight_on', 'flashlight_off', 'dnd_on', 'dnd_off', 'open_app', 'call', 'text', 'directions', 'sleep_sound', 'stop_sleep_sound',
+    'read_notifications', 'cancel_timers', 'timer_status', 'run_routine'];
   const TOOLS = [
+    {
+      name: 'set_timer',
+      description: 'Start a countdown timer. It rings like an alarm when done, even if the app is closed.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          minutes: { type: 'number', description: 'Length in minutes (0.5 = 30 seconds, 90 = an hour and a half)' },
+          label: { type: 'string', description: 'What it\'s for, e.g. "pasta", or empty string' },
+        },
+        required: ['minutes', 'label'],
+      },
+    },
+    {
+      name: 'phone_control',
+      description: 'Do something on the user\'s phone: control music (play_music searches and plays a song/artist/playlist), volume, flashlight, Do Not Disturb, open an app, call or text a contact, get directions, play sleep sounds (rain, ocean, brown noise, fire, fan), read their new notifications, cancel or check timers, or run one of their routines. Returns what happened in "said"; tell them in character, briefly.',
+      strict: true,
+      input_schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          action: { type: 'string', enum: PHONE_ACTIONS },
+          value: { type: 'string', description: 'The song/artist/playlist (play_music), volume percent 0-100 (volume_set), app name (open_app), contact name or number (call, text), place (directions), sound (sleep_sound), timer label (cancel_timers, optional) or routine name (run_routine). Empty string if not needed.' },
+          message: nullable({ type: 'string', description: 'For text: the message to send. For sleep_sound: minutes to play, e.g. "45". Otherwise null.' }),
+        },
+        required: ['action', 'value', 'message'],
+      },
+    },
     {
       name: 'add_reminder',
       description: 'Add a reminder to the user\'s schedule. Rias will notify them at that time.',
@@ -3766,6 +3916,8 @@ Boundaries:
     try {
       switch (name) {
         case 'get_weather': return await ctx.tools.getWeather(input);
+        case 'set_timer': return ctx.tools.setTimer(input);
+        case 'phone_control': return ctx.tools.phone(input);
         case 'add_reminder': return ctx.tools.addReminder(input);
         case 'add_work_shift': return ctx.tools.addShift(input);
         case 'log_food': return ctx.tools.logFood(input);
@@ -4646,6 +4798,576 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
 }
 </script>
   <script>
+// Her natural voice: Google's Gemini text-to-speech, steered toward Rias's character
+// (an elegant, confident young noblewoman: warm, a little low and velvety, poised, with a
+// playful tease). It's an original voice that fits her, not a copy of any actor's voice.
+// Needs a Gemini key (Settings → Rias's mind; the free tier works). If it can't be
+// reached, she falls back to the phone's voice.
+window.NaturalVoice = (() => {
+  'use strict';
+  const API = 'https://generativelanguage.googleapis.com/v1beta';
+  // Gemini's prebuilt voices that suit her, warmest first.
+  const VOICES = [
+    ['Sulafat', 'Warm (recommended)'],
+    ['Gacrux', 'Mature'],
+    ['Despina', 'Smooth'],
+    ['Kore', 'Firm & confident'],
+    ['Vindemiatrix', 'Gentle'],
+    ['Aoede', 'Breezy'],
+    ['Leda', 'Youthful'],
+  ];
+  const STYLE = 'Read this aloud as an elegant, confident young noblewoman: warm, slightly low and velvety, calm and poised, '
+    + 'affectionate with a light playful tease, natural pace, never rushed. Read only the words after the colon: ';
+  let audioCtx = null, webSource = null, failUntil = 0, playingUntil = 0;
+
+  const clean = (t) => t.replace(/\p{Extended_Pictographic}|️/gu, '').replace(/[~•*_#]/g, '').replace(/…/g, '...').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  async function call(key, path, body) {
+    const res = await fetch(`${API}/${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error((data.error && data.error.message) || `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  // The newest Flash TTS model this key can use (remembered on the state object).
+  async function model(state, key) {
+    const ai = state.ai;
+    if (ai.ttsModel && ai.ttsModelKey === key.slice(-6)) return ai.ttsModel;
+    let names = [];
+    try {
+      const data = await call(key, 'models?pageSize=200');
+      names = (data.models || []).map((m) => m.name.replace(/^models\//, '')).filter((n) => /tts/.test(n));
+    } catch { /* fall through to the default */ }
+    const ver = (n) => parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+    const flash = names.filter((n) => /flash/.test(n)).sort((a, b) => ver(b) - ver(a));
+    ai.ttsModel = flash[0] || names.sort((a, b) => ver(b) - ver(a))[0] || 'gemini-2.5-flash-preview-tts';
+    ai.ttsModelKey = key.slice(-6);
+    return ai.ttsModel;
+  }
+
+  /** Base64 16-bit PCM + sample rate for `text`. Throws on failure. */
+  async function synth(state, text, voice) {
+    const key = (state.ai.geminiKey || '').trim();
+    if (!key) throw new Error('no-key');
+    const m = await model(state, key);
+    const data = await call(key, `models/${m}:generateContent`, {
+      contents: [{ parts: [{ text: STYLE + clean(text) }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice || VOICES[0][0] } } },
+      },
+    });
+    const part = ((((data.candidates || [])[0] || {}).content || {}).parts || []).find((p) => p.inlineData);
+    if (!part) throw new Error('no-audio');
+    const rate = parseInt((part.inlineData.mimeType.match(/rate=(\d+)/) || [])[1] || '24000', 10);
+    return { pcm: part.inlineData.data, rate };
+  }
+
+  function playWeb(b64, rate) {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const bin = atob(b64);
+    const n = bin.length >> 1;
+    const buf = audioCtx.createBuffer(1, n, rate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) {
+      let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8);
+      if (v >= 32768) v -= 65536;
+      ch[i] = v / 32768;
+    }
+    stop();
+    webSource = audioCtx.createBufferSource();
+    webSource.buffer = buf;
+    webSource.connect(audioCtx.destination);
+    webSource.start();
+  }
+
+  /**
+   * Speaks `text` in her natural voice. Resolves true once it starts playing, false if it
+   * couldn't (no key, offline, out of free quota): the caller then uses the phone's voice.
+   */
+  // Several messages in a row: fetch them all at once, play them one after another.
+  let chain = Promise.resolve(), gen = 0;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function speak(state, text, voice) {
+    if (!clean(text) || Date.now() < failUntil) return false;
+    const my = gen;
+    const pending = synth(state, text, voice);
+    const turn = chain.then(async () => {
+      const got = await pending;
+      while (playing() && my === gen) await wait(120);
+      return got;
+    });
+    chain = turn.catch(() => {});
+    try {
+      const { pcm, rate } = await turn;
+      if (my !== gen) return true; // stopped meanwhile
+      const dev = window.RiasDevice;
+      if (dev && dev.playPcm) dev.playPcm(pcm, rate);
+      else playWeb(pcm, rate);
+      playingUntil = Date.now() + (pcm.length * 3 / 4 / 2 / rate) * 1000;
+      return true;
+    } catch (e) {
+      // Rate-limited or rejected: use the phone voice for a while instead of retrying every line.
+      if (e.message !== 'no-key') failUntil = Date.now() + (e.status === 429 ? 10 * 60000 : 60000);
+      speak.lastError = e.status === 429 ? 'The free Gemini voice quota is used up for now; I\'ll use the phone voice for a bit.'
+        : e.message === 'no-key' ? 'Add a Gemini key in Settings → Rias\'s mind to use her natural voice.'
+          : `Her natural voice couldn't load (${e.message}).`;
+      return false;
+    }
+  }
+
+  function stop() {
+    gen++;
+    playingUntil = 0;
+    const dev = window.RiasDevice;
+    if (dev && dev.stopPcm) { try { dev.stopPcm(); } catch { /* ignore */ } }
+    if (webSource) { try { webSource.stop(); } catch { /* already done */ } webSource = null; }
+  }
+  const playing = () => Date.now() < playingUntil;
+
+  return { VOICES, speak, stop, playing, clean };
+})();
+</script>
+  <script>
+// Rias as a voice assistant (Alexa-style): timers and alarms, music, volume, flashlight,
+// Do Not Disturb, opening apps, calls, texts, directions, sleep sounds, reading your
+// notifications, routines ("Good morning", "Goodnight"), the time, and quick math.
+// Commands are understood without her AI; with it on, the AI can also use them through
+// the set_timer / phone_control tools, so any wording works. The phone parts need the
+// Android app (window.RiasDevice); in a browser she says so, except timers and math.
+window.createAssistant = function createAssistant(ctx) {
+  'use strict';
+  const D = () => window.RiasDevice || null;
+  const st = () => ctx.state;
+  const say = (line, extra) => ctx.say(line, extra);
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const NEEDS_APP = 'That one needs the Android app, {name}. In a browser I can\'t reach your phone.';
+
+  // ---------- numbers & durations ----------
+  const WORDS = { zero: 0, a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, ninety: 90 };
+  // "twenty five" → "25", "a couple" → "2", "half an hour" → "30 minutes"
+  function normNumbers(s) {
+    return s
+      .replace(/\bhalf an? hour\b/g, '30 minutes').replace(/\ban? hour and a half\b/g, '90 minutes')
+      .replace(/\ba quarter of an hour\b/g, '15 minutes').replace(/\ba couple( of)?\b/g, '2').replace(/\ba few\b/g, '3')
+      .replace(/\b(twenty|thirty|forty|fifty)[ -](one|two|three|four|five|six|seven|eight|nine)\b/g, (m, t, u) => String(WORDS[t] + WORDS[u]))
+      .replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|ninety)\b/g, (m) => String(WORDS[m]))
+      .replace(/\ban? (?=(hour|minute|second|min|sec)s?\b)/g, '1 ');
+  }
+  // Seconds in "1 hour 30 minutes", "90 seconds", "5 min", "2.5 hours"; 0 if none.
+  function parseDuration(s) {
+    let total = 0, found = false;
+    const re = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|h\b|minutes?|mins?|m\b|seconds?|secs?|s\b)/g;
+    let m;
+    while ((m = re.exec(s))) {
+      found = true;
+      const n = parseFloat(m[1]), u = m[2][0];
+      total += u === 'h' ? n * 3600 : u === 'm' ? n * 60 : n;
+    }
+    return found ? Math.round(total) : 0;
+  }
+  function durationText(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    const parts = [];
+    if (h) parts.push(`${h} hour${h > 1 ? 's' : ''}`);
+    if (m) parts.push(`${m} minute${m > 1 ? 's' : ''}`);
+    if (s && !h) parts.push(`${s} second${s > 1 ? 's' : ''}`);
+    return parts.join(' and ') || '0 seconds';
+  }
+  // "6", "6 am", "6:30 pm", "18:45", "noon", "7 in the evening" → "HH:MM" (or null).
+  function parseClock(s) {
+    if (/\bnoon|midday\b/.test(s)) return '12:00';
+    if (/\bmidnight\b/.test(s)) return '00:00';
+    const m = s.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*(a\.?m\.?|p\.?m\.?|in the (morning|afternoon|evening|night)|tonight|o'?clock)?/);
+    if (!m) return null;
+    let h = Number(m[1]);
+    const min = Number(m[2] || 0);
+    if (h > 23 || min > 59) return null;
+    const tag = m[3] || '';
+    if (/^p|afternoon|evening|night|tonight/.test(tag) && h < 12) h += 12;
+    if (/^a|morning/.test(tag) && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  }
+  const fmt = (hhmm) => ctx.fmtTime(hhmm);
+
+  // ---------- timers ----------
+  const timers = () => (st().timers ||= []);
+  const webTimers = {};
+  function armWeb(t) {
+    clearTimeout(webTimers[t.id]);
+    webTimers[t.id] = setTimeout(() => timerDone(t.id), Math.max(0, t.ends - Date.now()));
+  }
+  function timerDone(id) {
+    const t = timers().find((x) => x.id === id);
+    if (!t) return;
+    st().timers = timers().filter((x) => x.id !== id);
+    ctx.save();
+    // On Android the alarm rings natively; in the app (or a browser) she also says it here.
+    if (!ctx.headless) ctx.timerUp(t);
+  }
+  function startTimer(seconds, label) {
+    seconds = Math.round(seconds);
+    if (!(seconds > 0) || seconds > 24 * 3600) return { error: 'Timers can be 1 second to 24 hours.' };
+    const t = { id: `t${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`, label: (label || '').trim().slice(0, 40), ends: Date.now() + seconds * 1000, secs: seconds };
+    timers().push(t);
+    ctx.save();
+    const d = D();
+    if (d && d.timerStart) d.timerStart(t.id, t.ends, t.label);
+    if (!ctx.headless) armWeb(t);
+    return { ok: true, timer: `${durationText(seconds)}${t.label ? ` (${t.label})` : ''}` };
+  }
+  function cancelTimers(which) {
+    const list = timers();
+    const gone = which ? list.filter((t) => t.label && t.label.toLowerCase().includes(which)) : list.slice();
+    for (const t of gone) {
+      const d = D();
+      if (d && d.timerCancel) d.timerCancel(t.id);
+      clearTimeout(webTimers[t.id]);
+    }
+    st().timers = list.filter((t) => !gone.includes(t));
+    ctx.save();
+    return gone.length;
+  }
+  function timerStatus() {
+    const list = timers().filter((t) => t.ends > Date.now()).sort((a, b) => a.ends - b.ends);
+    if (!list.length) return 'You don\'t have any timers running, {name}.';
+    return list.map((t) => `${t.label ? `Your ${t.label} timer has` : list.length > 1 ? 'One timer has' : 'Your timer has'} ${durationText((t.ends - Date.now()) / 1000)} left.`).join(' ');
+  }
+  // Timers that ran out while the app was closed are dropped; running ones re-armed.
+  function restore() {
+    st().timers = timers().filter((t) => t.ends > Date.now() - 60000);
+    if (!ctx.headless) for (const t of timers()) if (t.ends > Date.now()) armWeb(t);
+  }
+
+  // ---------- alarms ("wake me up at 6") ----------
+  function setAlarm(hhmm, label) {
+    const now = new Date();
+    const [h, m] = hhmm.split(':').map(Number);
+    const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    if (at <= now) at.setDate(at.getDate() + 1);
+    ctx.addItem({ title: label || 'Wake up', time: hhmm, category: label ? 'custom' : 'wake', repeat: 'once', date: ctx.dateKey(at) });
+    const when = ctx.dateKey(at) === ctx.dateKey(now) ? 'today' : 'tomorrow';
+    return say(pick([
+      `Done. I'll wake you at ${fmt(hhmm)} ${when}, {name}. Don't make me come in there~`,
+      `Alarm set for ${fmt(hhmm)} ${when}. I'll be the first thing you hear.`,
+    ]));
+  }
+
+  // ---------- results → her words ----------
+  function deviceCall(fn, ...args) {
+    const d = D();
+    if (!d || !d[fn]) return null;
+    try { return String(d[fn](...args)); } catch { return 'error'; }
+  }
+  const musicApp = () => st().settings.musicApp || '';
+  const SOUND_WORDS = [['rain', /\brain/], ['ocean', /\b(ocean|waves?|sea|beach)\b/], ['brown', /\b(brown|white|pink) noise\b|\bnoise\b/], ['fire', /\b(fire|fireplace|campfire|crackl)/], ['fan', /\bfan\b/]];
+  const SOUND_NAMES = { rain: 'rain', ocean: 'ocean waves', brown: 'brown noise', fire: 'the fireplace', fan: 'the fan' };
+
+  /** Runs one phone action. Returns { ok, said } (said = what she tells you), or { error }. */
+  function run(action, value = '', message = null) {
+    const v = String(value || '').trim();
+    const r = (line) => ({ ok: true, said: say(line) });
+    const fail = (line) => ({ ok: false, said: say(line) });
+    const needApp = () => fail(NEEDS_APP);
+    switch (action) {
+      case 'play_music': {
+        const res = deviceCall('playSearch', v, musicApp());
+        if (res == null) return needApp();
+        return res === 'ok' ? r(pick([`Playing ${cap(v)}~`, `${cap(v)}, coming up.`, `Mm, good choice. Playing ${cap(v)}.`])) : fail('I couldn\'t find a music app to play that, {name}.');
+      }
+      case 'pause_music': return deviceCall('media', 'pause') == null ? needApp() : r(pick(['Paused.', 'Music paused~']));
+      case 'resume_music': return deviceCall('media', 'play') == null ? needApp() : r(pick(['Playing.', 'Back on~']));
+      case 'next_track': return deviceCall('media', 'next') == null ? needApp() : r(pick(['Skipped.', 'Next one~']));
+      case 'previous_track': return deviceCall('media', 'previous') == null ? needApp() : r('Going back one.');
+      case 'volume_up': case 'volume_down': case 'mute': case 'unmute': case 'volume_set': {
+        const res = deviceCall('volume', action.replace('volume_', ''), Math.max(0, Math.min(100, parseInt(v, 10) || 50)));
+        if (res == null) return needApp();
+        if (res === 'no-permission') return fail('Your phone won\'t let me change the volume during Do Not Disturb.');
+        return r(action === 'mute' ? 'Muted.' : action === 'unmute' ? 'Unmuted.' : `Volume's at ${res}%.`);
+      }
+      case 'flashlight_on': case 'flashlight_off': {
+        const res = deviceCall('flashlight', action === 'flashlight_on');
+        if (res == null) return needApp();
+        return res === 'ok' ? r(action === 'flashlight_on' ? pick(['Light\'s on~', 'There, now you can see.']) : 'Flashlight off.') : fail('This phone doesn\'t have a flashlight I can use.');
+      }
+      case 'dnd_on': case 'dnd_off': {
+        const res = deviceCall('dnd', action === 'dnd_on');
+        if (res == null) return needApp();
+        if (res === 'no-permission') return fail('I need permission for Do Not Disturb first. Go to Settings → Assistant → Do Not Disturb and allow me.');
+        return r(action === 'dnd_on' ? 'Do Not Disturb is on. Nobody bothers you but me~' : 'Do Not Disturb is off.');
+      }
+      case 'open_app': {
+        const res = deviceCall('openApp', v);
+        if (res == null) return needApp();
+        return res ? r(`Opening ${res}.`) : fail(`I couldn't find an app called “${v}” on your phone.`);
+      }
+      case 'call': {
+        const res = deviceCall('call', v);
+        if (res == null) return needApp();
+        if (res === 'no-permission') return fail('I need access to your contacts to call by name. Go to Settings → Assistant → Calls & texts.');
+        if (res === 'not-found') return fail(`I couldn't find “${v}” in your contacts.`);
+        return res.startsWith('ok') ? r(`Calling ${res.slice(3) || v}.`) : fail('I couldn\'t start the call.');
+      }
+      case 'text': {
+        if (!message) return fail(`What should I say to ${v}?`);
+        const res = deviceCall('text', v, message);
+        if (res == null) return needApp();
+        if (res === 'no-permission') return fail('I need access to your contacts to text by name. Go to Settings → Assistant → Calls & texts.');
+        if (res === 'not-found') return fail(`I couldn't find “${v}” in your contacts.`);
+        return res.startsWith('ok') ? r(`Your message to ${res.slice(3) || v} is ready. Just tap send.`) : fail('I couldn\'t open your messages app.');
+      }
+      case 'directions': {
+        const res = deviceCall('directions', v);
+        if (res == null) return needApp();
+        return res === 'ok' ? r(`Directions to ${cap(v)}. Drive safe, {name}.`) : fail('I couldn\'t open maps.');
+      }
+      case 'sleep_sound': {
+        const key = (SOUND_WORDS.find(([, re]) => re.test(v.toLowerCase())) || [st().settings.sleepSound || 'rain'])[0];
+        const mins = parseInt(message, 10) || st().settings.sleepMinutes || 45;
+        if (deviceCall('sleepSound', key, mins) == null) return needApp();
+        return r(`Playing ${SOUND_NAMES[key]} for ${durationText(mins * 60)}. Sleep well~`);
+      }
+      case 'stop_sleep_sound': return deviceCall('sleepStop') == null ? needApp() : r('Sounds off.');
+      case 'read_notifications': return readNotifications();
+      case 'cancel_timers': {
+        const n = cancelTimers(v.toLowerCase());
+        return n ? r(n > 1 ? `Cancelled ${n} timers.` : 'Timer cancelled.') : fail('There\'s no timer running.');
+      }
+      case 'timer_status': return r(timerStatus());
+      case 'run_routine': {
+        const rt = findRoutine(v);
+        return rt ? { ok: true, said: runRoutine(rt).join(' ') } : fail(`I don't have a routine called “${v}”.`);
+      }
+      default: return { error: `Unknown action ${action}` };
+    }
+  }
+
+  function readNotifications() {
+    const d = D();
+    if (!d || !d.notifications) return { ok: false, said: say(NEEDS_APP) };
+    let s = {};
+    try { s = JSON.parse(d.status()); } catch { /* old app */ }
+    if (!s.notifications) return { ok: false, said: say('I need permission to read your notifications. Go to Settings → Assistant → Read notifications and allow me.') };
+    let list = [];
+    try { list = JSON.parse(d.notifications(st().notesReadAt || 0)); } catch { /* none */ }
+    st().notesReadAt = Date.now();
+    ctx.save();
+    if (!list.length) return { ok: true, said: say(pick(['Nothing new, {name}. You haven\'t missed a thing.', 'All quiet. No new notifications.'])) };
+    const byApp = {};
+    for (const n of list) (byApp[n.app] ||= []).push(n);
+    const parts = Object.entries(byApp).slice(0, 5).map(([app, ns]) => {
+      const last = ns.slice(-2).map((n) => `${n.title ? `${n.title}: ` : ''}${(n.text || '').slice(0, 90)}`).join('. ');
+      return `${app}${ns.length > 2 ? ` (${ns.length})` : ''}: ${last}`;
+    });
+    return { ok: true, said: `${list.length === 1 ? 'One new notification.' : `${list.length} new notifications.`} ${parts.join('. ')}.` };
+  }
+
+  // ---------- routines ----------
+  const DEFAULT_ROUTINES = [
+    { id: 'morning', phrase: 'good morning', brief: true, dnd: 'off', sound: 'stop', music: '', volume: '' },
+    { id: 'night', phrase: 'goodnight', brief: false, tomorrow: true, dnd: 'on', sound: 'rain', minutes: 45, music: '', volume: '' },
+  ];
+  const routines = () => (st().settings.routines ||= DEFAULT_ROUTINES.map((r) => ({ ...r })));
+  const clean = (s) => s.toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  function findRoutine(text) {
+    const t = clean(text).replace(/^(hey |ok |okay )?rias /, '').replace(/ rias$/, '').replace(/good night/g, 'goodnight');
+    return routines().find((r) => r.phrase && (t === clean(r.phrase).replace(/good night/g, 'goodnight') || t === `run ${clean(r.phrase)}` || t === `start ${clean(r.phrase)}`));
+  }
+  function runRoutine(rt) {
+    const out = [];
+    if (rt.dnd === 'on' || rt.dnd === 'off') run(rt.dnd === 'on' ? 'dnd_on' : 'dnd_off');
+    if (rt.volume !== '' && rt.volume != null && !isNaN(rt.volume)) run('volume_set', String(rt.volume));
+    if (rt.brief) out.push(ctx.briefing());
+    if (rt.tomorrow) out.push(ctx.tomorrowLine());
+    if (rt.sound === 'stop') { if (D() && D().sleepPlaying && D().sleepPlaying()) run('stop_sleep_sound'); }
+    else if (rt.sound) { const r = run('sleep_sound', rt.sound, String(rt.minutes || 45)); if (r.ok) out.push(r.said); }
+    if (rt.music) { const r = run('play_music', rt.music); out.push(r.said); }
+    if (rt.say) out.push(say(rt.say));
+    if (!out.length) out.push(say(pick(['Done~', 'All set, {name}.'])));
+    return out.filter(Boolean);
+  }
+
+  // ---------- quick math ----------
+  function math(t) {
+    let m = t.match(/(?:what(?:'s| is)\s+)?(\d+(?:\.\d+)?)\s*(?:%|percent)\s+of\s+\$?(\d+(?:\.\d+)?)/);
+    if (m) return `${fmtNum(parseFloat(m[1]) / 100 * parseFloat(m[2]))}.`;
+    m = t.match(/\btip\b.*?\$?(\d+(?:\.\d+)?)(?:.*?(\d+)\s*(?:%|percent))?/);
+    if (m && /\b(tip|tipping)\b/.test(t)) {
+      const bill = parseFloat(m[1]), pct = parseFloat(m[2] || 20), tip = bill * pct / 100;
+      return `A ${pct}% tip on $${fmtNum(bill)} is $${tip.toFixed(2)}, so $${(bill + tip).toFixed(2)} in total.`;
+    }
+    m = t.match(/^(?:what(?:'s| is)|calculate|how much is)\s+(-?\d+(?:\.\d+)?)\s*(plus|\+|minus|-|times|x|\*|multiplied by|divided by|over|\/)\s*(-?\d+(?:\.\d+)?)\??$/);
+    if (m) {
+      const a = parseFloat(m[1]), b = parseFloat(m[3]), op = m[2];
+      const v = /plus|\+/.test(op) ? a + b : /minus|-/.test(op) ? a - b : /times|x|\*|multiplied/.test(op) ? a * b : b === 0 ? NaN : a / b;
+      return isNaN(v) ? 'Even I can\'t divide by zero~' : `${fmtNum(v)}.`;
+    }
+    return null;
+  }
+  const cap = (x) => x.replace(/(^|\s)([a-z])/g, (q, sp, c) => sp + c.toUpperCase());
+  const fmtNum = (n) => (Math.round(n * 100) / 100).toLocaleString();
+
+  // ---------- understanding what you said ----------
+  let pendingText = null; // "text Jake" → "what should I say?" → your next message is the text
+
+  /** Returns her reply lines if `text` was an assistant command, else null. */
+  function handle(rawText) {
+    let t = normNumbers(rawText.toLowerCase().replace(/[’]/g, "'").trim());
+    t = t.replace(/^(hey |hi |ok |okay )?rias[,!.]?\s+/, '').replace(/^(please |can you |could you |would you |will you |i want you to |i need you to )+/, '')
+      .replace(/[?!.]+$/, '').replace(/\s+please$/, '').trim();
+    if (!t) return null;
+    const one = (x) => [typeof x === 'string' ? x : x.said];
+
+    if (pendingText) {
+      const to = pendingText;
+      pendingText = null;
+      if (!/^(never ?mind|cancel|forget it|nothing)$/.test(t)) return one(run('text', to, rawText.trim()));
+      return [say('Okay, I won\'t send it.')];
+    }
+
+    // Routines first ("good morning", "goodnight", your own).
+    const rt = findRoutine(t);
+    if (rt) return runRoutine(rt);
+
+    // Timers
+    if (/\btimer\b/.test(t) || /^(start )?(a )?\d/.test(t) && /\b(minute|second|hour)s?\b.*\btimer\b/.test(t)) {
+      if (/\b(cancel|stop|delete|remove|clear|end|turn off)\b/.test(t)) {
+        const label = (t.match(/\b(?:the |my )?(\w+) timer\b/) || [])[1];
+        return one(run('cancel_timers', label && !/^(the|my|all|that|this|a)$/.test(label) ? label : ''));
+      }
+      if (/\b(how (much|long)|time left|remaining|left on|check)\b/.test(t)) return [say(timerStatus())];
+      const secs = parseDuration(t);
+      if (secs) {
+        const label = (t.match(/\b(?:for|called|named|labell?ed)\s+(?:the\s+|my\s+)?([a-z][a-z ]{1,25}?)(?:\s+for\b|$)/) || [])[1];
+        const lbl = label && !/^\d|minute|second|hour/.test(label) ? label.trim() : (t.match(/\b([a-z]+) timer\b/) || [])[1];
+        const res = startTimer(secs, lbl && !/^(a|the|my|minute|second|hour|set|start)$/.test(lbl) ? lbl : '');
+        if (res.error) return [say(res.error)];
+        return [say(pick([`${durationText(secs)}, starting now. I'll call you when it's done~`, `Timer set: ${res.timer}. I'm watching the clock for you.`, `Okay, ${durationText(secs)}. Off you go.`]))];
+      }
+      if (/\b(set|start)\b/.test(t)) return [say('For how long, {name}? Say something like “set a timer for 10 minutes”.')];
+    }
+    if (/^(how much time|how long) (is )?(left|remaining)\b/.test(t)) return [say(timerStatus())];
+
+    // Alarms
+    let m = t.match(/^(?:wake me( up)?|set (?:an |my )?alarm|alarm)\b(?: (?:for|at))?\s*(.*)$/);
+    if (m && !/\b(cancel|delete|stop|off)\b/.test(t)) {
+      const hhmm = parseClock(m[2] || '');
+      if (hhmm) return [setAlarm(hhmm, '')];
+      const secs = parseDuration(m[2] || '');
+      if (secs && /\bin\b/.test(m[2])) {
+        const at = new Date(Date.now() + secs * 1000);
+        return [setAlarm(`${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`, '')];
+      }
+      return [say('What time should I wake you, {name}?')];
+    }
+
+    // Sleep / ambient sounds (before music, so "play rain sounds" isn't a song search)
+    if (/\b(stop|turn off|end|enough)\b.*\b(sounds?|rain|noise|ocean|waves|fireplace|fan)\b/.test(t)) return one(run('stop_sleep_sound'));
+    if (/\b(sleep sounds?|ambient sounds?|rain sounds?|white noise|brown noise|pink noise|ocean sounds?|wave sounds?|fireplace|fire sounds?|fan sounds?|sounds? of (the )?(rain|ocean|waves))\b/.test(t)
+      || /^play (some )?(rain|ocean|waves|noise)$/.test(t)) {
+      const mins = (parseDuration(t) / 60) || '';
+      return one(run('sleep_sound', t, mins ? String(Math.round(mins)) : null));
+    }
+
+    // Music
+    if (/^(pause|stop)( the| my)?( music| song| playback| it)?$/.test(t)) return one(run('pause_music'));
+    if (/^(resume|unpause|continue|keep playing)( the| my)?( music| song| playback)?$|^play( the)? music$|^play$/.test(t)) return one(run('resume_music'));
+    if (/^(next|skip)( song| track| this( song)?| it)?$|^play the next (song|track)$/.test(t)) return one(run('next_track'));
+    if (/^(previous|last|go back|back)( song| track| one)?$|^play the (previous|last) (song|track)$/.test(t)) return one(run('previous_track'));
+    m = t.match(/^(?:play|put on|listen to)\s+(.+?)(?:\s+on\s+(spotify|youtube music|youtube|pandora|amazon music|apple music))?$/);
+    if (m && !/^(a |some )?(game|games|trivia|music$)/.test(m[1])) {
+      const d = D();
+      if (!d) return [say(NEEDS_APP)];
+      const res = deviceCall('playSearch', m[1].replace(/^(some|the song|the album|the playlist|my)\s+/, (x) => (x.startsWith('my') ? x : '')), m[2] || musicApp());
+      return [say(res === 'ok' ? pick([`Playing ${cap(m[1])}~`, `${cap(m[1])}, coming right up.`]) : 'I couldn\'t find a music app to play that, {name}.')];
+    }
+
+    // Volume
+    if (/^(un ?mute)( the)?( volume| sound| phone)?$/.test(t)) return one(run('unmute'));
+    if (/^mute( the)?( volume| sound| phone| music)?$/.test(t)) return one(run('mute'));
+    m = t.match(/\b(?:set |turn )?(?:the )?volume (?:to |at )?(\d{1,3})\s*(?:%|percent)?\b/);
+    if (m) return one(run('volume_set', m[1]));
+    if (/\b(volume up|turn (it|the volume|the music) up|louder|raise the volume|increase the volume)\b/.test(t)) return one(run('volume_up'));
+    if (/\b(volume down|turn (it|the volume|the music) down|quieter|softer|lower the volume|decrease the volume)\b/.test(t)) return one(run('volume_down'));
+
+    // Flashlight
+    if (/\b(flash ?light|torch)\b/.test(t)) {
+      if (/\b(off|disable|stop)\b/.test(t)) return one(run('flashlight_off'));
+      return one(run('flashlight_on'));
+    }
+
+    // Do Not Disturb
+    if (/\b(do not disturb|don't disturb|dnd)\b/.test(t)) return one(run(/\b(off|disable|stop|end|turn off|deactivate)\b/.test(t) ? 'dnd_off' : 'dnd_on'));
+
+    // Calls, texts, directions
+    m = t.match(/^(?:call|phone|ring|dial)\s+(.+)$/);
+    if (m && !/^(me|it)\b/.test(m[1])) return one(run('call', m[1].replace(/\s+(on|from) (my )?(phone|mobile|cell)$/, '')));
+    m = rawText.trim().replace(/[?.!]+$/, '').match(/^(?:(?:hey |ok |okay )?rias[,!.]?\s+)?(?:please\s+)?(?:send (?:a )?(?:text|message|sms) to|text|message)\s+(.+?)(?:\s*(?:,|saying|that says|that|and say|and tell (?:him|her|them))\s+(.+))?$/i);
+    if (m && /^(send|text|message)/.test(t)) {
+      let to = m[1].trim(), body = (m[2] || '').trim();
+      // "Text Jake I'm running late": no "saying", so the name is the first word
+      // (or two, like "Jake Smith", when typed with capitals).
+      if (!body && to.includes(' ')) {
+        const w = to.split(/\s+/);
+        const two = w.length > 2 && /^[A-Z]/.test(w[1]) && !/^I('|$)/.test(w[1]);
+        to = w.slice(0, two ? 2 : 1).join(' ');
+        body = w.slice(two ? 2 : 1).join(' ');
+        if (/^(mom|dad|my)$/i.test(to) && /^(mom|dad|wife|husband|boyfriend|girlfriend|brother|sister)\b/i.test(body)) {
+          to = `${to} ${body.split(' ')[0]}`; body = body.split(' ').slice(1).join(' ');
+        }
+      }
+      if (!body) { pendingText = to; return [say(`What should I say to ${to}?`)]; }
+      return one(run('text', to, body));
+    }
+    m = t.match(/^(?:get |give me |show me )?(?:directions|navigate|navigation|take me|drive me|how do i get|route me)(?: me)?\s+(?:to\s+)(.+)$/);
+    if (m) return one(run('directions', m[1]));
+
+    // Open apps
+    m = t.match(/^(?:open|launch|start|go to)\s+(?:the\s+)?(.+?)(?:\s+app)?$/);
+    if (m && !/\b(timer|routine|music)\b/.test(m[1])) {
+      const page = ctx.openPage && ctx.openPage(m[1]);
+      if (page) return [say(page)];
+      return one(run('open_app', m[1]));
+    }
+
+    // Notifications
+    if (/\b(what did i miss|read (me )?my (notifications|messages)|read (the |my )?notifications|any (new )?(notifications|messages)|do i have (any )?(new )?(notifications|messages))\b/.test(t)) return one(readNotifications());
+
+    // Time & date
+    if (/^(what time is it|what's the time|what is the time|time|tell me the time|do you know what time it is)$/.test(t)) {
+      return [say(pick([`It's ${ctx.nowText()}, {name}.`, `${ctx.nowText()}~`]))];
+    }
+    if (/^(what's the date|what is the date|what day is it|what's today's date|what is today|today's date|what day is today)( today)?$/.test(t)) {
+      return [say(`Today is ${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.`)];
+    }
+
+    // Quick math
+    const mathAns = math(t);
+    if (mathAns) return [say(mathAns)];
+
+    // "Stop" / "be quiet"
+    if (/^(stop|stop talking|be quiet|shush|quiet|shut up|that's all|never ?mind)$/.test(t)) {
+      ctx.stopSpeaking();
+      const d = D();
+      if (d && d.sleepPlaying && d.sleepPlaying() && /^stop$/.test(t)) d.sleepStop();
+      return [say(pick(['Okay~', 'Mm, I\'ll hush.', 'As you wish.']))];
+    }
+    return null;
+  }
+
+  return { handle, run, startTimer, cancelTimers, timerStatus, restore, timerDone, routines, DEFAULT_ROUTINES, durationText, parseDuration, parseClock };
+};
+</script>
+  <script>
 (() => {
   'use strict';
 
@@ -4984,7 +5706,15 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     try { N.configure(o.name, o.pitch, o.rate); } catch { /* older app */ }
   }
   function speak(text, force) {
-    if (!force && (document.hidden || !(state.settings.voice !== false || spokeLast))) return;
+    if (HEADLESS || (!force && (document.hidden || !(state.settings.voice !== false || spokeLast)))) return;
+    // Her natural voice (Gemini), falling back to the phone's voice if it can't be reached.
+    if (state.settings.voiceStyle === 'natural' && window.NaturalVoice) {
+      NaturalVoice.speak(state, text, state.settings.naturalVoice).then((ok) => { if (!ok) speakPhone(text); });
+      return;
+    }
+    speakPhone(text);
+  }
+  function speakPhone(text) {
     const clean = text.replace(/[~•]/g, '').replace(/…/g, '...').replace(/:?\n+/g, '. ');
     const N = window.RiasNative;
     if (N && N.speak) { try { N.speak(clean); } catch { /* no TTS engine */ } return; }
@@ -4998,6 +5728,7 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     speechSynthesis.speak(u);
   }
   function stopSpeaking() {
+    if (window.NaturalVoice) NaturalVoice.stop();
     const N = window.RiasNative;
     if (N && N.stopSpeaking) { try { N.stopSpeaking(); } catch { /* ignore */ } }
     else if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -5153,6 +5884,8 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     try { list = JSON.parse(N.takeActions()); } catch { return; }
     const today = dateKey();
     for (const a of list) {
+      // A timer rang or was cancelled from its notification.
+      if (String(a.itemId).startsWith('timer:')) { state.timers = (state.timers || []).filter((t) => t.id !== a.itemId.slice(6)); continue; }
       if (dateKey(new Date(a.at)) !== today) continue;
       const it = findItem(a.itemId);
       if (!it || statusOf(it.id)) continue;
@@ -5988,6 +6721,14 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
       const lateLine = logSleep();
       if (lateLine) setTimeout(() => addMessage('rias', lateLine), 3200);
     }
+    // Assistant commands (timers, music, calls, routines…) answer right away, AI or not.
+    if (!photo) {
+      const cmd = Assistant.handle(text);
+      if (cmd) {
+        cmd.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 350 + i * 700));
+        return;
+      }
+    }
     // Without her AI she still remembers clear facts, and "Remember that …".
     if (!photo && !AI.enabled() && noticeFacts(text) === 'explicit') {
       const typing = showTyping();
@@ -6234,9 +6975,48 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
       + (overLimit() ? ' · Limit reached: she uses her own words until next month.' : lim ? ` · limit $${lim}` : '') + '. An estimate from list prices; your Anthropic bill is the real number.';
   }
 
+  // ---------- assistant (Alexa-style commands: timers, music, calls, routines…) ----------
+  const PAGES = [[/^(chat|messages?)$/, 'chat'], [/^(reminders?|today|to ?do( list)?|tasks?|calendar)$/, 'today'], [/^(food|diary|food diary|meals?)$/, 'food'],
+    [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home']];
+  function tomorrowLine() {
+    const d = new Date(Date.now() + 86400000);
+    const items = itemsOn(d).filter((it) => !it.source).sort((a, b) => toMin(a.time) - toMin(b.time));
+    const wake = items.find((it) => it.category === 'wake') || items[0];
+    const shifts = shiftsOn(d);
+    const parts = [];
+    if (wake) parts.push(wake.category === 'wake' ? `I'll wake you at ${fmtTime(wake.time)}` : `first up is ${wake.title} at ${fmtTime(wake.time)}`);
+    if (shifts.length) parts.push(`you work ${fmtTime(shifts[0].start)}–${fmtTime(shifts[0].end)}`);
+    return say(parts.length ? `Tomorrow ${parts.join(', and ')}. Sleep well, {name}~` : 'Nothing early tomorrow, so sleep in a little, {name}~');
+  }
+  const Assistant = window.createAssistant({
+    get state() { return state; },
+    save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking, tomorrowLine,
+    addItem(it) {
+      const item = { id: uid(), enabled: true, ...it };
+      state.items.push(item);
+      refresh(); save();
+      return item;
+    },
+    briefing: () => briefingText(),
+    nowText: () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    openPage(name) {
+      if (HEADLESS) return null;
+      const p = PAGES.find(([re]) => re.test(name.trim()));
+      if (!p) return null;
+      setTimeout(() => show(p[1]), 600);
+      return pick(['Here you go~', 'There.', 'Opening it for you.']);
+    },
+    timerUp(t) {
+      riasSays(say(`Time's up, {name}! ${t.label ? `Your ${t.label} timer is done.` : 'Your timer is done.'}`));
+      if (!document.hidden) { try { startSound(state.settings.alarmSound || 'chime', false); } catch { /* no sound */ } haptic([80, 60, 80]); }
+    },
+  });
+
   const AI = window.createRiasAI({
     state, contextText, onUsage: trackUsage, overLimit,
     tools: {
+      setTimer({ minutes, label }) { return Assistant.startTimer(Number(minutes) * 60, label); },
+      phone({ action, value, message }) { return Assistant.run(action, value, message); },
       addReminder({ title, time, repeat, date }) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
@@ -6294,6 +7074,14 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   }
   // Called by the Android app after a permission prompt.
   window.riasPermission = (what, granted) => {
+    if (what === 'device') {
+      setTimeout(() => {
+        renderAssist();
+        const st2 = devStatus();
+        if (st2 && st2.mic && state.settings.wakeMode && state.settings.wakeMode !== 'off') applyWake();
+      }, 300);
+      return;
+    }
     if (what !== 'calendar') return;
     if (granted) { syncCalendar(); refresh(); addMessage('rias', say("I can see your calendar now, {name}. I'll remind you about those events too.")); }
     // Denied: keep it switched on so Settings shows "Allow" and the Android settings link.
@@ -6968,6 +7756,7 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
     { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
+    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, phone controls, music, sleep sounds, routines' },
     { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
     { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
@@ -6982,6 +7771,7 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     const extra = {
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
+      assist: { charging: '“Hey Rias” while charging', always: '“Hey Rias” always on' }[st.wakeMode] || '“Hey Rias” off',
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
       alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
       day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
@@ -7045,6 +7835,15 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     $('#test-lock').hidden = !(N2 && N2.testAlarm);
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
+    sf.elements.voiceStyle.value = state.settings.voiceStyle || 'phone';
+    fillNaturalVoices();
+    voiceStyleShown();
+    sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
+    sf.elements.musicApp.value = state.settings.musicApp || '';
+    sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
+    sf.elements.sleepMinutes.value = String(state.settings.sleepMinutes || 45);
+    renderAssist();
+    renderRoutines();
     fillVoices();
     voiceHint();
     const o = voiceOpts();
@@ -7281,6 +8080,12 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {
+      voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
+      wakeMode: sf.elements.wakeMode.value, musicApp: sf.elements.musicApp.value,
+      sleepSound: sf.elements.sleepSound.value, sleepMinutes: Number(sf.elements.sleepMinutes.value) || 45,
+    });
+    applyWake();
+    Object.assign(state.settings, {
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
       homeChar: sf.elements.homeChar.value,
@@ -7316,7 +8121,20 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   }
   if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { if (!$('#view-settings').hidden) fillVoices(); });
   // Try the voice settings on the form before saving them.
-  $('#hear').addEventListener('click', () => {
+  $('#hear').addEventListener('click', async () => {
+    if (sf.elements.voiceStyle.value === 'natural' && window.NaturalVoice) {
+      // Her natural voice needs the key typed in Rias's mind (saved or not yet).
+      stopSpeaking();
+      const hint = $('#voice-hint');
+      hint.hidden = false;
+      hint.textContent = 'Getting her voice ready…';
+      const tmp = { ...state, ai: { ...state.ai, geminiKey: sf.elements.geminiKey.value.trim() || state.ai.geminiKey } };
+      const ok = await NaturalVoice.speak(tmp, say(pick(praiseLines())), sf.elements.naturalVoice.value);
+      Object.assign(state.ai, { ttsModel: tmp.ai.ttsModel, ttsModelKey: tmp.ai.ttsModelKey });
+      hint.textContent = ok ? '' : NaturalVoice.speak.lastError || 'Her natural voice couldn’t load.';
+      hint.hidden = ok;
+      return;
+    }
     const saved = { ...state.settings };
     Object.assign(state.settings, { voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     stopSpeaking();
@@ -7325,6 +8143,146 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     state.settings = saved;
     setTimeout(voiceHint, 1200);
   });
+  // ---------- Settings → Voice type / Assistant ----------
+  function fillNaturalVoices() {
+    const sel = sf.elements.naturalVoice;
+    if (!window.NaturalVoice) return;
+    sel.textContent = '';
+    for (const [v, label] of NaturalVoice.VOICES) sel.append(new Option(label, v));
+    sel.value = state.settings.naturalVoice || NaturalVoice.VOICES[0][0];
+  }
+  function voiceStyleShown() {
+    const natural = sf.elements.voiceStyle.value === 'natural';
+    $('#natural-voice-box').hidden = !natural;
+    $('#phone-voice-pick').hidden = natural;
+    for (const el of sf.querySelectorAll('[name=voicePitch], [name=voiceRate]')) el.closest('label').hidden = natural;
+    $('#voice-reset').hidden = natural;
+  }
+  sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  const Dev = () => window.RiasDevice || null;
+  function devStatus() {
+    const d = Dev();
+    if (!d || !d.status) return null;
+    try { return JSON.parse(d.status()); } catch { return null; }
+  }
+  // Start/stop "Hey Rias" listening to match the setting (asks for the mic first).
+  function applyWake() {
+    const d = Dev();
+    if (!d || !d.wake) return;
+    const mode = state.settings.wakeMode || 'off';
+    const s = devStatus() || {};
+    if (mode !== 'off' && !s.mic) { d.requestPermission('mic'); return; }
+    try { d.wake(mode); } catch { /* older app */ }
+    setTimeout(renderAssist, 800);
+  }
+  sf.elements.wakeMode.addEventListener('change', () => { state.settings.wakeMode = sf.elements.wakeMode.value; save(); applyWake(); });
+  const PERMS = [
+    ['assistant', 'Rias is your phone\'s assistant', 'Long-press home to talk to her', 'Set up', () => Dev().openSettings('assistant')],
+    ['mic', 'Microphone', 'For “Hey Rias” and talking in the assistant', 'Allow', () => Dev().requestPermission('mic')],
+    ['contacts', 'Calls & texts by name', '“Call Mom”, “Text Jake…”', 'Allow', () => Dev().requestPermission('calls')],
+    ['notifications', 'Read notifications', '“What did I miss?”', 'Allow', () => Dev().openSettings('notifications')],
+    ['dnd', 'Do Not Disturb', 'Turn it on and off for you', 'Allow', () => Dev().openSettings('dnd')],
+  ];
+  function renderAssist() {
+    const s = devStatus();
+    for (const [k, title, sub, btn, act] of PERMS) {
+      const row = $(`#perm-${k === 'contacts' ? 'calls' : k}`);
+      if (!row) continue;
+      row.textContent = '';
+      const ok = s && s[k];
+      row.innerHTML = '<span class="perm-ic"></span><span class="perm-txt"><b></b><small></small></span>';
+      row.querySelector('.perm-ic').textContent = !s ? '·' : ok ? '✓' : '!';
+      row.classList.toggle('ok', !!ok);
+      row.querySelector('b').textContent = title;
+      row.querySelector('small').textContent = s ? sub : 'Needs the Android app';
+      if (s && !ok) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = btn;
+        b.addEventListener('click', act);
+        row.append(b);
+      }
+    }
+    const hint = $('#wake-hint');
+    const mode = state.settings.wakeMode || 'off';
+    hint.textContent = !s ? '“Hey Rias” needs the Android app.'
+      : mode === 'off' ? ''
+        : !s.mic ? 'Allow the microphone (below) so she can listen.'
+          : s.wakeRunning ? (mode === 'charging' ? 'On: she listens while your phone is charging.' : 'On: say “Hey Rias” anytime.')
+            : 'Starting… If it doesn’t start, reopen the app.';
+  }
+  // Settings → Sleep sounds: try one.
+  $('#sleep-try').addEventListener('click', () => {
+    const d = Dev();
+    if (!d || !d.sleepSound) { $('#wake-hint').textContent = 'Sleep sounds need the Android app.'; return; }
+    d.sleepSound(sf.elements.sleepSound.value, Number(sf.elements.sleepMinutes.value) || 45);
+  });
+  $('#sleep-stop').addEventListener('click', () => { const d = Dev(); if (d && d.sleepStop) d.sleepStop(); });
+
+  // Settings → Routines.
+  const SOUND_OPTS = [['', 'No sounds'], ['stop', 'Stop sleep sounds'], ['rain', '🌧 Rain'], ['ocean', '🌊 Ocean'], ['brown', '🟤 Brown noise'], ['fire', '🔥 Fireplace'], ['fan', '🌀 Fan']];
+  function renderRoutines() {
+    const box = $('#routine-list');
+    box.textContent = '';
+    for (const rt of Assistant.routines()) {
+      const card = document.createElement('div');
+      card.className = 'routine';
+      card.dataset.id = rt.id;
+      card.innerHTML = `
+        <div class="rt-head"><label class="rt-phrase">When I say <input data-k="phrase" placeholder="e.g. I'm home"></label>
+          <button type="button" class="rt-run" aria-label="Run it">▶</button><button type="button" class="rt-del" aria-label="Delete">🗑</button></div>
+        <div class="rt-opts">
+          <label class="chip"><input type="checkbox" data-k="brief"><span>Briefing (weather &amp; plan)</span></label>
+          <label class="chip"><input type="checkbox" data-k="tomorrow"><span>Tomorrow's plan</span></label>
+        </div>
+        <div class="row">
+          <label>Do Not Disturb <select data-k="dnd"><option value="">Leave it</option><option value="on">Turn on</option><option value="off">Turn off</option></select></label>
+          <label>Volume <select data-k="volume"><option value="">Leave it</option><option value="0">Silent</option><option value="20">20%</option><option value="40">40%</option><option value="60">60%</option><option value="80">80%</option><option value="100">Max</option></select></label>
+        </div>
+        <div class="row">
+          <label>Sounds <select data-k="sound"></select></label>
+          <label>For <select data-k="minutes"><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="480">All night</option></select></label>
+        </div>
+        <label>Play music <input data-k="music" placeholder="e.g. lofi beats (leave empty for none)"></label>
+        <label>She says <input data-k="say" placeholder="Optional, e.g. Welcome home, {name}~"></label>`;
+      const snd = card.querySelector('[data-k=sound]');
+      for (const [v, l] of SOUND_OPTS) snd.append(new Option(l, v));
+      for (const el of card.querySelectorAll('[data-k]')) {
+        const k = el.dataset.k;
+        if (el.type === 'checkbox') el.checked = !!rt[k];
+        else el.value = rt[k] == null ? (k === 'minutes' ? '45' : '') : String(rt[k]);
+      }
+      box.append(card);
+    }
+  }
+  $('#routine-list').addEventListener('change', (e) => {
+    const card = e.target.closest('.routine');
+    const el = e.target.closest('[data-k]');
+    if (!card || !el) return;
+    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
+    if (!rt) return;
+    rt[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.dataset.k === 'minutes' ? Number(el.value) : el.value.trim();
+    save();
+  });
+  $('#routine-list').addEventListener('click', (e) => {
+    const card = e.target.closest('.routine');
+    if (!card) return;
+    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
+    if (e.target.closest('.rt-del')) {
+      state.settings.routines = Assistant.routines().filter((r) => r !== rt);
+      save(); renderRoutines();
+    } else if (e.target.closest('.rt-run') && rt && rt.phrase) {
+      show('chat');
+      userSays(rt.phrase);
+    }
+  });
+  $('#routine-add').addEventListener('click', () => {
+    Assistant.routines().push({ id: uid(), phrase: '', brief: false, dnd: '', sound: '', minutes: 45, music: '', volume: '', say: '' });
+    save(); renderRoutines();
+    const inputs = $('#routine-list').querySelectorAll('[data-k=phrase]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
     const hint = $('#voice-hint'), btn = $('#tts-settings');
@@ -7613,7 +8571,13 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   if (HEADLESS) {
     const H = window.RiasHeadless;
     const busy = () => $('#view-chat').classList.contains('thinking');
-    window.riasHeadlessSay = async (text) => {
+    // Out loud for "Hey Rias" / the assistant button: her natural voice, or the phone's.
+    const voiceOut = async (text) => {
+      if (state.settings.voiceStyle === 'natural' && window.NaturalVoice && await NaturalVoice.speak(state, text, state.settings.naturalVoice)) return;
+      const d = window.RiasDevice;
+      if (d && d.sayNative) d.sayNative(window.NaturalVoice ? NaturalVoice.clean(text) : text);
+    };
+    window.riasHeadlessSay = async (text, opts = {}) => {
       const lines = [];
       try {
         if (!state.profile) {
@@ -7631,12 +8595,17 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
           for (const m of state.messages.slice(start)) if (m.from === 'rias' && m.text) lines.push(m.text);
         }
       } catch { /* the service answers with a fallback line */ }
+      try { if (H.lines) H.lines(JSON.stringify(lines)); } catch { /* older app */ }
+      if (opts.voice && lines.length) { try { await voiceOut(lines.join(' ')); } catch { /* silent */ } }
       try { H.reply(JSON.stringify(lines)); } catch { /* not in the service */ }
     };
     try { if (H) H.ready(); } catch { /* not in the service */ }
     return;
   }
 
+  Assistant.restore();
+  // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;
@@ -7664,7 +8633,7 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
     if (changedElsewhere()) { restoring = true; location.reload(); return; }
     housekeeping();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
-    if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); }
+    if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); renderAssist(); }
   });
 })();
 </script>

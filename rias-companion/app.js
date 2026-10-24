@@ -336,7 +336,15 @@
     try { N.configure(o.name, o.pitch, o.rate); } catch { /* older app */ }
   }
   function speak(text, force) {
-    if (!force && (document.hidden || !(state.settings.voice !== false || spokeLast))) return;
+    if (HEADLESS || (!force && (document.hidden || !(state.settings.voice !== false || spokeLast)))) return;
+    // Her natural voice (Gemini), falling back to the phone's voice if it can't be reached.
+    if (state.settings.voiceStyle === 'natural' && window.NaturalVoice) {
+      NaturalVoice.speak(state, text, state.settings.naturalVoice).then((ok) => { if (!ok) speakPhone(text); });
+      return;
+    }
+    speakPhone(text);
+  }
+  function speakPhone(text) {
     const clean = text.replace(/[~•]/g, '').replace(/…/g, '...').replace(/:?\n+/g, '. ');
     const N = window.RiasNative;
     if (N && N.speak) { try { N.speak(clean); } catch { /* no TTS engine */ } return; }
@@ -350,6 +358,7 @@
     speechSynthesis.speak(u);
   }
   function stopSpeaking() {
+    if (window.NaturalVoice) NaturalVoice.stop();
     const N = window.RiasNative;
     if (N && N.stopSpeaking) { try { N.stopSpeaking(); } catch { /* ignore */ } }
     else if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -505,6 +514,8 @@
     try { list = JSON.parse(N.takeActions()); } catch { return; }
     const today = dateKey();
     for (const a of list) {
+      // A timer rang or was cancelled from its notification.
+      if (String(a.itemId).startsWith('timer:')) { state.timers = (state.timers || []).filter((t) => t.id !== a.itemId.slice(6)); continue; }
       if (dateKey(new Date(a.at)) !== today) continue;
       const it = findItem(a.itemId);
       if (!it || statusOf(it.id)) continue;
@@ -1340,6 +1351,14 @@
       const lateLine = logSleep();
       if (lateLine) setTimeout(() => addMessage('rias', lateLine), 3200);
     }
+    // Assistant commands (timers, music, calls, routines…) answer right away, AI or not.
+    if (!photo) {
+      const cmd = Assistant.handle(text);
+      if (cmd) {
+        cmd.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 350 + i * 700));
+        return;
+      }
+    }
     // Without her AI she still remembers clear facts, and "Remember that …".
     if (!photo && !AI.enabled() && noticeFacts(text) === 'explicit') {
       const typing = showTyping();
@@ -1586,9 +1605,48 @@
       + (overLimit() ? ' · Limit reached: she uses her own words until next month.' : lim ? ` · limit $${lim}` : '') + '. An estimate from list prices; your Anthropic bill is the real number.';
   }
 
+  // ---------- assistant (Alexa-style commands: timers, music, calls, routines…) ----------
+  const PAGES = [[/^(chat|messages?)$/, 'chat'], [/^(reminders?|today|to ?do( list)?|tasks?|calendar)$/, 'today'], [/^(food|diary|food diary|meals?)$/, 'food'],
+    [/^(work|shifts?|work schedule|my schedule)$/, 'work'], [/^settings?$/, 'settings'], [/^home$/, 'home']];
+  function tomorrowLine() {
+    const d = new Date(Date.now() + 86400000);
+    const items = itemsOn(d).filter((it) => !it.source).sort((a, b) => toMin(a.time) - toMin(b.time));
+    const wake = items.find((it) => it.category === 'wake') || items[0];
+    const shifts = shiftsOn(d);
+    const parts = [];
+    if (wake) parts.push(wake.category === 'wake' ? `I'll wake you at ${fmtTime(wake.time)}` : `first up is ${wake.title} at ${fmtTime(wake.time)}`);
+    if (shifts.length) parts.push(`you work ${fmtTime(shifts[0].start)}–${fmtTime(shifts[0].end)}`);
+    return say(parts.length ? `Tomorrow ${parts.join(', and ')}. Sleep well, {name}~` : 'Nothing early tomorrow, so sleep in a little, {name}~');
+  }
+  const Assistant = window.createAssistant({
+    get state() { return state; },
+    save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking, tomorrowLine,
+    addItem(it) {
+      const item = { id: uid(), enabled: true, ...it };
+      state.items.push(item);
+      refresh(); save();
+      return item;
+    },
+    briefing: () => briefingText(),
+    nowText: () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    openPage(name) {
+      if (HEADLESS) return null;
+      const p = PAGES.find(([re]) => re.test(name.trim()));
+      if (!p) return null;
+      setTimeout(() => show(p[1]), 600);
+      return pick(['Here you go~', 'There.', 'Opening it for you.']);
+    },
+    timerUp(t) {
+      riasSays(say(`Time's up, {name}! ${t.label ? `Your ${t.label} timer is done.` : 'Your timer is done.'}`));
+      if (!document.hidden) { try { startSound(state.settings.alarmSound || 'chime', false); } catch { /* no sound */ } haptic([80, 60, 80]); }
+    },
+  });
+
   const AI = window.createRiasAI({
     state, contextText, onUsage: trackUsage, overLimit,
     tools: {
+      setTimer({ minutes, label }) { return Assistant.startTimer(Number(minutes) * 60, label); },
+      phone({ action, value, message }) { return Assistant.run(action, value, message); },
       addReminder({ title, time, repeat, date }) {
         if (!/^\d{2}:\d{2}$/.test(time)) return { error: 'time must be HH:MM' };
         const item = { id: uid(), title, time, category: 'custom', repeat, enabled: true, date: repeat === 'once' ? (date || dateKey()) : undefined };
@@ -1646,6 +1704,14 @@
   }
   // Called by the Android app after a permission prompt.
   window.riasPermission = (what, granted) => {
+    if (what === 'device') {
+      setTimeout(() => {
+        renderAssist();
+        const st2 = devStatus();
+        if (st2 && st2.mic && state.settings.wakeMode && state.settings.wakeMode !== 'off') applyWake();
+      }, 300);
+      return;
+    }
     if (what !== 'calendar') return;
     if (granted) { syncCalendar(); refresh(); addMessage('rias', say("I can see your calendar now, {name}. I'll remind you about those events too.")); }
     // Denied: keep it switched on so Settings shows "Allow" and the Android settings link.
@@ -2320,6 +2386,7 @@
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
     { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
+    { k: 'assist', icon: '🎙', title: 'Assistant', sub: '“Hey Rias”, phone controls, music, sleep sounds, routines' },
     { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
     { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
@@ -2334,6 +2401,7 @@
     const extra = {
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
+      assist: { charging: '“Hey Rias” while charging', always: '“Hey Rias” always on' }[st.wakeMode] || '“Hey Rias” off',
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
       alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
       day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
@@ -2397,6 +2465,15 @@
     $('#test-lock').hidden = !(N2 && N2.testAlarm);
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
+    sf.elements.voiceStyle.value = state.settings.voiceStyle || 'phone';
+    fillNaturalVoices();
+    voiceStyleShown();
+    sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
+    sf.elements.musicApp.value = state.settings.musicApp || '';
+    sf.elements.sleepSound.value = state.settings.sleepSound || 'rain';
+    sf.elements.sleepMinutes.value = String(state.settings.sleepMinutes || 45);
+    renderAssist();
+    renderRoutines();
     fillVoices();
     voiceHint();
     const o = voiceOpts();
@@ -2633,6 +2710,12 @@
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {
+      voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
+      wakeMode: sf.elements.wakeMode.value, musicApp: sf.elements.musicApp.value,
+      sleepSound: sf.elements.sleepSound.value, sleepMinutes: Number(sf.elements.sleepMinutes.value) || 45,
+    });
+    applyWake();
+    Object.assign(state.settings, {
       foodReminders: sf.elements.foodReminders.checked,
       alarmPopup: sf.elements.alarmPopup.checked,
       homeChar: sf.elements.homeChar.value,
@@ -2668,7 +2751,20 @@
   }
   if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { if (!$('#view-settings').hidden) fillVoices(); });
   // Try the voice settings on the form before saving them.
-  $('#hear').addEventListener('click', () => {
+  $('#hear').addEventListener('click', async () => {
+    if (sf.elements.voiceStyle.value === 'natural' && window.NaturalVoice) {
+      // Her natural voice needs the key typed in Rias's mind (saved or not yet).
+      stopSpeaking();
+      const hint = $('#voice-hint');
+      hint.hidden = false;
+      hint.textContent = 'Getting her voice ready…';
+      const tmp = { ...state, ai: { ...state.ai, geminiKey: sf.elements.geminiKey.value.trim() || state.ai.geminiKey } };
+      const ok = await NaturalVoice.speak(tmp, say(pick(praiseLines())), sf.elements.naturalVoice.value);
+      Object.assign(state.ai, { ttsModel: tmp.ai.ttsModel, ttsModelKey: tmp.ai.ttsModelKey });
+      hint.textContent = ok ? '' : NaturalVoice.speak.lastError || 'Her natural voice couldn’t load.';
+      hint.hidden = ok;
+      return;
+    }
     const saved = { ...state.settings };
     Object.assign(state.settings, { voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     stopSpeaking();
@@ -2677,6 +2773,146 @@
     state.settings = saved;
     setTimeout(voiceHint, 1200);
   });
+  // ---------- Settings → Voice type / Assistant ----------
+  function fillNaturalVoices() {
+    const sel = sf.elements.naturalVoice;
+    if (!window.NaturalVoice) return;
+    sel.textContent = '';
+    for (const [v, label] of NaturalVoice.VOICES) sel.append(new Option(label, v));
+    sel.value = state.settings.naturalVoice || NaturalVoice.VOICES[0][0];
+  }
+  function voiceStyleShown() {
+    const natural = sf.elements.voiceStyle.value === 'natural';
+    $('#natural-voice-box').hidden = !natural;
+    $('#phone-voice-pick').hidden = natural;
+    for (const el of sf.querySelectorAll('[name=voicePitch], [name=voiceRate]')) el.closest('label').hidden = natural;
+    $('#voice-reset').hidden = natural;
+  }
+  sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  const Dev = () => window.RiasDevice || null;
+  function devStatus() {
+    const d = Dev();
+    if (!d || !d.status) return null;
+    try { return JSON.parse(d.status()); } catch { return null; }
+  }
+  // Start/stop "Hey Rias" listening to match the setting (asks for the mic first).
+  function applyWake() {
+    const d = Dev();
+    if (!d || !d.wake) return;
+    const mode = state.settings.wakeMode || 'off';
+    const s = devStatus() || {};
+    if (mode !== 'off' && !s.mic) { d.requestPermission('mic'); return; }
+    try { d.wake(mode); } catch { /* older app */ }
+    setTimeout(renderAssist, 800);
+  }
+  sf.elements.wakeMode.addEventListener('change', () => { state.settings.wakeMode = sf.elements.wakeMode.value; save(); applyWake(); });
+  const PERMS = [
+    ['assistant', 'Rias is your phone\'s assistant', 'Long-press home to talk to her', 'Set up', () => Dev().openSettings('assistant')],
+    ['mic', 'Microphone', 'For “Hey Rias” and talking in the assistant', 'Allow', () => Dev().requestPermission('mic')],
+    ['contacts', 'Calls & texts by name', '“Call Mom”, “Text Jake…”', 'Allow', () => Dev().requestPermission('calls')],
+    ['notifications', 'Read notifications', '“What did I miss?”', 'Allow', () => Dev().openSettings('notifications')],
+    ['dnd', 'Do Not Disturb', 'Turn it on and off for you', 'Allow', () => Dev().openSettings('dnd')],
+  ];
+  function renderAssist() {
+    const s = devStatus();
+    for (const [k, title, sub, btn, act] of PERMS) {
+      const row = $(`#perm-${k === 'contacts' ? 'calls' : k}`);
+      if (!row) continue;
+      row.textContent = '';
+      const ok = s && s[k];
+      row.innerHTML = '<span class="perm-ic"></span><span class="perm-txt"><b></b><small></small></span>';
+      row.querySelector('.perm-ic').textContent = !s ? '·' : ok ? '✓' : '!';
+      row.classList.toggle('ok', !!ok);
+      row.querySelector('b').textContent = title;
+      row.querySelector('small').textContent = s ? sub : 'Needs the Android app';
+      if (s && !ok) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = btn;
+        b.addEventListener('click', act);
+        row.append(b);
+      }
+    }
+    const hint = $('#wake-hint');
+    const mode = state.settings.wakeMode || 'off';
+    hint.textContent = !s ? '“Hey Rias” needs the Android app.'
+      : mode === 'off' ? ''
+        : !s.mic ? 'Allow the microphone (below) so she can listen.'
+          : s.wakeRunning ? (mode === 'charging' ? 'On: she listens while your phone is charging.' : 'On: say “Hey Rias” anytime.')
+            : 'Starting… If it doesn’t start, reopen the app.';
+  }
+  // Settings → Sleep sounds: try one.
+  $('#sleep-try').addEventListener('click', () => {
+    const d = Dev();
+    if (!d || !d.sleepSound) { $('#wake-hint').textContent = 'Sleep sounds need the Android app.'; return; }
+    d.sleepSound(sf.elements.sleepSound.value, Number(sf.elements.sleepMinutes.value) || 45);
+  });
+  $('#sleep-stop').addEventListener('click', () => { const d = Dev(); if (d && d.sleepStop) d.sleepStop(); });
+
+  // Settings → Routines.
+  const SOUND_OPTS = [['', 'No sounds'], ['stop', 'Stop sleep sounds'], ['rain', '🌧 Rain'], ['ocean', '🌊 Ocean'], ['brown', '🟤 Brown noise'], ['fire', '🔥 Fireplace'], ['fan', '🌀 Fan']];
+  function renderRoutines() {
+    const box = $('#routine-list');
+    box.textContent = '';
+    for (const rt of Assistant.routines()) {
+      const card = document.createElement('div');
+      card.className = 'routine';
+      card.dataset.id = rt.id;
+      card.innerHTML = `
+        <div class="rt-head"><label class="rt-phrase">When I say <input data-k="phrase" placeholder="e.g. I'm home"></label>
+          <button type="button" class="rt-run" aria-label="Run it">▶</button><button type="button" class="rt-del" aria-label="Delete">🗑</button></div>
+        <div class="rt-opts">
+          <label class="chip"><input type="checkbox" data-k="brief"><span>Briefing (weather &amp; plan)</span></label>
+          <label class="chip"><input type="checkbox" data-k="tomorrow"><span>Tomorrow's plan</span></label>
+        </div>
+        <div class="row">
+          <label>Do Not Disturb <select data-k="dnd"><option value="">Leave it</option><option value="on">Turn on</option><option value="off">Turn off</option></select></label>
+          <label>Volume <select data-k="volume"><option value="">Leave it</option><option value="0">Silent</option><option value="20">20%</option><option value="40">40%</option><option value="60">60%</option><option value="80">80%</option><option value="100">Max</option></select></label>
+        </div>
+        <div class="row">
+          <label>Sounds <select data-k="sound"></select></label>
+          <label>For <select data-k="minutes"><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="480">All night</option></select></label>
+        </div>
+        <label>Play music <input data-k="music" placeholder="e.g. lofi beats (leave empty for none)"></label>
+        <label>She says <input data-k="say" placeholder="Optional, e.g. Welcome home, {name}~"></label>`;
+      const snd = card.querySelector('[data-k=sound]');
+      for (const [v, l] of SOUND_OPTS) snd.append(new Option(l, v));
+      for (const el of card.querySelectorAll('[data-k]')) {
+        const k = el.dataset.k;
+        if (el.type === 'checkbox') el.checked = !!rt[k];
+        else el.value = rt[k] == null ? (k === 'minutes' ? '45' : '') : String(rt[k]);
+      }
+      box.append(card);
+    }
+  }
+  $('#routine-list').addEventListener('change', (e) => {
+    const card = e.target.closest('.routine');
+    const el = e.target.closest('[data-k]');
+    if (!card || !el) return;
+    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
+    if (!rt) return;
+    rt[el.dataset.k] = el.type === 'checkbox' ? el.checked : el.dataset.k === 'minutes' ? Number(el.value) : el.value.trim();
+    save();
+  });
+  $('#routine-list').addEventListener('click', (e) => {
+    const card = e.target.closest('.routine');
+    if (!card) return;
+    const rt = Assistant.routines().find((r) => r.id === card.dataset.id);
+    if (e.target.closest('.rt-del')) {
+      state.settings.routines = Assistant.routines().filter((r) => r !== rt);
+      save(); renderRoutines();
+    } else if (e.target.closest('.rt-run') && rt && rt.phrase) {
+      show('chat');
+      userSays(rt.phrase);
+    }
+  });
+  $('#routine-add').addEventListener('click', () => {
+    Assistant.routines().push({ id: uid(), phrase: '', brief: false, dnd: '', sound: '', minutes: 45, music: '', volume: '', say: '' });
+    save(); renderRoutines();
+    const inputs = $('#routine-list').querySelectorAll('[data-k=phrase]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
     const hint = $('#voice-hint'), btn = $('#tts-settings');
@@ -2965,7 +3201,13 @@
   if (HEADLESS) {
     const H = window.RiasHeadless;
     const busy = () => $('#view-chat').classList.contains('thinking');
-    window.riasHeadlessSay = async (text) => {
+    // Out loud for "Hey Rias" / the assistant button: her natural voice, or the phone's.
+    const voiceOut = async (text) => {
+      if (state.settings.voiceStyle === 'natural' && window.NaturalVoice && await NaturalVoice.speak(state, text, state.settings.naturalVoice)) return;
+      const d = window.RiasDevice;
+      if (d && d.sayNative) d.sayNative(window.NaturalVoice ? NaturalVoice.clean(text) : text);
+    };
+    window.riasHeadlessSay = async (text, opts = {}) => {
       const lines = [];
       try {
         if (!state.profile) {
@@ -2983,12 +3225,17 @@
           for (const m of state.messages.slice(start)) if (m.from === 'rias' && m.text) lines.push(m.text);
         }
       } catch { /* the service answers with a fallback line */ }
+      try { if (H.lines) H.lines(JSON.stringify(lines)); } catch { /* older app */ }
+      if (opts.voice && lines.length) { try { await voiceOut(lines.join(' ')); } catch { /* silent */ } }
       try { H.reply(JSON.stringify(lines)); } catch { /* not in the service */ }
     };
     try { if (H) H.ready(); } catch { /* not in the service */ }
     return;
   }
 
+  Assistant.restore();
+  // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;
@@ -3016,6 +3263,6 @@
     if (changedElsewhere()) { restoring = true; location.reload(); return; }
     housekeeping();
     syncCalendar(); applyNativeActions(); tick(); renderFeed(); renderToday();
-    if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); }
+    if (state.profile && !$('#view-settings').hidden) { notifyHint(); popupCheck(); renderAssist(); }
   });
 })();

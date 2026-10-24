@@ -27,6 +27,20 @@ final class RiasVoice {
     }
 
     static void say(Context ctx, final String text) {
+        say(ctx, text, false);
+    }
+
+    /** Is she still talking (native voice)? */
+    static boolean speaking() {
+        try {
+            return tts != null && tts.isSpeaking();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** `assistant`: answering you (assistant volume) rather than reading a reminder at alarm volume. */
+    static void say(Context ctx, final String text, final boolean assistant) {
         stop();
         if (text == null || text.isEmpty()) return;
         final Context c = ctx.getApplicationContext();
@@ -38,7 +52,7 @@ final class RiasVoice {
                 TextToSpeech t = holder[0];
                 if (status != TextToSpeech.SUCCESS || t == null || t != tts) return;
                 try {
-                    t.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                    t.setAudioAttributes(new AudioAttributes.Builder().setUsage(assistant ? AudioAttributes.USAGE_ASSISTANT : AudioAttributes.USAGE_ALARM)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
                     String name = p.getString("voiceName", "");
                     if (!name.isEmpty() && t.getVoices() != null) {
@@ -51,7 +65,7 @@ final class RiasVoice {
                     }
                     t.setPitch(p.getFloat("voicePitch", 0.95f));
                     t.setSpeechRate(p.getFloat("voiceRate", 0.9f));
-                    t.speak(text.replace("~", "").replace("\n", ". "), TextToSpeech.QUEUE_FLUSH, null, "rias-alarm");
+                    t.speak(text.replace("~", "").replace("\n", ". "), TextToSpeech.QUEUE_FLUSH, null, assistant ? "rias-reply" : "rias-alarm");
                 } catch (Exception ignored) {
                 }
             }

@@ -37,14 +37,26 @@ public class RiasReplyService extends Service {
     static final String ACTION_REPLY = "com.nylonv2.riascompanion.REPLY";
     static final String EXTRA_TEXT = "text";
     static final String EXTRA_CANCEL = "cancelId";
+    static final String EXTRA_VOICE = "voice";   // answer out loud
+    static final String EXTRA_ASSIST = "assist"; // asked from the assistant sheet (it shows the answer itself)
+
+    /** The assistant sheet, while it's open: gets her lines as soon as they're ready. */
+    interface AssistListener {
+        void onLines(String json);
+
+        void onDone();
+    }
+
+    static AssistListener assist;
     static final String KEY_REPLY = "rias_reply";
     static final String CHANNEL = "rias_chat";
     static final int NOTE_ID = 7700;
 
     private final Handler main = new Handler(Looper.getMainLooper());
-    private final ArrayDeque<String> queue = new ArrayDeque<>();
+    private final ArrayDeque<String[]> queue = new ArrayDeque<>();
+    private String[] current;
     private WebView web;
-    private boolean ready, busy;
+    private boolean ready, busy, lastShown;
     private final Runnable timeout = new Runnable() {
         @Override
         public void run() {
@@ -54,7 +66,12 @@ public class RiasReplyService extends Service {
 
     /** Starts the service with a message (from an activity, widget tap or notification). */
     static void say(Context c, String text) {
-        Intent i = new Intent(c, RiasReplyService.class).setAction(ACTION_SAY).putExtra(EXTRA_TEXT, text);
+        say(c, text, false, false);
+    }
+
+    static void say(Context c, String text, boolean voice, boolean fromAssist) {
+        Intent i = new Intent(c, RiasReplyService.class).setAction(ACTION_SAY).putExtra(EXTRA_TEXT, text)
+                .putExtra(EXTRA_VOICE, voice).putExtra(EXTRA_ASSIST, fromAssist);
         if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
     }
 
@@ -128,7 +145,10 @@ public class RiasReplyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String text = null;
+        boolean voice = false, fromAssist = false;
         if (intent != null) {
+            voice = intent.getBooleanExtra(EXTRA_VOICE, false);
+            fromAssist = intent.getBooleanExtra(EXTRA_ASSIST, false);
             text = intent.getStringExtra(EXTRA_TEXT);
             if (ACTION_REPLY.equals(intent.getAction())) {
                 Bundle r = RemoteInput.getResultsFromIntent(intent);
@@ -150,7 +170,7 @@ public class RiasReplyService extends Service {
             return START_NOT_STICKY;
         }
         // While the app is on screen, it answers in its own chat instead.
-        queue.add(text.trim());
+        queue.add(new String[] {text.trim(), voice ? "1" : "", fromAssist ? "1" : ""});
         ensureWeb();
         pump();
         return START_NOT_STICKY;
@@ -178,6 +198,16 @@ public class RiasReplyService extends Service {
             }
 
             @JavascriptInterface
+            public void lines(final String json) {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (current != null && !current[2].isEmpty() && assist != null) assist.onLines(json);
+                    }
+                });
+            }
+
+            @JavascriptInterface
             public void reply(final String json) {
                 main.post(new Runnable() {
                     @Override
@@ -188,14 +218,16 @@ public class RiasReplyService extends Service {
             }
         }, "RiasHeadless");
         web.addJavascriptInterface(new MiniNative(), "RiasNative");
+        web.addJavascriptInterface(new RiasDevice(this, null), "RiasDevice");
         web.loadUrl("file:///android_asset/www/index.html#headless");
     }
 
     private void pump() {
         if (!ready || busy || queue.isEmpty() || web == null) return;
         busy = true;
-        String t = queue.poll();
-        web.evaluateJavascript("window.riasHeadlessSay && window.riasHeadlessSay(" + JSONObject.quote(t) + ")", null);
+        current = queue.poll();
+        String opts = "{\"voice\":" + !current[1].isEmpty() + ",\"assist\":" + !current[2].isEmpty() + "}";
+        web.evaluateJavascript("window.riasHeadlessSay && window.riasHeadlessSay(" + JSONObject.quote(current[0]) + "," + opts + ")", null);
         main.postDelayed(timeout, 80000);
     }
 
@@ -212,15 +244,25 @@ public class RiasReplyService extends Service {
         } catch (Exception ignored) {
         }
         if (added == 0) ChatLog.add(this, "rias", "Sorry, I couldn't answer just now. Try again in a moment, or open the app.");
-        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (nm != null) nm.notify(NOTE_ID, conversation(this, false));
+        boolean shown = current != null && !current[2].isEmpty() && assist != null;
+        if (shown) {
+            if (added == 0) assist.onLines("[\"Sorry, I couldn't answer just now. Try again in a moment.\"]");
+            assist.onDone();
+        } else {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.notify(NOTE_ID, conversation(this, false));
+        }
+        lastShown = shown;
+        current = null;
         RiasChatWidget.update(this);
         if (queue.isEmpty()) stopTurn(); else pump();
     }
 
     @SuppressWarnings("deprecation")
     private void stopTurn() {
-        if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_DETACH); else stopForeground(false);
+        // The assistant sheet showed the answer: no notification needed.
+        if (lastShown) stopForeground(true);
+        else if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_DETACH); else stopForeground(false);
         stopSelf();
     }
 

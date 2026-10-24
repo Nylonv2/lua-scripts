@@ -1239,3 +1239,22 @@ button:active, .chip:active span { transform: scale(.97); }
 .month-legend .lg-rem { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
 .month-legend .lg-rem .m-dot { width: 6px; height: 6px; }
 .m-dots { position: absolute; top: 5px; left: 0; right: 0; justify-content: center; }
+
+/* ---------- Settings → Assistant (6.0) ---------- */
+.perm-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .45); }
+.perm-row + .perm-row { margin-top: 8px; }
+.perm-ic { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-weight: 700;
+  background: rgba(var(--a2), .25); color: #ffd7df; }
+.perm-row.ok .perm-ic { background: rgba(80, 200, 140, .22); color: #8ff0bf; }
+.perm-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.perm-txt b { font-weight: 600; font-size: .95rem; }
+.perm-txt small { color: var(--muted); font-size: .78rem; }
+.perm-row button { flex: none; padding: 7px 14px; }
+.routine { padding: 12px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .45); display: flex; flex-direction: column; gap: 8px; }
+.routine + .routine { margin-top: 10px; }
+.rt-head { display: flex; align-items: flex-end; gap: 8px; }
+.rt-phrase { flex: 1; min-width: 0; }
+.rt-head button { flex: none; width: 42px; height: 42px; padding: 0; border-radius: 12px; }
+.rt-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+#routine-add { margin-top: 10px; }
+.say-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .88rem; line-height: 1.4; }

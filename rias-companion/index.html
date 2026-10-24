@@ -318,7 +318,19 @@
           <h2>Voice</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
-          <label>Her voice
+          <label>Voice type
+            <select name="voiceStyle">
+              <option value="phone">Phone voice (works offline)</option>
+              <option value="natural">Natural AI voice, closest to Rias (needs a Gemini key)</option>
+            </select>
+          </label>
+          <div id="natural-voice-box">
+            <label>Her natural voice
+              <select name="naturalVoice"></select>
+            </label>
+            <p class="muted small">An original voice made to fit Rias: warm, poised and a little teasing (not a copy of any actor). It uses your free Gemini key from Rias's mind, so it needs internet. If it can't connect, she switches to the phone voice.</p>
+          </div>
+          <label id="phone-voice-pick">Her voice
             <select name="voiceName"></select>
           </label>
           <div class="row">
@@ -332,6 +344,92 @@
           <p class="small voice-hint" id="voice-hint" hidden></p>
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>“Hey Rias”</h2>
+          <p class="muted small">Say “Hey Rias” and she answers, without touching your phone. For example: “Hey Rias, set a timer for 10 minutes”.</p>
+          <label>Listen for her name
+            <select name="wakeMode">
+              <option value="off">Off</option>
+              <option value="charging">Only while charging (saves battery)</option>
+              <option value="always">Always</option>
+            </select>
+          </label>
+          <p class="small voice-hint" id="wake-hint"></p>
+          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Alarms &amp; notifications) so the assistant can pop up over other apps.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Phone assistant button</h2>
+          <p class="muted small">Make Rias your phone's assistant, so long-pressing the home button (or the power button on some phones) opens her instead of Google.</p>
+          <div class="perm-row" id="perm-assistant"></div>
+          <p class="muted small">In the screen that opens, tap <b>Digital assistant app</b> (or “Default assistant”) and choose <b>Rias</b>. On Samsung: Settings → Apps → Choose default apps → Digital assistant app.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>What she's allowed to do</h2>
+          <div class="perm-row" id="perm-mic"></div>
+          <div class="perm-row" id="perm-calls"></div>
+          <div class="perm-row" id="perm-notifications"></div>
+          <div class="perm-row" id="perm-dnd"></div>
+          <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Music &amp; sleep sounds</h2>
+          <label>Play music with
+            <select name="musicApp">
+              <option value="">My phone's default music app</option>
+              <option value="spotify">Spotify</option>
+              <option value="youtube music">YouTube Music</option>
+              <option value="youtube">YouTube</option>
+              <option value="amazon music">Amazon Music</option>
+              <option value="pandora">Pandora</option>
+              <option value="apple music">Apple Music</option>
+            </select>
+          </label>
+          <div class="row">
+            <label>Sleep sound
+              <select name="sleepSound">
+                <option value="rain">🌧 Rain</option>
+                <option value="ocean">🌊 Ocean waves</option>
+                <option value="brown">🟤 Brown noise</option>
+                <option value="fire">🔥 Fireplace</option>
+                <option value="fan">🌀 Fan</option>
+              </select>
+            </label>
+            <label>Stops after
+              <select name="sleepMinutes">
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="45">45 min</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="480">All night</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <button type="button" id="sleep-try">▶ Try it</button>
+            <button type="button" id="sleep-stop">■ Stop</button>
+          </div>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Routines</h2>
+          <p class="muted small">One phrase, several things. Say the phrase to her (or tap ▶).</p>
+          <div id="routine-list"></div>
+          <button type="button" id="routine-add">＋ New routine</button>
+          </section>
+          <section class="set-group" data-cat="assist">
+          <h2>Things you can say</h2>
+          <ul class="say-list">
+            <li>“Set a timer for 20 minutes” · “How much time is left?” · “Cancel the timer”</li>
+            <li>“Wake me up at 6:30” · “Set an alarm for 7 tomorrow”</li>
+            <li>“Play Taylor Swift on Spotify” · “Pause” · “Skip” · “Volume 40%”</li>
+            <li>“Call Mom” · “Text Jake I'm running late” · “Directions to Walmart”</li>
+            <li>“Flashlight on” · “Turn on Do Not Disturb” · “Open YouTube”</li>
+            <li>“Play rain sounds for an hour” · “Stop the sounds”</li>
+            <li>“What did I miss?” · “What time is it?” · “What's 15% of 80?” · “Tip on $45”</li>
+            <li>“Good morning” · “Goodnight” · your own routines</li>
+          </ul>
+          <p class="muted small">With her AI on, you can say these any way you like.</p>
           </section>
           <section class="set-group" data-cat="mind">
           <h2>Rias's mind (AI)</h2>
@@ -753,6 +851,8 @@
   <script src="living-photo.js"></script>
   <script src="photo-cutout.js"></script>
   <script src="alarm-card.js"></script>
+  <script src="natural-voice.js"></script>
+  <script src="assistant.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

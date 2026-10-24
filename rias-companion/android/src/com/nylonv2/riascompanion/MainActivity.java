@@ -128,6 +128,7 @@ public class MainActivity extends Activity {
             requestPermissions(new String[] {"android.permission.POST_NOTIFICATIONS"}, 1);
         }
         web.addJavascriptInterface(new Bridge(this), "RiasNative");
+        web.addJavascriptInterface(new RiasDevice(this, this), "RiasDevice");
         setContentView(web);
         web.loadUrl("file:///android_asset/www/index.html");
         handleShare(getIntent());
@@ -240,6 +241,10 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == 60) { // assistant permissions (mic, contacts, calls)
+            web.evaluateJavascript("window.riasPermission && window.riasPermission('device', true)", null);
+            return;
+        }
         if (requestCode != REQ_CALENDAR) return;
         boolean granted = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
         web.evaluateJavascript("window.riasPermission && window.riasPermission('calendar', " + granted + ")", null);
