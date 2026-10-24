@@ -141,6 +141,7 @@ public class WakeService extends Service implements RecognitionListener {
                 .setContentText(text)
                 .setColor(0xFFC8173A)
                 .setOngoing(true)
+                .setOnlyAlertOnce(true)
                 .setContentIntent(open)
                 .addAction(0, "Turn off", off)
                 .build();
@@ -187,7 +188,11 @@ public class WakeService extends Service implements RecognitionListener {
         }
     }
 
+    private String shown = "";
+
     private void updateNote(String text) {
+        if (text.equals(shown)) return; // re-posting the same notification can make some phones chime
+        shown = text;
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(NOTE_ID, note(text));
     }

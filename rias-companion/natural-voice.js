@@ -118,7 +118,7 @@ window.NaturalVoice = (() => {
       // Rate-limited or rejected: use the phone voice for a while instead of retrying every line.
       if (e.message !== 'no-key') failUntil = Date.now() + (e.status === 429 ? 10 * 60000 : 60000);
       speak.lastError = e.status === 429 ? 'The free Gemini voice quota is used up for now; I\'ll use the phone voice for a bit.'
-        : e.message === 'no-key' ? 'Add a Gemini key in Settings → Rias\'s mind to use her natural voice.'
+        : e.message === 'no-key' ? 'Paste a free Google key in the box above (tap “Get a free key”) to hear her natural voice.'
           : `Her natural voice couldn't load (${e.message}).`;
       return false;
     }

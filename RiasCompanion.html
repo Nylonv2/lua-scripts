@@ -1587,7 +1587,13 @@ button:active, .chip:active span { transform: scale(.97); }
             <label>Her natural voice
               <select name="naturalVoice"></select>
             </label>
-            <p class="muted small">An original voice made to fit Rias: warm, poised and a little teasing (not a copy of any actor). It uses your free Gemini key from Rias's mind, so it needs internet. If it can't connect, she switches to the phone voice.</p>
+            <label>Free Google key for her voice
+              <input name="voiceKey" type="password" autocomplete="off" placeholder="AIza…">
+            </label>
+            <p class="muted small">Claude writes her replies but can't make sound, so her voice comes from Google's free voice service. Your chats keep using Claude; this key is only for her voice and stays on your phone.</p>
+            <p class="muted small"><b>Get one (free, 1 minute):</b> tap the button, sign in with Google, tap “Create API key”, copy it, paste it above, then tap ▶ Hear her.</p>
+            <button type="button" id="voice-key-get">Get a free key</button>
+            <p class="muted small">An original voice made to fit Rias: warm, poised and a little teasing (not a copy of any actor). Needs internet; if it can't connect, she uses the phone voice.</p>
           </div>
           <label id="phone-voice-pick">Her voice
             <select name="voiceName"></select>
@@ -4918,7 +4924,7 @@ window.NaturalVoice = (() => {
       // Rate-limited or rejected: use the phone voice for a while instead of retrying every line.
       if (e.message !== 'no-key') failUntil = Date.now() + (e.status === 429 ? 10 * 60000 : 60000);
       speak.lastError = e.status === 429 ? 'The free Gemini voice quota is used up for now; I\'ll use the phone voice for a bit.'
-        : e.message === 'no-key' ? 'Add a Gemini key in Settings → Rias\'s mind to use her natural voice.'
+        : e.message === 'no-key' ? 'Paste a free Google key in the box above (tap “Get a free key”) to hear her natural voice.'
           : `Her natural voice couldn't load (${e.message}).`;
       return false;
     }
@@ -7836,6 +7842,7 @@ window.createAssistant = function createAssistant(ctx) {
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
     sf.elements.voiceStyle.value = state.settings.voiceStyle || 'phone';
+    sf.elements.voiceKey.value = state.ai.geminiKey;
     fillNaturalVoices();
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
@@ -8159,6 +8166,14 @@ window.createAssistant = function createAssistant(ctx) {
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
+  sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });
+  sf.elements.geminiKey.addEventListener('input', () => { sf.elements.voiceKey.value = sf.elements.geminiKey.value; });
+  $('#voice-key-get').addEventListener('click', () => {
+    const url = 'https://aistudio.google.com/apikey';
+    const N = window.RiasNative;
+    if (N && N.openUrl) N.openUrl(url); else window.open(url, '_blank', 'noopener');
+  });
   const Dev = () => window.RiasDevice || null;
   function devStatus() {
     const d = Dev();

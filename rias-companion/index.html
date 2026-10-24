@@ -328,7 +328,13 @@
             <label>Her natural voice
               <select name="naturalVoice"></select>
             </label>
-            <p class="muted small">An original voice made to fit Rias: warm, poised and a little teasing (not a copy of any actor). It uses your free Gemini key from Rias's mind, so it needs internet. If it can't connect, she switches to the phone voice.</p>
+            <label>Free Google key for her voice
+              <input name="voiceKey" type="password" autocomplete="off" placeholder="AIza…">
+            </label>
+            <p class="muted small">Claude writes her replies but can't make sound, so her voice comes from Google's free voice service. Your chats keep using Claude; this key is only for her voice and stays on your phone.</p>
+            <p class="muted small"><b>Get one (free, 1 minute):</b> tap the button, sign in with Google, tap “Create API key”, copy it, paste it above, then tap ▶ Hear her.</p>
+            <button type="button" id="voice-key-get">Get a free key</button>
+            <p class="muted small">An original voice made to fit Rias: warm, poised and a little teasing (not a copy of any actor). Needs internet; if it can't connect, she uses the phone voice.</p>
           </div>
           <label id="phone-voice-pick">Her voice
             <select name="voiceName"></select>

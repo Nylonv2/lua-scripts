@@ -2466,6 +2466,7 @@
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
     sf.elements.voiceStyle.value = state.settings.voiceStyle || 'phone';
+    sf.elements.voiceKey.value = state.ai.geminiKey;
     fillNaturalVoices();
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
@@ -2789,6 +2790,14 @@
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
+  // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
+  sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });
+  sf.elements.geminiKey.addEventListener('input', () => { sf.elements.voiceKey.value = sf.elements.geminiKey.value; });
+  $('#voice-key-get').addEventListener('click', () => {
+    const url = 'https://aistudio.google.com/apikey';
+    const N = window.RiasNative;
+    if (N && N.openUrl) N.openUrl(url); else window.open(url, '_blank', 'noopener');
+  });
   const Dev = () => window.RiasDevice || null;
   function devStatus() {
     const d = Dev();

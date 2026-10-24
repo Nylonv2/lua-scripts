@@ -214,7 +214,7 @@ Settings → **Assistant** has everything below. It works without her AI too. Wi
 - **“What did I miss?”** She reads your new notifications aloud. Needs *Read notifications* allowed; nothing is stored or uploaded.
 - **Routines.** “Good morning” gives the briefing and stops sleep sounds. “Goodnight” turns on Do Not Disturb, starts rain and tells you tomorrow's first thing. Edit them or make your own: one phrase, then any mix of briefing, tomorrow's plan, Do Not Disturb, volume, sounds, music and a line from her.
 - **Quick answers.** The time and date, “what's 15% of 80”, “tip on $45”, simple math.
-- **Her natural voice.** Settings → You & her voice → *Voice type: Natural AI voice*. It's an original voice styled to fit her (elegant, warm, a little low and teasing), not a copy of any actor's voice. It uses Google's Gemini text-to-speech with your free Gemini key, so it needs internet. Pick from 7 voices; *Warm* is the default. If it can't connect (or the free quota runs out), she uses the phone voice.
+- **Her natural voice.** Settings → You & her voice → *Voice type: Natural AI voice*. It's an original voice styled to fit her (elegant, warm, a little low and teasing), not a copy of any actor's voice. It uses Google's Gemini text-to-speech, so it needs a free Google key (there's a box and a “Get a free key” button right under Voice type; chats keep using Claude) and internet. Pick from 7 voices; *Warm* is the default. If it can't connect (or the free quota runs out), she uses the phone voice.
 
 ## Talk to her from the home screen (5.4)
 
