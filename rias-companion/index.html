@@ -254,6 +254,7 @@
         <div class="segmented rem-mode biz-seg" id="biz-seg" role="tablist" aria-label="Assistant">
           <button type="button" role="tab" data-pane="msgs" class="active">💬 Replies</button>
           <button type="button" role="tab" data-pane="clients">💼 Clients</button>
+          <button type="button" role="tab" data-pane="tr">🌐 Translate</button>
         </div>
         <div id="pane-msgs">
           <div class="card holo biz-hero">
@@ -269,6 +270,22 @@
           </div>
           <div class="row-between biz-list-head"><p class="group-title">Recent messages</p><button type="button" class="link" id="rp-refresh">↻ Refresh</button></div>
           <div id="rp-list"></div>
+        </div>
+        <div id="pane-tr" hidden>
+          <div class="card holo biz-hero">
+            <p class="eyebrow">Live translator</p>
+            <h2 class="biz-title">Talk with anyone.</h2>
+            <p class="muted small">Pick the two languages, then take turns tapping the mic. I translate and say it out loud in the other person's language.</p>
+            <div class="tr-langs">
+              <label>You speak <select id="tr-me"></select></label>
+              <button type="button" id="tr-swap" aria-label="Swap languages">⇅</button>
+              <label>They speak <select id="tr-them"></select></label>
+            </div>
+            <div class="biz-actions one"><button type="button" class="btn-primary" id="tr-start">🌐 Start translating</button></div>
+            <p class="small voice-hint" id="tr-hint"></p>
+          </div>
+          <p class="muted small tr-tip">Put the phone flat between you: the top half faces them (upside down so they can read it). Side by side? Tap ⇅ in the middle to turn it upright.</p>
+          <div id="tr-history" hidden></div>
         </div>
         <div id="pane-clients" hidden>
         <div class="card holo biz-hero">
@@ -662,6 +679,33 @@
     </nav>
   </div>
 
+  <!-- Assistant: live translator (full screen, split in two) -->
+  <dialog id="tr-live" class="tr-live" aria-label="Live translator">
+    <div class="tr-half them" id="tr-half-them">
+      <div class="tr-head"><span class="tr-lang"></span><button type="button" class="tr-replay" data-side="them" aria-label="Say it again">🔊</button></div>
+      <div class="tr-body"><p class="tr-text"></p><p class="tr-orig"></p></div>
+      <form class="tr-typebox" data-side="them" hidden><input maxlength="500" autocomplete="off" enterkeyhint="send"><button type="submit" aria-label="Translate">➤</button></form>
+      <div class="tr-controls">
+        <button type="button" class="tr-type" data-side="them" aria-label="Type instead">⌨</button>
+        <button type="button" class="tr-mic" data-side="them"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><span class="tr-mic-label"></span></button>
+      </div>
+    </div>
+    <div class="tr-mid">
+      <button type="button" id="tr-close" aria-label="Close translator">✕</button>
+      <span id="tr-status" aria-live="polite"></span>
+      <button type="button" id="tr-flip" aria-label="Turn their side upright or upside down">⇅</button>
+    </div>
+    <div class="tr-half me" id="tr-half-me">
+      <div class="tr-head"><span class="tr-lang"></span><button type="button" class="tr-replay" data-side="me" aria-label="Say it again">🔊</button></div>
+      <div class="tr-body"><p class="tr-text"></p><p class="tr-orig"></p></div>
+      <form class="tr-typebox" data-side="me" hidden><input maxlength="500" autocomplete="off" enterkeyhint="send"><button type="submit" aria-label="Translate">➤</button></form>
+      <div class="tr-controls">
+        <button type="button" class="tr-type" data-side="me" aria-label="Type instead">⌨</button>
+        <button type="button" class="tr-mic" data-side="me"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><span class="tr-mic-label"></span></button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Assistant: reply to a message -->
   <dialog id="rp-sheet" class="sheet">
     <form method="dialog" id="rp-form" class="stack">
@@ -1044,6 +1088,7 @@
   <script src="assistant.js"></script>
   <script src="biz.js"></script>
   <script src="replies.js"></script>
+  <script src="translate.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1326,7 +1326,8 @@ button:active, .chip:active span { transform: scale(.97); }
 .biz-actions button:not(.btn-primary) { background: rgba(255, 255, 255, .07); border: 1px solid rgba(240, 207, 133, .4); color: var(--text); font-weight: 600; }
 
 /* ---------- Assistant tab → Replies ---------- */
-.biz-seg { grid-template-columns: 1fr 1fr; }
+.biz-seg { grid-template-columns: repeat(3, 1fr); }
+.biz-seg button { font-size: .82rem; padding: 8px 2px; }
 .biz-actions.one { grid-template-columns: 1fr; }
 .rp-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; margin-bottom: 8px; color: var(--text);
   border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .58); }
@@ -1347,6 +1348,50 @@ button:active, .chip:active span { transform: scale(.97); }
 .rp-opt.on { border-color: rgba(240, 207, 133, .8); background: linear-gradient(140deg, rgba(239, 69, 112, .3), rgba(var(--a3), .16)); }
 #rp-tones button.on { border-color: rgba(240, 207, 133, .7); color: #f0cf85; }
 .rp-send { width: 100%; padding: 12px; border-radius: 14px; font-weight: 600; border: 1px solid rgba(80, 200, 140, .5); background: rgba(80, 200, 140, .15); color: #c6f5dc; }
+
+/* ---------- Assistant tab → Translate ---------- */
+.tr-langs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 8px; margin: 14px 0 12px; }
+.tr-langs label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); min-width: 0; }
+.tr-langs select { width: 100%; }
+#tr-swap { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 1.1rem; }
+.tr-tip { margin: 4px 4px 14px; }
+.tr-hist { padding: 10px 12px; border-radius: 14px; margin-bottom: 6px; background: rgba(var(--glass), .5); border: 1px solid rgba(255, 255, 255, .06); display: flex; flex-direction: column; gap: 2px; }
+.tr-hist.me { border-left: 3px solid var(--g1); }
+.tr-hist.them { border-left: 3px solid #f0cf85; }
+.tr-hist small { color: var(--muted); }
+dialog.tr-live { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; border-radius: 0;
+  display: none; flex-direction: column; color: var(--text);
+  background: radial-gradient(90% 50% at 50% 0%, rgba(240, 207, 133, .14), transparent 70%), radial-gradient(90% 50% at 50% 100%, rgba(var(--a2), .22), transparent 70%), var(--d3); }
+dialog.tr-live[open] { display: flex; animation: none; }
+dialog.tr-live::backdrop { background: var(--d3); }
+.tr-half { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 18px 20px; gap: 10px; }
+.tr-half.them { transform: rotate(180deg); }
+.tr-live.flat .tr-half.them { transform: none; }
+.tr-head { display: flex; align-items: center; justify-content: space-between; }
+.tr-lang { font-family: Georgia, serif; font-style: italic; color: #f0cf85; font-size: 1rem; letter-spacing: .02em; }
+.tr-replay { width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+.tr-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; }
+.tr-text { margin: 0; font-size: clamp(1.4rem, 6.2vw, 2.1rem); line-height: 1.25; font-weight: 600; }
+.tr-text.idle { font-weight: 400; font-size: 1.15rem; color: var(--muted); }
+.tr-orig { margin: 8px 0 0; color: var(--muted); font-size: .9rem; }
+.tr-orig:empty { display: none; }
+.tr-controls { display: flex; align-items: center; gap: 10px; }
+.tr-type { flex: none; width: 52px; height: 52px; padding: 0; border-radius: 50%; font-size: 1.1rem; }
+.tr-mic { flex: 1; height: 60px; border-radius: 999px; border: 0; color: #fff; font-weight: 600; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: radial-gradient(circle at 30% 30%, var(--g1), var(--g2) 75%); box-shadow: 0 10px 26px rgba(var(--a3), .45); }
+.tr-half.them .tr-mic { background: radial-gradient(circle at 30% 30%, #f6d999, #c8962f 75%); color: #2a1606; box-shadow: 0 10px 26px rgba(200, 150, 47, .35); }
+.tr-mic .ic { width: 22px; height: 22px; }
+.tr-mic.listening { animation: tr-pulse 1.1s ease-in-out infinite; }
+.tr-mic:disabled:not(.listening) { opacity: .5; }
+@keyframes tr-pulse { 50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(var(--a2), .25), 0 10px 26px rgba(var(--a3), .45); } }
+.tr-typebox { display: flex; gap: 8px; }
+.tr-typebox[hidden] { display: none; }
+.tr-typebox input { flex: 1; min-width: 0; }
+.tr-typebox button { width: 46px; height: 46px; padding: 0; border-radius: 50%; }
+.tr-mid { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 14px; border-top: 1px solid rgba(240, 207, 133, .25); border-bottom: 1px solid rgba(240, 207, 133, .25); background: rgba(0, 0, 0, .25); }
+.tr-mid button { width: 40px; height: 40px; padding: 0; border-radius: 50%; flex: none; }
+#tr-status { flex: 1; text-align: center; font-size: .85rem; color: var(--muted); }
+#tr-status.warn { color: #e8b26a; }
 </style>
 </head>
 <body>
@@ -1590,6 +1635,7 @@ button:active, .chip:active span { transform: scale(.97); }
         <div class="segmented rem-mode biz-seg" id="biz-seg" role="tablist" aria-label="Assistant">
           <button type="button" role="tab" data-pane="msgs" class="active">💬 Replies</button>
           <button type="button" role="tab" data-pane="clients">💼 Clients</button>
+          <button type="button" role="tab" data-pane="tr">🌐 Translate</button>
         </div>
         <div id="pane-msgs">
           <div class="card holo biz-hero">
@@ -1605,6 +1651,22 @@ button:active, .chip:active span { transform: scale(.97); }
           </div>
           <div class="row-between biz-list-head"><p class="group-title">Recent messages</p><button type="button" class="link" id="rp-refresh">↻ Refresh</button></div>
           <div id="rp-list"></div>
+        </div>
+        <div id="pane-tr" hidden>
+          <div class="card holo biz-hero">
+            <p class="eyebrow">Live translator</p>
+            <h2 class="biz-title">Talk with anyone.</h2>
+            <p class="muted small">Pick the two languages, then take turns tapping the mic. I translate and say it out loud in the other person's language.</p>
+            <div class="tr-langs">
+              <label>You speak <select id="tr-me"></select></label>
+              <button type="button" id="tr-swap" aria-label="Swap languages">⇅</button>
+              <label>They speak <select id="tr-them"></select></label>
+            </div>
+            <div class="biz-actions one"><button type="button" class="btn-primary" id="tr-start">🌐 Start translating</button></div>
+            <p class="small voice-hint" id="tr-hint"></p>
+          </div>
+          <p class="muted small tr-tip">Put the phone flat between you: the top half faces them (upside down so they can read it). Side by side? Tap ⇅ in the middle to turn it upright.</p>
+          <div id="tr-history" hidden></div>
         </div>
         <div id="pane-clients" hidden>
         <div class="card holo biz-hero">
@@ -1997,6 +2059,33 @@ button:active, .chip:active span { transform: scale(.97); }
       <button type="button" data-view="biz"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="tab-lbl">Assistant</span></button>
     </nav>
   </div>
+
+  <!-- Assistant: live translator (full screen, split in two) -->
+  <dialog id="tr-live" class="tr-live" aria-label="Live translator">
+    <div class="tr-half them" id="tr-half-them">
+      <div class="tr-head"><span class="tr-lang"></span><button type="button" class="tr-replay" data-side="them" aria-label="Say it again">🔊</button></div>
+      <div class="tr-body"><p class="tr-text"></p><p class="tr-orig"></p></div>
+      <form class="tr-typebox" data-side="them" hidden><input maxlength="500" autocomplete="off" enterkeyhint="send"><button type="submit" aria-label="Translate">➤</button></form>
+      <div class="tr-controls">
+        <button type="button" class="tr-type" data-side="them" aria-label="Type instead">⌨</button>
+        <button type="button" class="tr-mic" data-side="them"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><span class="tr-mic-label"></span></button>
+      </div>
+    </div>
+    <div class="tr-mid">
+      <button type="button" id="tr-close" aria-label="Close translator">✕</button>
+      <span id="tr-status" aria-live="polite"></span>
+      <button type="button" id="tr-flip" aria-label="Turn their side upright or upside down">⇅</button>
+    </div>
+    <div class="tr-half me" id="tr-half-me">
+      <div class="tr-head"><span class="tr-lang"></span><button type="button" class="tr-replay" data-side="me" aria-label="Say it again">🔊</button></div>
+      <div class="tr-body"><p class="tr-text"></p><p class="tr-orig"></p></div>
+      <form class="tr-typebox" data-side="me" hidden><input maxlength="500" autocomplete="off" enterkeyhint="send"><button type="submit" aria-label="Translate">➤</button></form>
+      <div class="tr-controls">
+        <button type="button" class="tr-type" data-side="me" aria-label="Type instead">⌨</button>
+        <button type="button" class="tr-mic" data-side="me"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg><span class="tr-mic-label"></span></button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Assistant: reply to a message -->
   <dialog id="rp-sheet" class="sheet">
@@ -4749,7 +4838,47 @@ ${instruction ? `What the user wants to say: ${instruction}\n` : ''}${tone ? `To
     }
   }
 
-  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, suggestReplies };
+  // ---------- Live translator ----------
+  const translatePrompt = ({ text, from, to, context }) => `You are a live interpreter helping two people talk face to face. Translate what was said from ${from} into ${to}.
+- Natural, everyday spoken ${to}, the way a fluent local would say it. Keep the meaning, tone and politeness level.
+- If the speech-to-text looks slightly wrong, translate what they most likely meant.
+- Output only the translation: no quotes, notes, romanization or explanations.${context ? `\n\nRecent conversation, for context only:\n${context}` : ''}
+
+What was said (${from}):
+${text}`;
+
+  /** { text, from, to, context } → { text } or { error }. Language names in English, e.g. "Spanish (Mexico)". */
+  async function translate(opts) {
+    if (!enabled()) return { error: 'no-ai' };
+    try {
+      let out = '';
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: translatePrompt(opts) }] }],
+          generationConfig: { maxOutputTokens: 1024 },
+        });
+        out = ((((data.candidates || [])[0] || {}).content || {}).parts || []).filter((p) => p.text && !p.thought).map((p) => p.text).join('');
+      } else {
+        const api = getClient();
+        if (!api) return { error: 'Add your Claude key first.' };
+        const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+        const res = await api.messages.create({
+          model, max_tokens: 1000, output_config: { effort: 'low' },
+          messages: [{ role: 'user', content: translatePrompt(opts) }],
+        });
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (res.stop_reason === 'refusal') return { error: 'I can\'t translate that one.' };
+        out = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+      }
+      out = out.trim().replace(/^["“]|["”]$/g, '');
+      return out ? { text: out } : { error: 'The translation came back empty. Try again.' };
+    } catch (e) {
+      return { error: e && e.status === 429 ? 'The AI is rate-limited right now. Try again in a moment.' : 'Couldn\'t translate just now. Check your internet.' };
+    }
+  }
+
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, suggestReplies, translate };
 };
 </script>
   <script>
@@ -5888,6 +6017,12 @@ window.createAssistant = function createAssistant(ctx) {
       if (line) return [line];
     }
 
+    // "Translate for me" / "interpreter mode" → the live translator.
+    if (/^(?:open (?:the )?)?(?:live )?(?:translator|translate|interpreter)(?: mode)?$|^(?:help me )?translate (?:for me|a conversation)$|^(?:i need (?:a |an )?)(?:translator|interpreter)$/.test(t) && ctx.openTranslator) {
+      const line = ctx.openTranslator();
+      if (line) return [line];
+    }
+
     // "Find me clients" → the Assistant tab's client search.
     if (/^(?:find|get|look for|search for|hunt for)\b.*\b(?:clients|customers|leads|prospects)\b/.test(t)) {
       const line = ctx.findClients && ctx.findClients();
@@ -6362,7 +6497,8 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     for (const b of $('#biz-seg').querySelectorAll('button')) b.classList.toggle('active', b.dataset.pane === p);
     $('#pane-msgs').hidden = p !== 'msgs';
     $('#pane-clients').hidden = p !== 'clients';
-    if (p === 'msgs') render(); else ctx.renderClients();
+    $('#pane-tr').hidden = p !== 'tr';
+    if (p === 'msgs') render(); else if (p === 'tr') ctx.renderTranslate(); else ctx.renderClients();
   }
   $('#biz-seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-pane]'); if (b) setPane(b.dataset.pane); });
 
@@ -6530,6 +6666,229 @@ window.createReplyHelper = function createReplyHelper(ctx) {
   }
 
   return { render, setPane, helpWith, get pane() { return pane; } };
+};
+</script>
+  <script>
+// Assistant tab → Translate: a face-to-face interpreter. The screen splits in two: the top half
+// faces the other person (upside down, so they can read it across from you), the bottom half is
+// yours. Each side taps its mic and talks; Rias translates (her AI) and says it out loud in the
+// other person's language (the phone's voices). Typing works too.
+window.createTranslator = function createTranslator(ctx) {
+  'use strict';
+  const { state, save, $ } = ctx;
+  // [speech/voice code, English name, the language's own name, "tap to talk" in that language]
+  const LANGS = [
+    ['en-US', 'English', 'English', 'Tap to talk'],
+    ['es-US', 'Spanish', 'Español', 'Toca para hablar'],
+    ['es-MX', 'Spanish (Mexico)', 'Español (México)', 'Toca para hablar'],
+    ['es-ES', 'Spanish (Spain)', 'Español (España)', 'Toca para hablar'],
+    ['fr-FR', 'French', 'Français', 'Touchez pour parler'],
+    ['de-DE', 'German', 'Deutsch', 'Zum Sprechen tippen'],
+    ['it-IT', 'Italian', 'Italiano', 'Tocca per parlare'],
+    ['pt-BR', 'Portuguese (Brazil)', 'Português (Brasil)', 'Toque para falar'],
+    ['pt-PT', 'Portuguese (Portugal)', 'Português', 'Toque para falar'],
+    ['zh-CN', 'Chinese (Mandarin)', '中文 (普通话)', '点击说话'],
+    ['zh-HK', 'Cantonese', '粵語', '點擊說話'],
+    ['ja-JP', 'Japanese', '日本語', 'タップして話す'],
+    ['ko-KR', 'Korean', '한국어', '눌러서 말하기'],
+    ['vi-VN', 'Vietnamese', 'Tiếng Việt', 'Chạm để nói'],
+    ['fil-PH', 'Tagalog (Filipino)', 'Tagalog', 'Pindutin para magsalita'],
+    ['ar-SA', 'Arabic', 'العربية', 'اضغط للتحدث'],
+    ['hi-IN', 'Hindi', 'हिन्दी', 'बोलने के लिए टैप करें'],
+    ['ur-PK', 'Urdu', 'اردو', 'بولنے کے لیے ٹیپ کریں'],
+    ['bn-BD', 'Bengali', 'বাংলা', 'কথা বলতে ট্যাপ করুন'],
+    ['pa-IN', 'Punjabi', 'ਪੰਜਾਬੀ', 'ਬੋਲਣ ਲਈ ਟੈਪ ਕਰੋ'],
+    ['ru-RU', 'Russian', 'Русский', 'Нажмите, чтобы говорить'],
+    ['uk-UA', 'Ukrainian', 'Українська', 'Натисніть, щоб говорити'],
+    ['pl-PL', 'Polish', 'Polski', 'Dotknij, aby mówić'],
+    ['tr-TR', 'Turkish', 'Türkçe', 'Konuşmak için dokun'],
+    ['fa-IR', 'Persian (Farsi)', 'فارسی', 'برای صحبت ضربه بزنید'],
+    ['he-IL', 'Hebrew', 'עברית', 'הקש כדי לדבר'],
+    ['el-GR', 'Greek', 'Ελληνικά', 'Πατήστε για να μιλήσετε'],
+    ['nl-NL', 'Dutch', 'Nederlands', 'Tik om te praten'],
+    ['th-TH', 'Thai', 'ไทย', 'แตะเพื่อพูด'],
+    ['id-ID', 'Indonesian', 'Bahasa Indonesia', 'Ketuk untuk bicara'],
+    ['ht-HT', 'Haitian Creole', 'Kreyòl ayisyen', 'Peze pou pale'],
+    ['sw-KE', 'Swahili', 'Kiswahili', 'Gusa ili kuongea'],
+    ['so-SO', 'Somali', 'Soomaali', 'Taabo si aad u hadasho'],
+    ['am-ET', 'Amharic', 'አማርኛ', 'ለመናገር ይንኩ'],
+    ['ne-NP', 'Nepali', 'नेपाली', 'बोल्न ट्याप गर्नुहोस्'],
+    ['ta-IN', 'Tamil', 'தமிழ்', 'பேச தட்டவும்'],
+  ];
+  const lang = (code) => LANGS.find((l) => l[0] === code) || LANGS[0];
+  const RTL = /^(ar|ur|fa|he)/;
+  const cfg = () => (state.translate ||= { me: guessMine(), them: 'es-US', flip: true });
+  function guessMine() {
+    const nav = (navigator.language || 'en-US');
+    return (LANGS.find((l) => l[0].toLowerCase() === nav.toLowerCase()) || LANGS.find((l) => l[0].slice(0, 2) === nav.slice(0, 2)) || LANGS[0])[0];
+  }
+  const D = () => window.RiasDevice || null;
+  const N = () => window.RiasNative || null;
+  const WebRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let busy = false;
+  const history = []; // this session only: [{ side, said, translated }]
+  const last = { me: null, them: null }; // what's shown on each half: { text, orig, code }
+
+  // ---------- the setup card ----------
+  function fillSelects() {
+    for (const id of ['#tr-me', '#tr-them']) {
+      const sel = $(id);
+      if (sel.options.length) continue;
+      for (const [code, name, native] of LANGS) sel.append(new Option(name === native ? name : `${name} · ${native}`, code));
+    }
+    $('#tr-me').value = cfg().me;
+    $('#tr-them').value = cfg().them;
+  }
+  function render() {
+    fillSelects();
+    $('#tr-hint').textContent = ctx.ai.enabled() ? '' : 'The translator needs her AI. Turn it on in Settings → Rias\'s mind (a free Gemini key works).';
+    const box = $('#tr-history');
+    box.hidden = !history.length;
+    box.innerHTML = history.length ? `<p class="group-title">This conversation</p>${history.slice(-12).map((h) => `<div class="tr-hist ${h.side}"><b>${esc(h.translated)}</b><small>${esc(h.said)}</small></div>`).join('')}` : '';
+  }
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  $('#tr-me').addEventListener('change', (e) => { cfg().me = e.target.value; save(); });
+  $('#tr-them').addEventListener('change', (e) => { cfg().them = e.target.value; save(); });
+  $('#tr-swap').addEventListener('click', () => { const c = cfg(); [c.me, c.them] = [c.them, c.me]; save(); fillSelects(); });
+  $('#tr-start').addEventListener('click', start);
+
+  // ---------- the live split screen ----------
+  function start() {
+    if (!ctx.ai.enabled()) { render(); $('#tr-hint').textContent = 'Turn on her AI first: Settings → Rias\'s mind (a free Gemini key works).'; return; }
+    const c = cfg();
+    last.me = null; last.them = null;
+    paint();
+    $('#tr-live').classList.toggle('flat', !c.flip);
+    $('#tr-live').showModal();
+    status('');
+    // Warn early if the phone can't speak one of the languages.
+    setTimeout(() => {
+      const d = D();
+      if (!d || !d.voiceCheck) return;
+      const missing = [c.them, c.me].filter((code) => { try { return /missing|unsupported/.test(d.voiceCheck(code)); } catch { return false; } });
+      if (missing.length) status(`No ${missing.map((m) => lang(m)[1]).join(' or ')} voice on this phone: I'll show the text. To hear it, add the voice in Android Settings → Accessibility → Text-to-speech.`, true);
+    }, 1500);
+  }
+  function paint() {
+    const c = cfg();
+    for (const side of ['me', 'them']) {
+      const code = side === 'me' ? c.me : c.them;
+      const L = lang(code);
+      const half = $(`#tr-half-${side}`);
+      half.dir = RTL.test(code) ? 'rtl' : 'ltr';
+      half.querySelector('.tr-lang').textContent = L[2];
+      half.querySelector('.tr-mic-label').textContent = L[3];
+      const shown = last[side];
+      half.querySelector('.tr-text').textContent = shown ? shown.text : (side === 'them' ? L[3] : 'Tap your mic and talk. I\'ll say it in their language.');
+      half.querySelector('.tr-text').classList.toggle('idle', !shown);
+      half.querySelector('.tr-orig').textContent = shown ? shown.orig : '';
+      half.querySelector('.tr-replay').hidden = !shown;
+    }
+  }
+  function status(text, warn) {
+    const el = $('#tr-status');
+    el.textContent = text;
+    el.classList.toggle('warn', !!warn);
+  }
+  function setBusy(on, side) {
+    busy = on;
+    for (const b of $('#tr-live').querySelectorAll('.tr-mic, .tr-type')) b.disabled = on;
+    $('#tr-live').querySelectorAll('.tr-mic').forEach((b) => b.classList.toggle('listening', on && b.dataset.side === side));
+  }
+
+  // Someone talked (or typed): translate it for the other side and say it out loud.
+  async function handle(side, said) {
+    said = String(said || '').trim();
+    if (!said) { setBusy(false); status(''); return; }
+    const c = cfg();
+    const fromCode = side === 'me' ? c.me : c.them;
+    const toCode = side === 'me' ? c.them : c.me;
+    setBusy(true, null);
+    status('Translating…');
+    const context = history.slice(-4).map((h) => `${h.side === 'me' ? 'Person A' : 'Person B'}: ${h.said}`).join('\n');
+    const res = await ctx.ai.translate({ text: said, from: lang(fromCode)[1], to: lang(toCode)[1], context });
+    setBusy(false);
+    if (res.error) { status(res.error === 'no-ai' ? 'Turn on her AI to translate.' : res.error, true); return; }
+    const other = side === 'me' ? 'them' : 'me';
+    last[other] = { text: res.text, orig: said, code: toCode };
+    history.push({ side, said, translated: res.text });
+    paint();
+    status('');
+    speak(res.text, toCode);
+  }
+  function speak(text, code) {
+    const d = D();
+    if (d && d.speakIn) {
+      let r = 'ok';
+      try { r = String(d.speakIn(text, code)); } catch { r = 'error'; }
+      if (/missing|unsupported/.test(r)) status(`This phone has no ${lang(code)[1]} voice, so read it instead. (Add one in Android Settings → Accessibility → Text-to-speech.)`, true);
+      return;
+    }
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = code;
+      const v = speechSynthesis.getVoices().find((x) => x.lang.toLowerCase().startsWith(code.slice(0, 2).toLowerCase()));
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    }
+  }
+  function listen(side) {
+    if (busy) return;
+    const c = cfg();
+    const code = side === 'me' ? c.me : c.them;
+    const n = N();
+    status(side === 'me' ? 'Listening to you…' : `Listening… (${lang(code)[1]})`);
+    setBusy(true, side);
+    if (n && n.listenIn) { n.listenIn(code, side, lang(code)[3]); return; }
+    if (WebRec) {
+      const rec = new WebRec();
+      rec.lang = code;
+      rec.interimResults = false;
+      rec.onresult = (e) => handle(side, e.results[0][0].transcript);
+      rec.onerror = () => { setBusy(false); status('Couldn\'t hear that. Try again, or type it.', true); };
+      rec.onend = () => { if (busy && !$('#tr-status').textContent.startsWith('Translating')) { setBusy(false); status(''); } };
+      rec.start();
+      return;
+    }
+    setBusy(false);
+    status('Voice input isn\'t available here. Tap ⌨ to type.', true);
+  }
+  // Android voice typing result for one side.
+  window.riasTrHeard = (side, text, err) => {
+    if (err) { setBusy(false); status('Voice typing isn\'t available on this phone. Tap ⌨ to type.', true); return; }
+    if (!text) { setBusy(false); status(''); return; }
+    handle(side, text);
+  };
+
+  $('#tr-live').addEventListener('click', (e) => {
+    const mic = e.target.closest('.tr-mic');
+    if (mic) { listen(mic.dataset.side); return; }
+    const type = e.target.closest('.tr-type');
+    if (type) {
+      const f = $(`#tr-half-${type.dataset.side} .tr-typebox`);
+      f.hidden = !f.hidden;
+      if (!f.hidden) f.querySelector('input').focus();
+      return;
+    }
+    const rep = e.target.closest('.tr-replay');
+    if (rep) { const s = last[rep.dataset.side]; if (s) speak(s.text, s.code); }
+  });
+  for (const f of document.querySelectorAll('#tr-live .tr-typebox')) {
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = f.querySelector('input');
+      const v = input.value.trim();
+      input.value = '';
+      f.hidden = true;
+      if (v) handle(f.dataset.side, v);
+    });
+  }
+  $('#tr-close').addEventListener('click', () => { const d = D(); if (d && d.stopSpeakIn) d.stopSpeakIn(); $('#tr-live').close(); render(); });
+  $('#tr-flip').addEventListener('click', () => { const c = cfg(); c.flip = !c.flip; save(); $('#tr-live').classList.toggle('flat', !c.flip); });
+  $('#tr-live').addEventListener('cancel', () => { const d = D(); if (d && d.stopSpeakIn) d.stopSpeakIn(); setTimeout(render, 0); });
+
+  return { render, start };
 };
 </script>
   <script>
@@ -7897,7 +8256,7 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
     if (view === 'work') Work.render();
-    if (view === 'biz' && Replies) { if (Replies.pane === 'msgs') Replies.render(); else Biz.render(); }
+    if (view === 'biz' && Replies) { if (Replies.pane === 'msgs') Replies.render(); else if (Replies.pane === 'tr') Translator.render(); else Biz.render(); }
     if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
   $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
@@ -8334,6 +8693,12 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     save, say, fmtTime, dateKey, headless: HEADLESS, stopSpeaking,
     aiOn: () => AI.enabled(),
     changes,
+    // "Translate" / "interpreter": the live translator.
+    openTranslator() {
+      if (HEADLESS || !Translator) return null;
+      setTimeout(() => { show('biz'); Replies.setPane('tr'); }, 400);
+      return say('Opening the translator. Pick the languages and tap Start~');
+    },
     // "Help me reply to Jake": the Assistant tab's reply helper.
     replyHelp(name) {
       if (HEADLESS || !Replies) return null;
@@ -8430,7 +8795,8 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     say: (text) => addMessage('rias', say(text)),
     sendEmail: (opts) => Assistant.email(opts),
   });
-  const Replies = HEADLESS ? null : window.createReplyHelper({ ...modCtx, ai: AI, renderClients: () => Biz.render() });
+  const Translator = HEADLESS ? null : window.createTranslator({ ...modCtx, ai: AI });
+  const Replies = HEADLESS ? null : window.createReplyHelper({ ...modCtx, ai: AI, renderClients: () => Biz.render(), renderTranslate: () => Translator.render() });
 
   // Phone calendar (Android app only): events from Samsung/Google Calendar.
   function syncCalendar() {

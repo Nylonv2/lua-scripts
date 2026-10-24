@@ -33,6 +33,10 @@ final class RiasDevice {
     @JavascriptInterface public String email(String to, String subject, String body) { return DeviceActions.email(ctx, to, subject, body); }
     @JavascriptInterface public String notifications(double since) { return RiasNotifications.since((long) since); }
     @JavascriptInterface public String messages() { return RiasNotifications.messages(); }
+    @JavascriptInterface public String speakIn(String text, String lang) { return TranslateVoice.say(ctx, text, lang); }
+    @JavascriptInterface public String voiceCheck(String lang) { return TranslateVoice.check(ctx, lang); }
+    @JavascriptInterface public boolean speakingIn() { return TranslateVoice.speaking(); }
+    @JavascriptInterface public void stopSpeakIn() { TranslateVoice.stop(); }
     @JavascriptInterface public String openChat(String key) { return RiasNotifications.open(ctx, key); }
     @JavascriptInterface public String sendReply(String key, String text) { return RiasNotifications.reply(ctx, key, text); }
 

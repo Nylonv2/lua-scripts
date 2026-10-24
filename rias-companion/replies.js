@@ -34,7 +34,8 @@ window.createReplyHelper = function createReplyHelper(ctx) {
     for (const b of $('#biz-seg').querySelectorAll('button')) b.classList.toggle('active', b.dataset.pane === p);
     $('#pane-msgs').hidden = p !== 'msgs';
     $('#pane-clients').hidden = p !== 'clients';
-    if (p === 'msgs') render(); else ctx.renderClients();
+    $('#pane-tr').hidden = p !== 'tr';
+    if (p === 'msgs') render(); else if (p === 'tr') ctx.renderTranslate(); else ctx.renderClients();
   }
   $('#biz-seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-pane]'); if (b) setPane(b.dataset.pane); });
 

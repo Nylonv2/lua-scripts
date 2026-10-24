@@ -79,7 +79,15 @@ at bedtime, "goodnight" to log your sleep, and a **weekly recap** on Sunday even
 its events and be reminded of them. **Share → Rias** from any app turns a note or screenshot into a reminder.
 
 ### Assistant
-Two sections at the top: **Replies** and **Clients**.
+Three sections at the top: **Replies**, **Clients** and **Translate**.
+
+**Translate (live, face to face).** Pick your language and theirs (about 35, from Spanish and Chinese to Tagalog,
+Arabic, Haitian Creole and Somali) and tap *Start translating*. The screen splits in two: the top half faces the other
+person (upside down so they can read it across from you; ⇅ turns it upright), the bottom half is yours. Take turns tapping
+your mic: Rias translates and **says it out loud in the other person's language**, with the text shown big and the
+original underneath. 🔊 repeats it, ⌨ lets either side type. Needs her AI (Claude, or a free Gemini key) and internet; the
+voices are your phone's (if a language has no voice, add it in Android Settings → Accessibility → Text-to-speech, or
+just show the text). "Translator" in the chat opens it.
 
 **Replies (help with texts).** Your recent messages from Messages, WhatsApp, Instagram, Messenger and other apps show up
 here (it uses the *Read notifications* permission; they stay on your phone, and only the one you ask about goes to her
@@ -186,6 +194,7 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 | `assistant.js` | Voice-assistant commands (timers, calls, emails, phone controls…) |
 | `biz.js` | Assistant tab → Clients: business profile, client finder, outreach emails, follow-ups |
 | `replies.js` | Assistant tab → Replies: suggested replies to your texts (you always send them) |
+| `translate.js` | Assistant tab → Translate: the face-to-face interpreter |
 | `natural-voice.js` | Gemini text-to-speech |
 | `food.js`, `work.js` | Food diary, work schedule |
 | `rias-avatar.js`, `living-photo.js`, `alarm-card.js`, `photo-cutout.js` | Animated Rias, living photo, alarm card, on-device cutout |

@@ -393,6 +393,12 @@ window.createAssistant = function createAssistant(ctx) {
       if (line) return [line];
     }
 
+    // "Translate for me" / "interpreter mode" → the live translator.
+    if (/^(?:open (?:the )?)?(?:live )?(?:translator|translate|interpreter)(?: mode)?$|^(?:help me )?translate (?:for me|a conversation)$|^(?:i need (?:a |an )?)(?:translator|interpreter)$/.test(t) && ctx.openTranslator) {
+      const line = ctx.openTranslator();
+      if (line) return [line];
+    }
+
     // "Find me clients" → the Assistant tab's client search.
     if (/^(?:find|get|look for|search for|hunt for)\b.*\b(?:clients|customers|leads|prospects)\b/.test(t)) {
       const line = ctx.findClients && ctx.findClients();

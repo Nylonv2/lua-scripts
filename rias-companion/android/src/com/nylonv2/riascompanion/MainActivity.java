@@ -38,6 +38,8 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     static volatile boolean visible;
     private static final int REQ_LISTEN = 42;
+    private static final int REQ_LISTEN_TR = 46; // the live translator: listen in a given language
+    private String trSide = "";
     private static final int REQ_CALENDAR = 2;
     private static final int REQ_FILE = 43;
     private static final int REQ_SAVE = 44;
@@ -285,6 +287,12 @@ public class MainActivity extends Activity {
             }
             pendingSave = null;
             web.evaluateJavascript("window.riasSaved && window.riasSaved(" + ok + ")", null);
+            return;
+        }
+        if (requestCode == REQ_LISTEN_TR) {
+            ArrayList<String> got = resultCode == RESULT_OK && data != null ? data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS) : null;
+            String text = got == null || got.isEmpty() ? "" : got.get(0);
+            web.evaluateJavascript("window.riasTrHeard && window.riasTrHeard(" + JSONObject.quote(trSide) + ", " + JSONObject.quote(text) + ")", null);
             return;
         }
         if (requestCode != REQ_LISTEN || resultCode != RESULT_OK || data == null) return;
@@ -929,6 +937,28 @@ public class MainActivity extends Activity {
                     try {
                         activity.startActivityForResult(activity.listenIntent(), REQ_LISTEN);
                     } catch (Exception ignored) {
+                    }
+                }
+            });
+        }
+
+        /** Live translator: listen in `lang` (BCP-47) for one side of the conversation. */
+        @JavascriptInterface
+        public void listenIn(final String lang, final String side, final String prompt) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.trSide = side;
+                    TranslateVoice.stop();
+                    try {
+                        activity.startActivityForResult(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+                                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang)
+                                .putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
+                                .putExtra(RecognizerIntent.EXTRA_PROMPT, prompt), REQ_LISTEN_TR);
+                    } catch (Exception e) {
+                        activity.web.evaluateJavascript("window.riasTrHeard && window.riasTrHeard(" + JSONObject.quote(side) + ", '', 'unavailable')", null);
                     }
                 }
             });

@@ -808,5 +808,45 @@ ${instruction ? `What the user wants to say: ${instruction}\n` : ''}${tone ? `To
     }
   }
 
-  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, suggestReplies };
+  // ---------- Live translator ----------
+  const translatePrompt = ({ text, from, to, context }) => `You are a live interpreter helping two people talk face to face. Translate what was said from ${from} into ${to}.
+- Natural, everyday spoken ${to}, the way a fluent local would say it. Keep the meaning, tone and politeness level.
+- If the speech-to-text looks slightly wrong, translate what they most likely meant.
+- Output only the translation: no quotes, notes, romanization or explanations.${context ? `\n\nRecent conversation, for context only:\n${context}` : ''}
+
+What was said (${from}):
+${text}`;
+
+  /** { text, from, to, context } → { text } or { error }. Language names in English, e.g. "Spanish (Mexico)". */
+  async function translate(opts) {
+    if (!enabled()) return { error: 'no-ai' };
+    try {
+      let out = '';
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [{ text: translatePrompt(opts) }] }],
+          generationConfig: { maxOutputTokens: 1024 },
+        });
+        out = ((((data.candidates || [])[0] || {}).content || {}).parts || []).filter((p) => p.text && !p.thought).map((p) => p.text).join('');
+      } else {
+        const api = getClient();
+        if (!api) return { error: 'Add your Claude key first.' };
+        const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+        const res = await api.messages.create({
+          model, max_tokens: 1000, output_config: { effort: 'low' },
+          messages: [{ role: 'user', content: translatePrompt(opts) }],
+        });
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (res.stop_reason === 'refusal') return { error: 'I can\'t translate that one.' };
+        out = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+      }
+      out = out.trim().replace(/^["“]|["”]$/g, '');
+      return out ? { text: out } : { error: 'The translation came back empty. Try again.' };
+    } catch (e) {
+      return { error: e && e.status === 429 ? 'The AI is rate-limited right now. Try again in a moment.' : 'Couldn\'t translate just now. Check your internet.' };
+    }
+  }
+
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, suggestReplies, translate };
 };
