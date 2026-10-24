@@ -119,8 +119,10 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   picture, the time, the reminder and *Done ✓ / Snooze 10 min / Dismiss*, with a buzz and chime. With the app
   closed, the Android app uses full-screen alarm notifications: the screen turns on and the same card appears over
   the lock screen. While you're using the phone, Android shrinks those to a small banner, so with **Appear on top**
-  allowed, Rias draws the card in the middle of the screen over whatever app is open. Buttons tapped there are
-  applied the next time the app opens. Turn it off with *Reminders pop up in the middle of the screen*.
+  allowed, Rias opens the full alarm screen over whatever app is open, like a real alarm app (if Android refuses,
+  the pop-up card shows in the middle of the screen instead). The notification itself also has **Done ✓** and
+  **Snooze 10 min** buttons. Buttons tapped there are applied the next time the app opens. Turn it off with
+  *Reminders pop up in the middle of the screen*.
 - **Pop-up check:** in the Android app, **Settings → Notifications** lists what Android needs before pop-ups can show
   outside the app (notifications allowed, pop-up alerts set to sound/pop on screen, *Appear on top*, full screen over
   the lock screen, not put to sleep by battery saving, exact alarms), each with a **Fix** button that opens the
@@ -182,12 +184,14 @@ Rias (with AI on) and she'll add them herself.
 
 ## The chat
 
-The Chat tab looks like a modern messenger: a frosted header with her picture, an online dot and a live status of
-what she's doing (tea with Akeno, chess with Kiba, stargazing, asleep at night; her AI knows it too). Messages sit
-in tight groups with her picture beside the last one, small times tucked inside the bubble, typing dots while she
-writes, and pill-shaped day dividers over a faint Gremory circle. Hearts float up when she praises you and the
-screen flashes crimson at the Power of Destruction. DxD quick replies (How's Akeno?, Your peerage, Play chess,
-Motivate me) sit above a single rounded message bar with the camera and mic inside it.
+The Chat tab is a scene, not a chat box. Rias (the same animated Rias from Home, or your picture) walks in and
+stands in the club room while you talk. Her mouth moves as she speaks, she smiles when she praises you and looks
+worried when something's waiting, and she thinks (dots beside her head) while she writes. Tap her and she says
+something. Her words float in front of her with no bubbles, drifting in one word at a time, and older lines fade
+as they rise toward her. Your words sit on the right with a crimson line. The room's light follows the time of day:
+warm morning light, afternoon sun, a red evening glow, and stars at night (she dims when she's asleep). Hearts
+float up when she praises you and the screen flashes crimson at the Power of Destruction. DxD quick replies sit
+above a frosted message bar with the camera and mic inside it.
 
 ## Talking to Rias (written lines)
 

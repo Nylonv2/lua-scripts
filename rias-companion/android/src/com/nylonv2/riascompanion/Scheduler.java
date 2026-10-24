@@ -172,13 +172,53 @@ final class Scheduler {
                 .setShowWhen(true)
                 .setContentIntent(pop)
                 .setFullScreenIntent(pop, true);
+        if (itemId != null && !itemId.isEmpty()) {
+            b.addAction(0, "Done ✓", actionIntent(c, AlarmReceiver.ACTION_DONE, id, text, title, itemId, at));
+            b.addAction(0, "Snooze 10 min", actionIntent(c, AlarmReceiver.ACTION_SNOOZE, id, text, title, itemId, at));
+        }
         android.graphics.Bitmap pic = picture(c);
         if (pic != null) b.setLargeIcon(pic);
         nm.notify(id, b.build());
-        // Unlocked and in use: Android shrinks the alarm to a banner, so draw the centered card too.
+        // Unlocked and in use: Android shrinks the alarm to a banner. With "Appear on top" allowed,
+        // draw the card over the current app, then open the full alarm screen on top of it
+        // (the card stays if Android refuses to open the screen).
         if (AlarmOverlay.phoneInUse(c) && AlarmOverlay.allowed(c)) {
             AlarmOverlay.show(c, text, title, itemId, at, id);
+            try {
+                c.startActivity(alarm);
+            } catch (Exception ignored) {
+            }
         }
+    }
+
+    private static PendingIntent actionIntent(Context c, String action, int id, String text, String title,
+                                              String itemId, long at) {
+        Intent i = new Intent(c, AlarmReceiver.class).setAction(action)
+                .putExtra(AlarmActivity.EXTRA_TEXT, text)
+                .putExtra(AlarmActivity.EXTRA_TITLE, title)
+                .putExtra(AlarmActivity.EXTRA_ITEM, itemId)
+                .putExtra(AlarmActivity.EXTRA_AT, at)
+                .putExtra(AlarmActivity.EXTRA_NOTIFICATION, id);
+        int code = id * 2 + (AlarmReceiver.ACTION_DONE.equals(action) ? 1 : 0);
+        return PendingIntent.getBroadcast(c, code, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /** Done / Snooze from the notification's buttons. */
+    static void handleAction(Context c, Intent in) {
+        String itemId = in.getStringExtra(AlarmActivity.EXTRA_ITEM);
+        long at = in.getLongExtra(AlarmActivity.EXTRA_AT, 0);
+        int id = in.getIntExtra(AlarmActivity.EXTRA_NOTIFICATION, 0);
+        if (itemId == null || itemId.isEmpty()) return;
+        if (AlarmReceiver.ACTION_DONE.equals(in.getAction())) {
+            recordAction(c, itemId, "done", at, 0);
+        } else {
+            long until = System.currentTimeMillis() + 10 * 60 * 1000L;
+            recordAction(c, itemId, "snooze", at, until);
+            addEvent(c, until, in.getStringExtra(AlarmActivity.EXTRA_TEXT), itemId, in.getStringExtra(AlarmActivity.EXTRA_TITLE));
+        }
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null && id != 0) nm.cancel(id);
+        AlarmOverlay.hide(c);
     }
 
     /** What could stop pop-ups from showing outside the app, for Settings → "Pop-up check". */

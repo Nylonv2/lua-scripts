@@ -52,6 +52,7 @@ public class AlarmActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setStatusBarColor(0xFF16090E);
         getWindow().setNavigationBarColor(0xFF16090E);
+        AlarmOverlay.hide(this);
         show(getIntent());
     }
 

@@ -202,6 +202,17 @@ final class AlarmOverlay {
         return b;
     }
 
+    /** The full alarm screen opened (or the reminder was handled): take the card down. */
+    static void hide(final Context ctx) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                WindowManager wm = (WindowManager) ctx.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+                if (wm != null) remove(wm);
+            }
+        });
+    }
+
     private static void remove(WindowManager wm) {
         if (current == null) return;
         try {

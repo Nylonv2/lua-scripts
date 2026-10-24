@@ -202,6 +202,8 @@
   }
 
   // ---------- messages ----------
+  let Avatar = null; // the animated Rias: on Home, and standing in the chat scene while you talk
+  let chatMoodTimer = 0;
   function addMessage(from, text, extra = {}) {
     const m = { id: uid(), from, text, ts: Date.now(), ...extra };
     state.messages.push(m);
@@ -546,6 +548,10 @@
     const act = riasActivity();
     $('#chat-activity').textContent = act;
     $('.chat-head').classList.toggle('asleep', /asleep/i.test(act));
+    // The room's light follows the time of day.
+    const v = $('#view-chat');
+    v.dataset.period = period();
+    v.classList.toggle('asleep', /asleep/i.test(act));
   }
 
   const seenMsgs = new Set();
@@ -585,7 +591,18 @@
         img.alt = 'Photo you sent';
         el.append(img);
       }
-      el.append(m.text);
+      if (m.from === 'rias' && el.classList.contains('fresh')) {
+        // Her newest words drift in one at a time, as if she's saying them.
+        let n = 0;
+        for (const w of m.text.split(/(\s+)/)) {
+          if (!w.trim()) { el.append(w); continue; }
+          const span = document.createElement('span');
+          span.className = 'w';
+          span.textContent = w;
+          span.style.animationDelay = `${Math.min(n++ * 55, 3000)}ms`;
+          el.append(span);
+        }
+      } else el.append(m.text);
       if (m.itemId) {
         const task = document.createElement('div');
         task.className = 'task';
@@ -642,6 +659,13 @@
   function chatEffects(text) {
     const fx = $('#feed-fx');
     if (!fx || currentView !== 'chat') return;
+    if (Avatar) {
+      Avatar.talk(text.length * 55);
+      const mood = /good (boy|girl)|proud of you|ufufu|love|happy|well done|perfect/i.test(text) ? 'happy'
+        : /worried|haven't|still|don't keep me waiting|missed/i.test(text) ? 'worried' : null;
+      clearTimeout(chatMoodTimer);
+      if (mood) { Avatar.setMood(mood); chatMoodTimer = setTimeout(() => Avatar.setMood(baseMood()), 5000); }
+    }
     if (/power of destruction|destroy|obliterat/i.test(text)) {
       fx.classList.remove('flash'); void fx.offsetWidth; fx.classList.add('flash');
     }
@@ -659,14 +683,11 @@
     }
   }
 
+  // While she "types", she thinks in the scene: dots beside her head.
   function showTyping() {
-    const row = document.createElement('div');
-    row.className = 'msg-row typing-row';
-    row.innerHTML = '<img class="avatar msg-av" alt=""><div class="msg rias typing"><span class="dots"><i></i><i></i><i></i></span></div>';
-    row.querySelector('img').src = loadPicture() || DEFAULT_PIC;
-    feed.append(row);
-    feed.scrollTop = feed.scrollHeight;
-    return row;
+    const view = $('#view-chat');
+    view.classList.add('thinking');
+    return { remove() { view.classList.remove('thinking'); } };
   }
 
   function renderStatus() {
@@ -882,6 +903,7 @@
     if (view !== 'home' && currentView === 'home' && !window.RiasNative) { try { history.pushState({ rias: view }, ''); } catch { /* ignore */ } }
     currentView = view;
     if (view === 'chat') hideToast();
+    if (view === 'chat' || view === 'home') placeRias(view);
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
     if (view === 'today') renderToday();
@@ -1151,7 +1173,7 @@
   }
 
   // ---------- Home screen ----------
-  const Avatar = window.createRiasAvatar($('#stage'));
+  Avatar = window.createRiasAvatar($('#stage'));
   let moodTimer = 0;
   const baseMood = () => (!state.profile ? 'neutral' : !isAwake() ? 'sleepy' : pendingItem() ? 'worried' : 'neutral');
   function homeSay(text, mood) {
@@ -1183,8 +1205,15 @@
     const o = pick(options);
     return [[].concat(o[0]).join(' '), o[1]];
   }
+  // One Rias: she stands on Home, and walks into the chat scene when you talk to her.
+  function placeRias(view) {
+    const host = view === 'chat' ? $('#scene-rias') : $('.home-hero');
+    for (const el of [$('#stage'), $('#stage-pic')]) if (el.parentElement !== host) host.append(el);
+    if (Avatar && Avatar.mood !== 'happy') Avatar.setMood(baseMood());
+  }
   function onRiasTap() {
     Avatar.react();
+    if (currentView === 'chat') { addMessage('rias', homeLine()[0]); return; }
     const [text, mood] = homeLine();
     homeSay(text, mood === 'neutral' ? 'happy' : mood);
     speak(text);
