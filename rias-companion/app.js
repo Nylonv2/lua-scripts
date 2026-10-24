@@ -312,13 +312,35 @@
   const WebRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let spokeLast = false; // you talked by voice, so she answers out loud even if voice is off
 
-  // Her default sound: a touch lower and slower than normal, calm and confident.
+  // Her default sound: a touch lower and slower than normal, calm and confident (Google's voices).
+  // AI voice engines like SherpaTTS change pitch by reworking the audio, which sounds robotic,
+  // so with those she uses the voice exactly as it was made (pitch and speed 1.0).
   const RIAS_PITCH = 0.95, RIAS_RATE = 0.9;
+  let ttsEngine = '';
+  const naturalEngine = () => !!ttsEngine && ttsEngine !== 'com.google.android.tts';
+  const voiceDefaults = () => (naturalEngine() ? { pitch: 1, rate: 1 } : { pitch: RIAS_PITCH, rate: RIAS_RATE });
   const voiceOpts = () => ({
     name: state.settings.voiceName || '',
-    pitch: state.settings.voicePitch ?? RIAS_PITCH,
-    rate: state.settings.voiceRate ?? RIAS_RATE,
+    pitch: state.settings.voicePitch ?? voiceDefaults().pitch,
+    rate: state.settings.voiceRate ?? voiceDefaults().rate,
   });
+  // The phone's voice engine changed (e.g. SherpaTTS installed): if pitch/speed were still the
+  // other engine's defaults, switch to this one's. Settings you chose yourself are kept.
+  function tuneForEngine() {
+    const N = window.RiasNative;
+    if (!N || !N.voiceStatus) return;
+    let st = {};
+    try { st = JSON.parse(N.voiceStatus()); } catch { return; }
+    if (st.status !== 'ready' && st.status !== 'ok' && !st.engine) return;
+    ttsEngine = st.engine || '';
+    if (!ttsEngine || state.settings.voiceTunedFor === ttsEngine) return;
+    const p = state.settings.voicePitch, r = state.settings.voiceRate;
+    const wasDefault = (p == null && r == null) || (p === RIAS_PITCH && r === RIAS_RATE) || (p === 1 && r === 1);
+    if (wasDefault) Object.assign(state.settings, { voicePitch: voiceDefaults().pitch, voiceRate: voiceDefaults().rate });
+    state.settings.voiceTunedFor = ttsEngine;
+    save();
+    applyNativeVoice();
+  }
   // Voices on this device: [{ name, label }], English first.
   function listVoices() {
     const N = window.RiasNative;
@@ -2515,6 +2537,7 @@
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
     renderAssist();
+    tuneForEngine();
     fillVoices();
     voiceHint();
     const o = voiceOpts();
@@ -2915,6 +2938,7 @@
       else if (st.status === 'no-language') { msg = 'Your phone is missing voice data for your language. Tap below and download an English voice.'; needsSettings = true; }
       else if (st.status === 'error') { msg = 'That voice couldn’t play. Pick “Automatic” or another voice, or check your phone’s voice settings.'; needsSettings = true; }
       else if (st.volume === 0) msg = 'Your media volume is at zero. Press volume up while the app is open.';
+      else if (naturalEngine() && (Number(sf.elements.voicePitch.value) !== 1 || Number(sf.elements.voiceRate.value) !== 1)) msg = 'Your voice engine sounds most natural with pitch and speed in the middle (tap Rias defaults). Other values can make it sound robotic.';
     } else if (!('speechSynthesis' in window) || !speechSynthesis.getVoices().length) {
       msg = 'This browser can’t speak. Use the Android app, or open the page in Chrome.';
     }
@@ -2947,8 +2971,9 @@
   });
 
   $('#voice-reset').addEventListener('click', () => {
-    sf.elements.voicePitch.value = RIAS_PITCH;
-    sf.elements.voiceRate.value = RIAS_RATE;
+    tuneForEngine();
+    sf.elements.voicePitch.value = voiceDefaults().pitch;
+    sf.elements.voiceRate.value = voiceDefaults().rate;
   });
 
   // "Pop-up check": everything Android needs before reminders can pop up outside the app.
@@ -3246,6 +3271,9 @@
   pushSound();
   pushArt();
   pushLook();
+  // The voice engine connects a moment after start.
+  setTimeout(tuneForEngine, 2500);
+  setTimeout(tuneForEngine, 8000);
   $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;

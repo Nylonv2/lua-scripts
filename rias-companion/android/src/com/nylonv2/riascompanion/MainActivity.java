@@ -838,6 +838,14 @@ public class MainActivity extends Activity {
             try {
                 AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
                 o.put("status", activity.ttsStatus);
+                String engine = activity.currentEngine;
+                if (engine == null && activity.tts != null) {
+                    try {
+                        engine = activity.tts.getDefaultEngine();
+                    } catch (Exception ignored) {
+                    }
+                }
+                o.put("engine", engine == null ? "" : engine);
                 o.put("detail", activity.ttsLog.toString());
                 o.put("android", Build.VERSION.SDK_INT);
                 o.put("device", Build.MANUFACTURER + " " + Build.MODEL);
