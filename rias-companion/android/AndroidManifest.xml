@@ -142,6 +142,7 @@
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:taskAffinity="com.nylonv2.riascompanion.assist"
+            android:windowSoftInputMode="adjustResize"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">

@@ -2584,6 +2584,15 @@
     $('#art-photo').textContent = loadAlarmPicture() ? '📷 Change the card photo' : '📷 Choose a photo for the card';
     renderCut();
   }
+  // The assistant sheet (long-press home) shows her the same way Home does.
+  function pushLook() {
+    const N = window.RiasNative;
+    if (!N || !N.setPref || HEADLESS) return;
+    try {
+      N.setPref('homeChar', state.settings.homeChar !== 'picture' || !loadPicture() ? 'animated' : 'picture');
+      N.setPref('outfit', outfitNow());
+    } catch { /* older app */ }
+  }
   function pushArt() {
     const N = window.RiasNative;
     if (N && N.setAlarmArt) { try { N.setAlarmArt(alarmArt()); } catch { /* older app */ } }
@@ -2733,6 +2742,7 @@
       aiLimit: Number(sf.elements.aiLimit.value) || 0,
     });
     applyTheme();
+    pushLook();
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
       key: sf.elements.aiKey.value.trim(), model: sf.elements.aiModel.value, geminiKey: sf.elements.geminiKey.value.trim(),
@@ -3265,6 +3275,7 @@
   setTimeout(housekeeping, 1500);
   pushSound();
   pushArt();
+  pushLook();
   $('#home-goodnight').addEventListener('click', () => { show('chat'); userSays('Goodnight, Rias 🌙'); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;

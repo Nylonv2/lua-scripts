@@ -165,7 +165,7 @@ public class AlarmActivity extends Activity {
         web.loadUrl("file:///android_asset/www/alarm.html");
     }
 
-    private static String dataUrl(java.io.File f) {
+    static String dataUrl(java.io.File f) {
         if (!f.exists()) return "";
         try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
             byte[] b = new byte[(int) f.length()];

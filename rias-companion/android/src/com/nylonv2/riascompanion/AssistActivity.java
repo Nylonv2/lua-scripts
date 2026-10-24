@@ -2,7 +2,8 @@ package com.nylonv2.riascompanion;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Bitmap;
+import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
@@ -17,20 +18,25 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
 /**
- * The assistant sheet: opens from "Hey Rias", the phone's assistant button (long-press home /
- * power, once Rias is your digital assistant app), or the chat widget's mic. Listens, shows what
- * you said, then her answer as she says it out loud. Ends with a question → listens again.
+ * The assistant sheet: opens from the phone's assistant button (long-press home / power, once
+ * Rias is your digital assistant app), "Hey Rias", or the chat widget. Drawn by assist.html in the
+ * app's own style (her portrait in the magic circle, glass sheet, chat bubbles); listens, shows
+ * what you said, then her answer as she says it. Ends with a question → listens again.
+ * A plain native sheet stands in if the WebView can't load.
  */
 public class AssistActivity extends Activity implements RecognitionListener, RiasReplyService.AssistListener {
     static final String EXTRA_COMMAND = "command";
@@ -39,10 +45,10 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
     private static final int REQ_VOICE = 52;
 
     private final Handler main = new Handler(Looper.getMainLooper());
-    private TextView status, heard, answer;
-    private Button mic;
+    private WebView web;
+    private TextView status, heard, answer; // plain fallback
     private SpeechRecognizer rec;
-    private boolean listening, waiting, userTouched;
+    private boolean listening, waiting, userTouched, started;
     private String lastAnswer = "";
     private final Runnable closeRun = new Runnable() {
         @Override
@@ -60,12 +66,24 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
             }
             // She asked you something: keep the conversation going.
             if (lastAnswer.trim().endsWith("?")) startListening();
-            else main.postDelayed(closeRun, 5000);
+            else {
+                update(o("state", "idle", "status", "Tap the mic to keep talking"));
+                main.postDelayed(closeRun, 6000);
+            }
         }
     };
 
     private int dp(float v) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
+    }
+
+    private static JSONObject o(Object... kv) {
+        JSONObject j = new JSONObject();
+        try {
+            for (int i = 0; i + 1 < kv.length; i += 2) j.put((String) kv[i], kv[i + 1]);
+        } catch (Exception ignored) {
+        }
+        return j;
     }
 
     @Override
@@ -74,7 +92,137 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         opened = true;
         WakeService.pause();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        RiasReplyService.assist = this;
+        try {
+            buildWeb();
+        } catch (Exception e) {
+            web = null;
+            buildPlain();
+            begin();
+        }
+    }
 
+    // ---------- the styled sheet ----------
+    private void buildWeb() {
+        web = new WebView(this);
+        web.setBackgroundColor(Color.TRANSPARENT);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setAllowFileAccess(true);
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public String data() {
+                SharedPreferences p = getSharedPreferences("rias", MODE_PRIVATE);
+                JSONObject j = new JSONObject();
+                try {
+                    j.put("theme", p.getString("theme", "crimson"));
+                    j.put("homeChar", p.getString("homeChar", "animated"));
+                    j.put("outfit", p.getString("outfit", ""));
+                    j.put("pic", AlarmActivity.dataUrl(Scheduler.pictureFile(AssistActivity.this)));
+                } catch (Exception ignored) {
+                }
+                return j.toString();
+            }
+
+            @JavascriptInterface
+            public void ready() {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        begin();
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void mic() {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (listening) stopListening(); else startListening();
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void send(final String text) {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        userTouched = true;
+                        if (listening) stopListening();
+                        if (text != null && !text.trim().isEmpty()) send(text.trim());
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void open() {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        startActivity(new Intent(AssistActivity.this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        finish();
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void close() {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        finish();
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void touch() {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        userTouched = true;
+                        main.removeCallbacks(closeRun);
+                    }
+                });
+            }
+        }, "AssistNative");
+        setContentView(web);
+        web.loadUrl("file:///android_asset/www/assist.html");
+        // If the page never says it's ready, carry on anyway.
+        main.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                begin();
+            }
+        }, 2500);
+    }
+
+    private void begin() {
+        if (started) return;
+        started = true;
+        String cmd = getIntent().getStringExtra(EXTRA_COMMAND);
+        if (cmd != null && !cmd.trim().isEmpty()) send(cmd.trim());
+        else startListening();
+    }
+
+    /** Sends a change to the sheet: { state, status, heard, final, answer, level }. */
+    private void update(JSONObject change) {
+        if (web != null) {
+            web.evaluateJavascript("window.assist && window.assist.update(" + change + ")", null);
+            return;
+        }
+        if (status == null) return;
+        if (change.has("status")) status.setText(change.optString("status"));
+        if (change.has("heard")) heard.setText(change.optBoolean("final") ? "“" + change.optString("heard") + "”" : change.optString("heard"));
+        if (change.has("answer")) answer.setText(change.optString("answer"));
+        if (change.optBoolean("final")) answer.setText("…");
+    }
+
+    // ---------- plain fallback ----------
+    private void buildPlain() {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0x88000000);
         root.setOnClickListener(new View.OnClickListener() {
@@ -87,67 +235,25 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(20), dp(18), dp(20), dp(20));
         card.setClickable(true);
-        card.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                userTouched = true;
-                main.removeCallbacks(closeRun);
-            }
-        });
         GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {0xFF3A0F1F, 0xFF1A0910});
         bg.setCornerRadii(new float[] {dp(28), dp(28), dp(28), dp(28), 0, 0, 0, 0});
-        bg.setStroke(dp(1), 0x66E3B866);
         card.setBackground(bg);
-
-        LinearLayout head = new LinearLayout(this);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView pic = new ImageView(this);
-        Bitmap bm = Scheduler.picture(this);
-        if (bm != null) pic.setImageBitmap(bm); else pic.setImageResource(getApplicationInfo().icon);
-        head.addView(pic, new LinearLayout.LayoutParams(dp(44), dp(44)));
-        LinearLayout who = new LinearLayout(this);
-        who.setOrientation(LinearLayout.VERTICAL);
-        who.setPadding(dp(12), 0, 0, 0);
         TextView name = new TextView(this);
         name.setText("Rias Gremory");
         name.setTextColor(0xFFE3B866);
         name.setTypeface(Typeface.SERIF);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         status = new TextView(this);
         status.setTextColor(0xAAF6E9EE);
-        status.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        who.addView(name);
-        who.addView(status);
-        head.addView(who, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        card.addView(head);
-
         heard = new TextView(this);
         heard.setTextColor(0xCCF6E9EE);
-        heard.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        heard.setTypeface(null, Typeface.ITALIC);
-        heard.setPadding(0, dp(14), 0, 0);
-        card.addView(heard);
+        heard.setPadding(0, dp(12), 0, 0);
         answer = new TextView(this);
         answer.setTextColor(0xFFFFFFFF);
         answer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        answer.setLineSpacing(0, 1.15f);
-        answer.setPadding(0, dp(10), 0, dp(6));
-        card.addView(answer);
-
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER);
-        row.setPadding(0, dp(12), 0, 0);
-        Button type = small("⌨", new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(AssistActivity.this, QuickChatActivity.class));
-                finish();
-            }
-        });
-        mic = new Button(this);
+        answer.setPadding(0, dp(8), 0, dp(8));
+        Button mic = new Button(this);
         mic.setText("🎙");
-        mic.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
-        mic.setTextColor(0xFFFFFFFF);
         mic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -155,54 +261,17 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                 if (listening) stopListening(); else startListening();
             }
         });
-        Button open = small("↗", new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(AssistActivity.this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-                finish();
-            }
-        });
-        row.addView(type);
-        LinearLayout.LayoutParams ml = new LinearLayout.LayoutParams(dp(72), dp(72));
-        ml.leftMargin = ml.rightMargin = dp(26);
-        row.addView(mic, ml);
-        row.addView(open);
-        card.addView(row);
-        setMic(false);
-
+        card.addView(name);
+        card.addView(status);
+        card.addView(heard);
+        card.addView(answer);
+        card.addView(mic, new LinearLayout.LayoutParams(dp(72), dp(72)));
+        ((LinearLayout.LayoutParams) mic.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
         root.addView(card, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         setContentView(root);
-        RiasReplyService.assist = this;
-
-        String cmd = getIntent().getStringExtra(EXTRA_COMMAND);
-        if (cmd != null && !cmd.trim().isEmpty()) send(cmd.trim());
-        else startListening();
     }
 
-    private Button small(String label, View.OnClickListener l) {
-        Button b = new Button(this);
-        b.setText(label);
-        b.setTextColor(0xFFF6E9EE);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        GradientDrawable d = new GradientDrawable();
-        d.setShape(GradientDrawable.OVAL);
-        d.setColor(0x26FFFFFF);
-        b.setBackground(d);
-        b.setOnClickListener(l);
-        b.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
-        return b;
-    }
-
-    private void setMic(boolean on) {
-        listening = on;
-        GradientDrawable d = new GradientDrawable();
-        d.setShape(GradientDrawable.OVAL);
-        d.setColor(on ? 0xFFE0284F : 0xFFC8173A);
-        if (on) d.setStroke(dp(4), 0x66FFB3C4);
-        mic.setBackground(d);
-        status.setText(on ? "Listening…" : waiting ? "Thinking…" : "Tap the mic to talk");
-    }
-
+    // ---------- listening ----------
     private void beep() {
         try {
             final ToneGenerator t = new ToneGenerator(AudioManager.STREAM_MUSIC, 60);
@@ -228,7 +297,7 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                         .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                         .putExtra(RecognizerIntent.EXTRA_PROMPT, "Talk to Rias"), REQ_VOICE);
             } catch (Exception e) {
-                status.setText("Voice typing isn't available on this phone");
+                update(o("state", "idle", "status", "Voice typing isn't available. Tap the keyboard to type."));
             }
             return;
         }
@@ -237,28 +306,30 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
                 rec = SpeechRecognizer.createSpeechRecognizer(this);
                 rec.setRecognitionListener(this);
             }
-            heard.setText("");
             beep();
             rec.startListening(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName()));
-            setMic(true);
+            listening = true;
+            update(o("state", "listening", "status", "I'm listening~"));
         } catch (Exception e) {
-            setMic(false);
+            listening = false;
+            update(o("state", "idle", "status", "Couldn't listen just now. Tap the mic to try again."));
         }
     }
 
     private void stopListening() {
         if (rec != null) rec.stopListening();
-        setMic(false);
+        listening = false;
+        update(o("state", "idle", "status", ""));
     }
 
     private void send(String text) {
-        heard.setText("“" + text + "”");
-        answer.setText("");
+        main.removeCallbacks(closeRun);
         waiting = true;
-        setMic(false);
+        listening = false;
+        update(o("state", "thinking", "status", "Thinking…", "heard", text, "final", true));
         RiasReplyService.say(this, text, true, true);
     }
 
@@ -268,10 +339,13 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         if (requestCode != REQ_VOICE) return;
         ArrayList<String> r = data == null ? null : data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
         if (resultCode == RESULT_OK && r != null && !r.isEmpty()) send(r.get(0));
-        else main.postDelayed(closeRun, 4000);
+        else {
+            update(o("state", "idle", "status", "Tap the mic to talk"));
+            main.postDelayed(closeRun, 6000);
+        }
     }
 
-    // ---- her answer (from RiasReplyService) ----
+    // ---------- her answer (from RiasReplyService) ----------
     @Override
     public void onLines(String json) {
         StringBuilder sb = new StringBuilder();
@@ -284,47 +358,47 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
         } catch (Exception ignored) {
         }
         lastAnswer = sb.toString();
-        answer.setText(lastAnswer);
-        status.setText("Rias");
+        update(o("state", "speaking", "status", "", "answer", lastAnswer));
     }
 
     @Override
     public void onDone() {
         waiting = false;
-        setMic(false);
-        status.setText("Rias");
         main.removeCallbacks(afterSpeech);
         main.postDelayed(afterSpeech, 700);
     }
 
-    // ---- speech recognizer ----
+    // ---------- speech recognizer ----------
     @Override
     public void onPartialResults(Bundle b) {
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (r != null && !r.isEmpty()) heard.setText(r.get(0));
+        if (r != null && !r.isEmpty() && !r.get(0).isEmpty()) update(o("heard", r.get(0)));
     }
 
     @Override
     public void onResults(Bundle b) {
-        setMic(false);
+        listening = false;
         ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (r != null && !r.isEmpty() && !r.get(0).trim().isEmpty()) send(r.get(0).trim());
-        else main.postDelayed(closeRun, 4000);
+        else {
+            update(o("state", "idle", "status", "I didn't catch that. Tap the mic to try again."));
+            main.postDelayed(closeRun, 6000);
+        }
     }
 
     @Override
     public void onError(int error) {
-        setMic(false);
-        status.setText(error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
-                ? "I didn't catch that. Tap the mic to try again." : "Couldn't listen just now. Tap the mic to try again.");
-        main.postDelayed(closeRun, 6000);
+        listening = false;
+        update(o("state", "idle", "status", error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                ? "I didn't catch that. Tap the mic to try again." : "Couldn't listen just now. Tap the mic to try again."));
+        main.postDelayed(closeRun, 7000);
     }
 
+    @Override public void onRmsChanged(float rmsdB) { update(o("level", (double) rmsdB)); }
     @Override public void onReadyForSpeech(Bundle params) { }
     @Override public void onBeginningOfSpeech() { }
-    @Override public void onRmsChanged(float rmsdB) { }
     @Override public void onBufferReceived(byte[] buffer) { }
-    @Override public void onEndOfSpeech() { status.setText("…"); }
+    @Override public void onEndOfSpeech() { update(o("status", "Mm…")); }
     @Override public void onEvent(int eventType, Bundle params) { }
 
     @Override
@@ -344,6 +418,10 @@ public class AssistActivity extends Activity implements RecognitionListener, Ria
             } catch (Exception ignored) {
             }
             rec = null;
+        }
+        if (web != null) {
+            web.destroy();
+            web = null;
         }
         opened = false;
         WakeService.resume();
