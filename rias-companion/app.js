@@ -598,49 +598,109 @@
     if (currentView === 'home') renderHome();
   }
 
+  // ---------- Reminders page ----------
+  let todayFilter = 'all';
+  const ICON = (name) => `<svg class="ic" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  const PARTS = [['Morning', 4 * 60, 12 * 60], ['Afternoon', 12 * 60, 17 * 60], ['Evening', 17 * 60, 21 * 60], ['Night', 21 * 60, 28 * 60]];
+  const partOf = (m) => { const x = m < 4 * 60 ? m + 1440 : m; return PARTS.find(([, a, b]) => x >= a && x < b)[0]; };
+
   function renderToday() {
     const list = todaysItems();
     const nm = nowMin();
     const fired = state.fired[dateKey()] || {};
     const done = list.filter((it) => statusOf(it.id) === 'done').length;
-    $('#progress-text').textContent = `${done} / ${list.length} done`;
+    const now = new Date();
+    $('#today-weekday').textContent = now.toLocaleDateString([], { weekday: 'long' });
+    $('#today-date').textContent = now.toLocaleDateString([], { month: 'long', day: 'numeric' });
+    $('#progress-text').textContent = `${done} of ${list.length}`;
     $('#ring').style.strokeDasharray = `${list.length ? (done / list.length) * 100 : 0} 100`;
     const s = streak();
-    $('#streak-text').textContent = `Streak: ${s} day${s === 1 ? '' : 's'} 🔥`;
+    $('#streak-text').textContent = s ? `done · 🔥 ${s}-day streak` : 'done today';
+
+    // Phone calendar: offer it right here (Android app), until connected or dismissed.
+    const N = window.RiasNative;
+    $('#cal-connect').hidden = !(N && N.calendarEvents) || state.settings.phoneCalendar || state.settings.calCardDismissed;
 
     const allDay = allDayEvents();
     $('#allday').hidden = !allDay.length;
-    $('#allday').textContent = allDay.length ? `📅 All day: ${allDay.map((ev) => ev.title).join(' · ')}` : '';
-    const ul = $('#items');
-    ul.textContent = '';
-    if (!list.length) {
-      ul.innerHTML = '<li class="empty">Nothing scheduled today. Tap ＋ to add a reminder.</li>';
-    }
-    const nextId = (list.find((it) => toMin(it.time) >= nm && !statusOf(it.id)) || {}).id;
-    for (const it of list) {
+    $('#allday').textContent = allDay.length ? `📅 All day · ${allDay.map((ev) => ev.title).join(' · ')}` : '';
+
+    for (const b of document.querySelectorAll('#today-filter button')) b.classList.toggle('active', b.dataset.f === todayFilter);
+    const shown = list.filter((it) => {
       const st = statusOf(it.id);
-      const li = document.createElement('li');
-      li.className = 'item';
-      if (st) li.classList.add(st);
-      else if (fired[it.id] && toMin(it.time) <= nm) li.classList.add(nm - toMin(it.time) <= FIRE_WINDOW_MIN ? 'now' : 'missed');
-      else if (it.id === nextId) li.classList.add('now');
-      li.dataset.id = it.id;
-      li.innerHTML = `<span class="t"></span><span class="what"><span></span><br><span class="tag"></span></span><button class="check" aria-label="Mark done">${st === 'done' ? '✓' : ''}</button>`;
-      li.querySelector('.t').textContent = fmtTime(it.time);
-      li.querySelector('.what span').textContent = it.title;
-      const when = it.source === 'calendar' ? (it.cal || 'calendar') : it.source === 'work' ? 'shift' : { daily: 'every day', weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat];
-      li.querySelector('.tag').textContent = `${CATEGORY_LABEL[it.category] || 'Other'} · ${when}${st === 'skipped' ? ' · skipped' : ''}`;
-      if (it.source) li.classList.add(`src-${it.source}`);
-      if (alarmFor(it)) {
-        const badge = document.createElement('span');
-        badge.className = 'alarm-badge';
-        badge.title = 'Pops up like an alarm';
-        badge.textContent = '⏰';
-        li.querySelector('.what span').after(badge);
+      return todayFilter === 'all' || (todayFilter === 'todo' ? !st : !!st);
+    });
+    const nextId = (list.find((it) => toMin(it.time) >= nm && !statusOf(it.id)) || {}).id;
+    const box = $('#items-groups');
+    box.textContent = '';
+    if (!shown.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = `<div class="empty-ic">${ICON(todayFilter === 'done' ? 'check' : 'list')}</div><b></b><p></p>`;
+      empty.querySelector('b').textContent = !list.length ? 'Nothing planned today' : todayFilter === 'done' ? 'Nothing done yet' : 'All done for today';
+      empty.querySelector('p').textContent = !list.length ? 'Tap “New reminder”, or just tell Rias what to remind you about.' : todayFilter === 'done' ? 'Finished reminders show up here.' : 'Ufufu — that\'s my ' + praiseWord() + '.';
+      box.append(empty);
+      return;
+    }
+    for (const [part] of PARTS) {
+      const items = shown.filter((it) => partOf(toMin(it.time)) === part);
+      if (!items.length) continue;
+      const sec = document.createElement('section');
+      sec.className = 'group';
+      const h = document.createElement('h3');
+      h.className = 'group-title';
+      h.innerHTML = '<span></span><span class="count"></span>';
+      h.firstChild.textContent = part;
+      h.lastChild.textContent = `${items.filter((it) => statusOf(it.id) === 'done').length}/${items.length}`;
+      const card = document.createElement('div');
+      card.className = 'list-card';
+      for (const it of items) {
+        const st = statusOf(it.id);
+        const row = document.createElement('div');
+        row.className = 'row-item';
+        row.dataset.id = it.id;
+        let flag = '';
+        if (st === 'done') row.classList.add('done');
+        else if (st === 'skipped') { row.classList.add('skipped'); flag = 'Skipped'; }
+        else if (fired[it.id] && toMin(it.time) <= nm && nm - toMin(it.time) > FIRE_WINDOW_MIN) { row.classList.add('missed'); flag = 'Missed'; }
+        else if (fired[it.id] && toMin(it.time) <= nm) { row.classList.add('now'); flag = 'Now'; }
+        else if (it.id === nextId) { row.classList.add('next'); flag = 'Up next'; }
+        row.innerHTML = `<button type="button" class="check" aria-label="Mark done">${ICON('check')}</button>`
+          + '<div class="ri-main"><div class="ri-title"></div><div class="ri-meta"></div></div>'
+          + (it.source === 'calendar' ? '' : `<span class="ri-chev">${ICON('chevron')}</span>`);
+        row.querySelector('.check').setAttribute('aria-label', st === 'done' ? `Undo ${it.title}` : `Mark ${it.title} done`);
+        row.querySelector('.ri-title').textContent = it.title;
+        const meta = row.querySelector('.ri-meta');
+        const add = (text, cls) => { const sp = document.createElement('span'); sp.className = cls || ''; sp.textContent = text; meta.append(sp); };
+        add(fmtTime(it.time), 'ri-time');
+        if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
+        else if (it.source === 'work') add('Work shift', 'tag-chip work');
+        else add(`${CATEGORY_LABEL[it.category] || 'Other'}${it.repeat && it.repeat !== 'daily' ? ` · ${{ weekdays: 'weekdays', weekends: 'weekends', once: 'once' }[it.repeat]}` : ''}`, 'ri-sub');
+        if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
+        if (flag) add(flag, `tag-chip flag ${flag === 'Missed' ? 'warn' : ''}`);
+        card.append(row);
       }
-      ul.append(li);
+      sec.append(h, card);
+      box.append(sec);
     }
   }
+  $('#today-filter').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-f]');
+    if (!b) return;
+    todayFilter = b.dataset.f;
+    renderToday();
+  });
+  $('#cal-connect-btn').addEventListener('click', () => {
+    state.settings.phoneCalendar = true;
+    save();
+    enableCalendar();
+    renderToday();
+  });
+  $('#cal-connect-later').addEventListener('click', () => {
+    state.settings.calCardDismissed = true;
+    save();
+    renderToday();
+  });
 
   // ---------- navigation ----------
   // ---------- pop-up banner ----------
@@ -1066,7 +1126,7 @@
     $('#date-wrap').hidden = ef.elements.repeat.value !== 'once';
     editor.showModal();
   }
-  ef.elements.repeat.addEventListener('change', () => { $('#date-wrap').hidden = ef.elements.repeat.value !== 'once'; });
+  ef.addEventListener('change', (e) => { if (e.target.name === 'repeat') $('#date-wrap').hidden = ef.elements.repeat.value !== 'once'; });
   $('#edit-cancel').addEventListener('click', () => editor.close());
   $('#edit-delete').addEventListener('click', () => {
     state.items = state.items.filter((it) => it.id !== editingId);
@@ -1094,8 +1154,8 @@
   });
 
   $('#add').addEventListener('click', () => openEditor(null));
-  $('#items').addEventListener('click', (e) => {
-    const li = e.target.closest('.item');
+  $('#items-groups').addEventListener('click', (e) => {
+    const li = e.target.closest('.row-item');
     if (!li) return;
     const id = li.dataset.id;
     if (e.target.closest('.check')) {

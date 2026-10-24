@@ -88,7 +88,10 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
 ## Tabs
 
 - **Chat**: talk to Rias by typing or with 🎙.
-- **Today**: your routine plus work shifts and phone-calendar events, with a progress ring and streak.
+- **Reminders**: today's reminders grouped into Morning / Afternoon / Evening / Night, with All / To do / Done
+  filters, round checkboxes, *Up next* / *Missed* tags, ⏰ for alarm-style ones, and your work shifts and phone-calendar
+  events alongside. A card offers to connect your phone calendar. *New reminder* opens a bottom sheet with tap-to-pick
+  repeat, type and pop-up style.
 - **Food**: a food diary (breakfast, lunch, dinner, snacks, each marked healthy / normal / treat) with **calories and
   macros**: today's calories against your goal, protein / carbs / fat bars, fiber and sugar, kcal on every entry and
   meal, and a 7-day calorie chart (tap a bar for that day). Set your goals with **Goals**. Tell Rias what you ate
@@ -153,7 +156,7 @@ REST API directly (`ai.js`).
 
 ## Phone calendar
 
-In the Android app, **Settings → Phone calendar** shows events from Samsung Calendar and Google Calendar in Today
+In the Android app, **Connect calendar** on the Reminders page (or **Settings → Phone calendar**) shows events from Samsung Calendar and Google Calendar in Today
 (all-day events at the top) and Rias reminds you at their start time. Android doesn't let other apps read
 Samsung's separate *Reminder* app, so for reminders made outside Rias, add them as calendar events, or just tell
 Rias (with AI on) and she'll add them herself.
