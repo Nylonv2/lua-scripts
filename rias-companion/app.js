@@ -237,6 +237,7 @@
 
   // ---------- messages ----------
   let Avatar = null; // the animated Rias: on Home, and standing in the chat scene while you talk
+  let Living = null; // your picture brought to life (living-photo.js), when Home shows your picture
   let chatMoodTimer = 0;
   function addMessage(from, text, extra = {}) {
     const m = { id: uid(), from, text, ts: Date.now(), ...extra };
@@ -970,6 +971,7 @@
   function chatEffects(text) {
     const fx = $('#feed-fx');
     if (!fx || currentView !== 'chat') return;
+    if (Living && !$('#stage-pic').hidden) Living.talk(text.length * 55);
     if (Avatar) {
       Avatar.talk(text.length * 55);
       const mood = /good (boy|girl)|proud of you|ufufu|love|happy|well done|perfect/i.test(text) ? 'happy'
@@ -1531,9 +1533,7 @@
     clearTimeout(moodTimer);
     if (mood) { Avatar.setMood(mood); moodTimer = setTimeout(() => Avatar.setMood(baseMood()), 4500); }
     Avatar.talk(text.length * 55);
-    const pic = $('#stage-pic');
-    pic.classList.add('talking');
-    setTimeout(() => pic.classList.remove('talking'), Math.min(text.length * 55, 8000));
+    if (Living) Living.talk(text.length * 55);
   }
   // What she says when you tap her: whatever is most useful right now.
   function homeLine() {
@@ -1869,6 +1869,7 @@
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
     for (const img of document.querySelectorAll('img.avatar')) img.src = dataUrl || DEFAULT_PIC;
+    if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
     try { if (dataUrl) localStorage.setItem(PIC_KEY, dataUrl); else localStorage.removeItem(PIC_KEY); }
@@ -1878,6 +1879,7 @@
     const N = window.RiasNative;
     if (N && N.setPicture) { try { N.setPicture(dataUrl ? dataUrl.split(',')[1] : ''); } catch { /* older app */ } }
   }
+  if (window.createLivingPhoto) { Living = window.createLivingPhoto($('#stage-pic')); Living.setSrc(loadPicture() || DEFAULT_PIC); }
   // Crop to a centered square and shrink to 512px so it's small enough to store.
   function shrinkPicture(file) {
     return new Promise((resolve, reject) => {

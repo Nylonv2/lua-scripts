@@ -207,6 +207,14 @@ drifting motes of light (stars at night), lit by the time of day; frosted-glass 
 edge; a slow holo-foil sweep on the cards that matter right now (*Up next* on Home, your next shift, today's
 calories); gold serif labels like the alarm card; glowing crimson main buttons and a glass header and tab bar.
 
+**Living photo (4.4):** when Home shows your picture (Settings → Home screen → *Your picture*), it's no longer a flat
+circle. It stands in a gold-edged portrait window and comes alive: a WebGL shader (`living-photo.js`) treats the
+middle of the picture as closer than the edges, so tilting the phone (or dragging, or an idle sway) moves the person
+against the background like real depth while the frame turns in 3D. It also breathes, sways softly at the edges like
+hair in a breeze, lifts a little and glows while she talks, and catches the light as it tilts. The same living photo
+stands in the chat scene and fills the alarm card's art window when a photo is chosen there. Phones without WebGL
+get the plain picture with a gentle float.
+
 ## Daily life with Rias (4.0)
 
 - **Backup & restore** (Settings → Backup & updates): *Save backup* writes one file with everything (reminders,

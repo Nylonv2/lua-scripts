@@ -49,7 +49,7 @@ window.AlarmCard = (() => {
     </div>
   </div>`;
 
-  let root = null, card = null, raf = 0, lastInput = 0;
+  let root = null, card = null, raf = 0, lastInput = 0, living = null;
 
   function tilt(x, y) {
     x = Math.max(-1, Math.min(1, x));
@@ -106,6 +106,13 @@ window.AlarmCard = (() => {
     const pic = q('.ac-pic');
     pic.hidden = !!opts.animated || !opts.pic;
     if (!pic.hidden) pic.src = opts.pic;
+    // A photo in the art window comes alive (living-photo.js) when it can.
+    if (!pic.hidden && window.createLivingPhoto) {
+      if (!living) { const el = document.createElement('div'); q('.ac-art').prepend(el); living = window.createLivingPhoto(el, { tiltFrame: false }); }
+      living.setSrc(opts.pic);
+      pic.hidden = true;
+    }
+    if (living) q('.ac-art .living').hidden = !!opts.animated || !opts.pic;
     q('.ac-stage').hidden = !opts.animated;
     const bg = q('.ac-bg-pic');
     bg.hidden = !opts.bg;
