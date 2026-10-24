@@ -1198,3 +1198,25 @@ button:active, .chip:active span { transform: scale(.97); }
 .cost-meter p { margin: 0; }
 .rias.wink .eyes { display: inline; }
 .rias.wink .eyes-happy { display: none; }
+
+/* Settings: category menu */
+.set-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.set-tile { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 14px 14px 12px; text-align: left; color: var(--text);
+  border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .58);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 26px rgba(0, 0, 0, .3); }
+.stack .set-tile { padding: 14px 14px 14px 12px; border-radius: var(--radius); background: rgba(var(--glass), .58); border: 1px solid rgba(255, 255, 255, .08); }
+.set-tile::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(140deg, rgba(240, 207, 133, .55), rgba(255, 255, 255, .05) 35%, rgba(255, 255, 255, .03) 65%, rgba(var(--a2), .45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+.set-ic { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; font-size: 1.35rem;
+  background: linear-gradient(140deg, rgba(var(--a2), .32), rgba(var(--a3), .14)); box-shadow: 0 0 16px rgba(var(--a2), .25); }
+.set-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.set-txt b { font-size: 1.02rem; font-weight: 600; }
+.set-txt small { color: var(--muted); font-size: .8rem; line-height: 1.3; }
+.set-txt em { font-style: italic; font-family: Georgia, serif; color: #e8c477; font-size: .76rem; }
+.set-txt em:empty { display: none; }
+.set-chev { flex: none; color: var(--muted); font-size: 1.5rem; }
+.set-cat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.set-cat-head .page-title { margin: 0; font-size: 1.5rem; }
+.set-cat-head .icon-btn { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: rgba(var(--glass), .55); font-size: 1.5rem; line-height: 1; padding: 0; }

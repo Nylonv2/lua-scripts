@@ -1210,6 +1210,28 @@ button:active, .chip:active span { transform: scale(.97); }
 .cost-meter p { margin: 0; }
 .rias.wink .eyes { display: inline; }
 .rias.wink .eyes-happy { display: none; }
+
+/* Settings: category menu */
+.set-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.set-tile { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 14px 14px 12px; text-align: left; color: var(--text);
+  border-radius: var(--radius); border: 1px solid rgba(255, 255, 255, .08); background: rgba(var(--glass), .58);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 10px 26px rgba(0, 0, 0, .3); }
+.stack .set-tile { padding: 14px 14px 14px 12px; border-radius: var(--radius); background: rgba(var(--glass), .58); border: 1px solid rgba(255, 255, 255, .08); }
+.set-tile::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(140deg, rgba(240, 207, 133, .55), rgba(255, 255, 255, .05) 35%, rgba(255, 255, 255, .03) 65%, rgba(var(--a2), .45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+.set-ic { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; font-size: 1.35rem;
+  background: linear-gradient(140deg, rgba(var(--a2), .32), rgba(var(--a3), .14)); box-shadow: 0 0 16px rgba(var(--a2), .25); }
+.set-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.set-txt b { font-size: 1.02rem; font-weight: 600; }
+.set-txt small { color: var(--muted); font-size: .8rem; line-height: 1.3; }
+.set-txt em { font-style: italic; font-family: Georgia, serif; color: #e8c477; font-size: .76rem; }
+.set-txt em:empty { display: none; }
+.set-chev { flex: none; color: var(--muted); font-size: 1.5rem; }
+.set-cat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.set-cat-head .page-title { margin: 0; font-size: 1.5rem; }
+.set-cat-head .icon-btn { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: rgba(var(--glass), .55); font-size: 1.5rem; line-height: 1; padding: 0; }
 </style>
 </head>
 <body>
@@ -1450,8 +1472,13 @@ button:active, .chip:active span { transform: scale(.97); }
       <!-- Settings -->
       <section class="view" id="view-settings" hidden>
         <form id="settings" class="stack settings">
-          <h1 class="page-title">Settings</h1>
-          <section class="set-group">
+          <h1 class="page-title" id="set-title">Settings</h1>
+          <div class="set-cat-head" id="set-cat-head" hidden>
+            <button type="button" class="icon-btn" id="set-back" aria-label="Back to all settings">‹</button>
+            <div><p class="eyebrow">Settings</p><h1 class="page-title" id="set-cat-title"></h1></div>
+          </div>
+          <nav class="set-menu" id="set-menu" aria-label="Settings categories"></nav>
+          <section class="set-group" data-cat="you">
           <h2>You</h2>
           <label>What should Rias call you?
             <input name="name" required maxlength="30">
@@ -1469,7 +1496,7 @@ button:active, .chip:active span { transform: scale(.97); }
             </select>
           </label>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="look">
           <h2>Home screen</h2>
           <label>On the Home screen, show
             <select name="homeChar">
@@ -1496,7 +1523,7 @@ button:active, .chip:active span { transform: scale(.97); }
           </label>
           <label class="switch"><input name="haptics" type="checkbox"> Little vibrations when I tap</label>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="look">
           <h2>Rias's picture</h2>
           <div class="pic-row">
             <img class="avatar pic-preview" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K" alt="Rias's current picture">
@@ -1508,7 +1535,7 @@ button:active, .chip:active span { transform: scale(.97); }
           <input type="file" id="pic-file" accept="image/*" hidden>
           <p class="muted small" id="pic-hint">Shown as her avatar and next to her notifications. It stays on this phone and is never uploaded.</p>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="you">
           <h2>Voice</h2>
           <label class="switch"><input name="voice" type="checkbox"> Rias speaks her messages out loud</label>
           <p class="muted small">Tap 🎙 in the chat to talk to her. When you talk, she always answers out loud.</p>
@@ -1527,7 +1554,7 @@ button:active, .chip:active span { transform: scale(.97); }
           <button type="button" id="tts-settings" hidden>Open phone voice settings</button>
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="mind">
           <h2>Rias's mind (AI)</h2>
           <label class="switch"><input name="aiOn" type="checkbox"> Let Rias think up her own replies</label>
           <p class="muted small">She talks about anything, remembers your day, and adds reminders, shifts and food for you when you ask. Needs internet and a key from one of the services below. Without them she uses her written lines.</p>
@@ -1574,7 +1601,7 @@ button:active, .chip:active span { transform: scale(.97); }
           <button type="button" id="ai-test">Test connection</button>
           <p class="small voice-hint" id="ai-hint"></p>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="mind">
           <h2>Things Rias remembers</h2>
           <p class="muted small">What you've told her about your life. She brings it up later. With her AI on she saves these herself; without it, start a message with “Remember that…”.</p>
           <ul class="mem-list" id="mem-list"></ul>
@@ -1583,7 +1610,7 @@ button:active, .chip:active span { transform: scale(.97); }
             <button type="button" id="mem-add">Add</button>
           </div>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="day">
           <h2>Your day with Rias</h2>
           <label class="switch"><input name="briefing" type="checkbox"> Morning briefing when I wake up (my day, the weather, how I slept)</label>
           <div class="field"><span class="field-label">City for the weather</span>
@@ -1593,7 +1620,7 @@ button:active, .chip:active span { transform: scale(.97); }
           <label class="switch"><input name="recap" type="checkbox"> Weekly recap on Sunday evening</label>
           <label class="switch"><input name="windDown" type="checkbox"> Bedtime nudges, and ask how I slept</label>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="day">
           <h2>Phone calendar &amp; other apps</h2>
           <div class="sync-box">
           <div class="sync-row">
@@ -1609,7 +1636,7 @@ button:active, .chip:active span { transform: scale(.97); }
           </div>
           </div>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="day">
           <h2>Food &amp; water</h2>
           <label class="switch"><input name="foodReminders" type="checkbox"> Rias nudges me about meals and water</label>
           <label>Daily water goal
@@ -1622,7 +1649,7 @@ button:active, .chip:active span { transform: scale(.97); }
             </select>
           </label>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="alerts">
           <h2>Check-ins</h2>
           <label class="switch"><input name="checkins" type="checkbox"> Rias checks in on you during the day</label>
           <label>When she's been quiet for
@@ -1634,8 +1661,8 @@ button:active, .chip:active span { transform: scale(.97); }
             </select>
           </label>
           </section>
-          <section class="set-group">
-          <h2>Notifications</h2>
+          <section class="set-group" data-cat="alerts">
+          <h2>Pop-ups &amp; notifications</h2>
           <label class="switch"><input name="notify" type="checkbox"> Phone notifications</label>
           <label class="switch"><input name="alarmPopup" type="checkbox"> Reminders pop up in the middle of the screen, like an alarm</label>
           <div class="popup-check" id="popup-check" hidden>
@@ -1652,6 +1679,9 @@ button:active, .chip:active span { transform: scale(.97); }
             <div class="chips" id="sound-list" role="radiogroup" aria-label="Alarm sound"></div>
             <p class="small voice-hint" id="sound-hint"></p>
           </div>
+          </section>
+          <section class="set-group" data-cat="alerts">
+          <h2>Alarm card &amp; sound</h2>
           <div class="field">
             <span class="field-label">Alarm card picture</span>
             <div class="chips" id="art-list" role="radiogroup" aria-label="Alarm card picture"></div>
@@ -1675,7 +1705,7 @@ button:active, .chip:active span { transform: scale(.97); }
             <button type="button" id="test">Test notification</button>
           </div>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="data">
           <h2>Backup &amp; updates</h2>
           <p class="muted small">Your reminders, shifts, food diary, chat and what Rias remembers live only on this phone. Save a backup so nothing is lost if you reinstall or switch phones. API keys aren't included.</p>
           <div class="row">
@@ -1691,7 +1721,7 @@ button:active, .chip:active span { transform: scale(.97); }
           </div>
           <p class="small voice-hint" id="update-hint"></p>
           </section>
-          <section class="set-group">
+          <section class="set-group" data-cat="data">
           <h2>Data</h2>
           <button type="button" id="regen">Rebuild default routine</button>
           <button type="button" id="clear-chat">Clear chat history</button>
@@ -5886,6 +5916,7 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
   window.riasBack = () => {
     const open = document.querySelector('dialog[open]');
     if (open) { if (open.id === 'alarm') closeAlarm(); else open.close(); return true; }
+    if (currentView === 'settings' && setCat) { openSetCat(null); return true; }
     if (currentView !== 'home' && state.profile) { show('home'); return true; }
     return false;
   };
@@ -6864,7 +6895,58 @@ if (document.getElementById('alarm') && !document.querySelector('#alarm .ac-scen
       default: 'Tap “Allow notifications” so Rias can ping you.',
     }[Notification.permission];
   }
+  // Settings opens on a short menu of categories; each one shows just its sections.
+  const SET_CATS = [
+    { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
+    { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
+    { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
+    { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
+    { k: 'day', icon: '📅', title: 'Your day', sub: 'Morning briefing, weather, recap, sleep, calendar, food & water' },
+    { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
+  ];
+  let setCat = null;
+  function renderSetMenu() {
+    const nav = $('#set-menu');
+    nav.textContent = '';
+    const st = state.settings;
+    const extra = {
+      you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
+      look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
+      mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
+      alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
+      day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
+      data: state.lastBackup || state.lastAutoBackup ? `Last backup ${new Date(Math.max(state.lastBackup || 0, state.lastAutoBackup || 0)).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : 'No backup yet',
+    };
+    for (const c of SET_CATS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'set-tile';
+      b.dataset.cat = c.k;
+      b.innerHTML = '<span class="set-ic"></span><span class="set-txt"><b></b><small></small><em></em></span><span class="set-chev">›</span>';
+      b.querySelector('.set-ic').textContent = c.icon;
+      b.querySelector('b').textContent = c.title;
+      b.querySelector('small').textContent = c.sub;
+      b.querySelector('em').textContent = extra[c.k] || '';
+      nav.append(b);
+    }
+  }
+  function openSetCat(k) {
+    setCat = k;
+    for (const g of sf.querySelectorAll('.set-group')) g.hidden = !k || g.dataset.cat !== k;
+    $('#set-menu').hidden = !!k;
+    $('#set-title').hidden = !!k;
+    $('#set-cat-head').hidden = !k;
+    $('.save-bar').hidden = !k;
+    if (k) $('#set-cat-title').textContent = (SET_CATS.find((c) => c.k === k) || {}).title || '';
+    else renderSetMenu();
+    $('#view-settings').scrollTop = 0;
+    const v = $('#view-settings'); v.classList.remove('view-enter'); void v.offsetWidth; v.classList.add('view-enter');
+  }
+  $('#set-menu').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) openSetCat(b.dataset.cat); });
+  $('#set-back').addEventListener('click', () => openSetCat(null));
+
   function fillSettings() {
+    openSetCat(null);
     sf.elements.name.value = state.profile.name;
     sf.elements.wake.value = state.profile.wake;
     sf.elements.sleep.value = state.profile.sleep;

@@ -111,7 +111,7 @@ To show your own picture instead of the animated Rias: **Settings → Home scree
   **📷 Photo of your schedule:** with Rias's AI on (a free Gemini key works), tap 📷 in the chat (or *Send Rias a
   photo of your schedule* on the Work tab) and pick a photo or screenshot. She reads it, finds your row by your
   name, adds each shift (re-sending the same week replaces instead of doubling), and tells you what she added.
-- **Settings** (⚙ at the top): name and times, what Rias calls you, her voice, her AI, what she remembers, your day (briefing, weather, recap, sleep), phone calendar & other apps, food reminders, check-ins, backup & updates.
+- **Settings** (⚙ at the top) opens on a short menu of six categories, each showing a one-line summary (your name, theme, AI on/off, last backup…): **You & her voice**, **Look & feel** (theme, Home screen, outfit, her picture), **Rias's mind** (AI, monthly cost, what she remembers), **Alarms & notifications** (pop-ups, pop-up check, alarm card & sound, check-ins), **Your day** (briefing, weather, recap, sleep, phone calendar, food & water) and **Backup & data**. Tap one to open it; ‹ or the phone's back button returns to the menu, and *Save changes* saves everything.
 
 ## Pop-ups
 

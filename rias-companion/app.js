@@ -1287,6 +1287,7 @@
   window.riasBack = () => {
     const open = document.querySelector('dialog[open]');
     if (open) { if (open.id === 'alarm') closeAlarm(); else open.close(); return true; }
+    if (currentView === 'settings' && setCat) { openSetCat(null); return true; }
     if (currentView !== 'home' && state.profile) { show('home'); return true; }
     return false;
   };
@@ -2265,7 +2266,58 @@
       default: 'Tap “Allow notifications” so Rias can ping you.',
     }[Notification.permission];
   }
+  // Settings opens on a short menu of categories; each one shows just its sections.
+  const SET_CATS = [
+    { k: 'you', icon: '👤', title: 'You & her voice', sub: 'Your name and times, what she calls you, her voice' },
+    { k: 'look', icon: '🎨', title: 'Look & feel', sub: 'Theme, Home screen, her outfit, her picture' },
+    { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
+    { k: 'alerts', icon: '🔔', title: 'Alarms & notifications', sub: 'Pop-ups, alarm card, sounds, check-ins' },
+    { k: 'day', icon: '📅', title: 'Your day', sub: 'Morning briefing, weather, recap, sleep, calendar, food & water' },
+    { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
+  ];
+  let setCat = null;
+  function renderSetMenu() {
+    const nav = $('#set-menu');
+    nav.textContent = '';
+    const st = state.settings;
+    const extra = {
+      you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
+      look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
+      mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
+      alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
+      day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
+      data: state.lastBackup || state.lastAutoBackup ? `Last backup ${new Date(Math.max(state.lastBackup || 0, state.lastAutoBackup || 0)).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : 'No backup yet',
+    };
+    for (const c of SET_CATS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'set-tile';
+      b.dataset.cat = c.k;
+      b.innerHTML = '<span class="set-ic"></span><span class="set-txt"><b></b><small></small><em></em></span><span class="set-chev">›</span>';
+      b.querySelector('.set-ic').textContent = c.icon;
+      b.querySelector('b').textContent = c.title;
+      b.querySelector('small').textContent = c.sub;
+      b.querySelector('em').textContent = extra[c.k] || '';
+      nav.append(b);
+    }
+  }
+  function openSetCat(k) {
+    setCat = k;
+    for (const g of sf.querySelectorAll('.set-group')) g.hidden = !k || g.dataset.cat !== k;
+    $('#set-menu').hidden = !!k;
+    $('#set-title').hidden = !!k;
+    $('#set-cat-head').hidden = !k;
+    $('.save-bar').hidden = !k;
+    if (k) $('#set-cat-title').textContent = (SET_CATS.find((c) => c.k === k) || {}).title || '';
+    else renderSetMenu();
+    $('#view-settings').scrollTop = 0;
+    const v = $('#view-settings'); v.classList.remove('view-enter'); void v.offsetWidth; v.classList.add('view-enter');
+  }
+  $('#set-menu').addEventListener('click', (e) => { const b = e.target.closest('[data-cat]'); if (b) openSetCat(b.dataset.cat); });
+  $('#set-back').addEventListener('click', () => openSetCat(null));
+
   function fillSettings() {
+    openSetCat(null);
     sf.elements.name.value = state.profile.name;
     sf.elements.wake.value = state.profile.wake;
     sf.elements.sleep.value = state.profile.sleep;
