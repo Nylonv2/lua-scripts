@@ -79,6 +79,7 @@
       riasOutfit: 'auto', theme: 'crimson', haptics: true, aiLimit: 0,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
+      plain: true, plainIcon: true, // standard look out of the box; Settings → Look & pictures → Rias mode brings her in
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
     },
     lastRias: 0,
@@ -98,8 +99,12 @@
   });
 
   let state;
-  try { state = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY)) || {}); }
-  catch { state = blank(); }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY)) || {};
+    // The standard look is the default for new installs; people who already had Rias keep her.
+    if (saved.profile && saved.settings && saved.settings.plain === undefined) Object.assign(saved.settings, { plain: false, plainIcon: false });
+    state = Object.assign(blank(), saved);
+  } catch { state = blank(); }
   // Fill in settings added in newer versions.
   state.settings = { ...blank().settings, ...state.settings };
   state.ai = { ...blank().ai, ...state.ai };
@@ -288,6 +293,17 @@
     const gn = document.getElementById('home-goodnight');
     if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
     document.title = on ? plainName() : 'Rias';
+    // First-run screen: her introduction, or a plain welcome
+    const intro = document.querySelector('#onboard-form .intro');
+    if (intro) {
+      intro.dataset.rias ||= intro.textContent;
+      intro.textContent = on ? `${plainName() === 'Assistant' ? "Hi! I'm your assistant." : `Hi, I'm ${plainName()}.`} I'll keep track of your routine, reminders, meals and work, so you don't have to. Let's set up your day.` : intro.dataset.rias;
+    }
+    const status = document.getElementById('status');
+    if (status && on && /Occult/.test(status.textContent)) status.textContent = 'Online';
+    const join = document.querySelector('#onboard-form button[type=submit]');
+    if (join) { join.dataset.rias ||= join.textContent; join.textContent = on ? 'Get started' : join.dataset.rias; }
+    for (const img of document.querySelectorAll('.big-avatar')) img.src = on ? 'icons/plain.svg' : 'icons/icon.svg';
     const say = document.getElementById('say');
     if (say) say.placeholder = on ? 'Type a message…' : 'Say something to her…';
     const N = window.RiasNative;
@@ -318,8 +334,18 @@
       }
     }
   }
+  // Home-screen icon: only touch it when the choice changed (Android re-shuffles the launcher).
+  // The app ships with the plain icon on; people who had Rias before get hers back on first start.
+  function syncLauncher() {
+    const N = window.RiasNative; const want = !!state.settings.plainIcon;
+    if (!N || !N.setLauncher || HEADLESS) return;
+    const had = state.settings.launcherPlain === undefined ? true : !!state.settings.launcherPlain;
+    if (want === had && state.settings.launcherPlain !== undefined) return;
+    try { if (want !== had) N.setLauncher(want); state.settings.launcherPlain = want; save(); } catch { /* older app */ }
+  }
   function loadPictureSafe() { try { return localStorage.getItem('rias-companion-picture') || ''; } catch { return ''; } }
   applyPlain();
+  syncLauncher();
   // A light tick on every button; a firmer one for the main actions.
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button, .chip, .row-item');
@@ -2515,7 +2541,7 @@
   const DEFAULT_PIC = 'icons/icon.svg';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && img.closest('.top') ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar')) ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -2782,7 +2808,7 @@
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     sf.elements.riasOutfit.value = state.settings.riasOutfit || 'auto';
     sf.elements.theme.value = state.settings.theme || 'crimson';
-    sf.elements.plain.checked = !!state.settings.plain;
+    sf.elements.rias.checked = !state.settings.plain;
     sf.elements.plainName.value = state.settings.plainName || '';
     sf.elements.plainIcon.checked = !!state.settings.plainIcon;
     $('#plain-opts').hidden = !state.settings.plain;
@@ -3072,9 +3098,9 @@
       homeChar: sf.elements.homeChar.value,
       riasOutfit: sf.elements.riasOutfit.value,
       theme: sf.elements.theme.value,
-      plain: sf.elements.plain.checked,
+      plain: !sf.elements.rias.checked,
       plainName: sf.elements.plainName.value.trim(),
-      plainIcon: sf.elements.plain.checked && sf.elements.plainIcon.checked,
+      plainIcon: !sf.elements.rias.checked && sf.elements.plainIcon.checked,
       haptics: sf.elements.haptics.checked,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
@@ -3088,9 +3114,7 @@
     applyTheme();
     applyPlain();
     renderStatus();
-    // Home-screen icon: only touch it when the choice changed (Android re-shuffles the launcher).
-    { const N = window.RiasNative; const want = !!state.settings.plainIcon;
-      if (N && N.setLauncher && want !== !!state.settings.launcherPlain) { try { N.setLauncher(want); state.settings.launcherPlain = want; } catch { /* older app */ } } }
+    syncLauncher();
     pushLook();
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
@@ -3149,7 +3173,7 @@
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
-  sf.elements.plain.addEventListener('change', () => { $('#plain-opts').hidden = !sf.elements.plain.checked; });
+  sf.elements.rias.addEventListener('change', () => { $('#plain-opts').hidden = sf.elements.rias.checked; });
   initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });

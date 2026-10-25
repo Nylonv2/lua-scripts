@@ -75,12 +75,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Home-screen icon: Rias, or "Assistant" with a plain icon (Discreet mode). The app turns one on. -->
+        <!-- Home-screen icon: "Assistant" with a plain icon (the standard look), or Rias. The app switches them. -->
         <activity-alias
             android:name=".LauncherRias"
             android:targetActivity=".MainActivity"
             android:exported="true"
-            android:enabled="true"
+            android:enabled="false"
             android:label="@string/app_name"
             android:icon="@mipmap/ic_launcher">
             <intent-filter>
@@ -92,7 +92,7 @@
             android:name=".LauncherPlain"
             android:targetActivity=".MainActivity"
             android:exported="true"
-            android:enabled="false"
+            android:enabled="true"
             android:label="@string/plain_name"
             android:icon="@mipmap/ic_plain">
             <intent-filter>

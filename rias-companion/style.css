@@ -1432,3 +1432,5 @@ html[data-plain="1"] .ac-foot { display: none; }
 html[data-plain="1"] .ac-done { animation: none; box-shadow: none; }
 html[data-plain="1"] .ac-snooze button { background: rgba(255, 255, 255, .05); }
 html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"], [data-say*="peerage"], [data-say^="Play chess"]) { display: none; }
+html[data-plain="1"] .onboarding .intro { font-family: inherit; font-style: normal; color: var(--muted); }
+html[data-plain="1"] .onboard-praise { display: none; }

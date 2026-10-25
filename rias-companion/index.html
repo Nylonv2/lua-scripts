@@ -367,12 +367,12 @@
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
           </section>
           <section class="set-group" data-cat="look">
-          <h2>Discreet mode</h2>
-          <label class="switch"><input name="plain" type="checkbox"> Make it look like a normal app</label>
-          <p class="muted small">No character on screen, a plain modern look, a neutral name in the app, notifications and pop-ups, and her AI talks like a regular assistant. Everything works the same. Turn it off any time to bring Rias back.</p>
+          <h2>App style</h2>
+          <label class="switch"><input name="rias" type="checkbox"> Rias mode</label>
+          <p class="muted small">Off: a standard assistant app with a plain modern look (good for using in public). On: Rias Gremory looks after you, animated, with her own voice and personality. Everything works the same either way.</p>
           <div id="plain-opts" hidden>
-            <label>Name it <input name="plainName" maxlength="24" placeholder="Assistant"></label>
-            <label class="switch"><input name="plainIcon" type="checkbox"> Also change the app's icon and name on my home screen (to “Assistant”)</label>
+            <label>Assistant name <input name="plainName" maxlength="24" placeholder="Assistant"></label>
+            <label class="switch"><input name="plainIcon" type="checkbox"> Plain icon and the name “Assistant” on my home screen</label>
             <p class="muted small">Android may take a few seconds to swap the icon, and you might need to add it to your home screen again from the app drawer.</p>
           </div>
           </section>
@@ -1023,7 +1023,7 @@
         <label>You wake up at <input name="wake" type="time" value="07:00" required></label>
         <label>Bedtime <input name="sleep" type="time" value="23:00" required></label>
       </div>
-      <label>When you do well, Rias calls you…
+      <label class="onboard-praise">When you do well, Rias calls you…
         <select name="praise">
           <option value="boy">Good boy</option>
           <option value="girl">Good girl</option>

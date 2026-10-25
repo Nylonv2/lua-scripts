@@ -409,7 +409,7 @@ final class Scheduler {
         return new java.io.File(c.getFilesDir(), "rias-picture.jpg");
     }
 
-    /** Discreet mode (Settings → Look & pictures): a plain assistant, no picture of her. */
+    /** The standard look (Rias mode off in Settings → Look & pictures): a plain assistant, no picture of her. */
     static boolean plain(Context c) {
         return "1".equals(c.getSharedPreferences("rias", Context.MODE_PRIVATE).getString("plain", ""));
     }

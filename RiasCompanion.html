@@ -1444,6 +1444,8 @@ html[data-plain="1"] .ac-foot { display: none; }
 html[data-plain="1"] .ac-done { animation: none; box-shadow: none; }
 html[data-plain="1"] .ac-snooze button { background: rgba(255, 255, 255, .05); }
 html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"], [data-say*="peerage"], [data-say^="Play chess"]) { display: none; }
+html[data-plain="1"] .onboarding .intro { font-family: inherit; font-style: normal; color: var(--muted); }
+html[data-plain="1"] .onboard-praise { display: none; }
 </style>
 </head>
 <body>
@@ -1800,12 +1802,12 @@ html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"
           <p class="muted small">For more voices, install extra ones in your phone's Settings → Accessibility → Text-to-speech (Google's “English (UK)” voices suit her well).</p>
           </section>
           <section class="set-group" data-cat="look">
-          <h2>Discreet mode</h2>
-          <label class="switch"><input name="plain" type="checkbox"> Make it look like a normal app</label>
-          <p class="muted small">No character on screen, a plain modern look, a neutral name in the app, notifications and pop-ups, and her AI talks like a regular assistant. Everything works the same. Turn it off any time to bring Rias back.</p>
+          <h2>App style</h2>
+          <label class="switch"><input name="rias" type="checkbox"> Rias mode</label>
+          <p class="muted small">Off: a standard assistant app with a plain modern look (good for using in public). On: Rias Gremory looks after you, animated, with her own voice and personality. Everything works the same either way.</p>
           <div id="plain-opts" hidden>
-            <label>Name it <input name="plainName" maxlength="24" placeholder="Assistant"></label>
-            <label class="switch"><input name="plainIcon" type="checkbox"> Also change the app's icon and name on my home screen (to “Assistant”)</label>
+            <label>Assistant name <input name="plainName" maxlength="24" placeholder="Assistant"></label>
+            <label class="switch"><input name="plainIcon" type="checkbox"> Plain icon and the name “Assistant” on my home screen</label>
             <p class="muted small">Android may take a few seconds to swap the icon, and you might need to add it to your home screen again from the app drawer.</p>
           </div>
           </section>
@@ -2456,7 +2458,7 @@ html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"
         <label>You wake up at <input name="wake" type="time" value="07:00" required></label>
         <label>Bedtime <input name="sleep" type="time" value="23:00" required></label>
       </div>
-      <label>When you do well, Rias calls you…
+      <label class="onboard-praise">When you do well, Rias calls you…
         <select name="praise">
           <option value="boy">Good boy</option>
           <option value="girl">Good girl</option>
@@ -6744,6 +6746,7 @@ window.createTranslator = function createTranslator(ctx) {
       riasOutfit: 'auto', theme: 'crimson', haptics: true, aiLimit: 0,
       alarmCats: ['wake', 'meds', 'shift', 'calendar', 'custom', 'sleep'],
       homeChar: 'animated',
+      plain: true, plainIcon: true, // standard look out of the box; Settings → Look & pictures → Rias mode brings her in
       calorieGoal: 2000, proteinGoal: 120, carbGoal: 225, fatGoal: 65,
     },
     lastRias: 0,
@@ -6763,8 +6766,12 @@ window.createTranslator = function createTranslator(ctx) {
   });
 
   let state;
-  try { state = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY)) || {}); }
-  catch { state = blank(); }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY)) || {};
+    // The standard look is the default for new installs; people who already had Rias keep her.
+    if (saved.profile && saved.settings && saved.settings.plain === undefined) Object.assign(saved.settings, { plain: false, plainIcon: false });
+    state = Object.assign(blank(), saved);
+  } catch { state = blank(); }
   // Fill in settings added in newer versions.
   state.settings = { ...blank().settings, ...state.settings };
   state.ai = { ...blank().ai, ...state.ai };
@@ -6953,6 +6960,17 @@ window.createTranslator = function createTranslator(ctx) {
     const gn = document.getElementById('home-goodnight');
     if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
     document.title = on ? plainName() : 'Rias';
+    // First-run screen: her introduction, or a plain welcome
+    const intro = document.querySelector('#onboard-form .intro');
+    if (intro) {
+      intro.dataset.rias ||= intro.textContent;
+      intro.textContent = on ? `${plainName() === 'Assistant' ? "Hi! I'm your assistant." : `Hi, I'm ${plainName()}.`} I'll keep track of your routine, reminders, meals and work, so you don't have to. Let's set up your day.` : intro.dataset.rias;
+    }
+    const status = document.getElementById('status');
+    if (status && on && /Occult/.test(status.textContent)) status.textContent = 'Online';
+    const join = document.querySelector('#onboard-form button[type=submit]');
+    if (join) { join.dataset.rias ||= join.textContent; join.textContent = on ? 'Get started' : join.dataset.rias; }
+    for (const img of document.querySelectorAll('.big-avatar')) img.src = on ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K';
     const say = document.getElementById('say');
     if (say) say.placeholder = on ? 'Type a message…' : 'Say something to her…';
     const N = window.RiasNative;
@@ -6983,8 +7001,18 @@ window.createTranslator = function createTranslator(ctx) {
       }
     }
   }
+  // Home-screen icon: only touch it when the choice changed (Android re-shuffles the launcher).
+  // The app ships with the plain icon on; people who had Rias before get hers back on first start.
+  function syncLauncher() {
+    const N = window.RiasNative; const want = !!state.settings.plainIcon;
+    if (!N || !N.setLauncher || HEADLESS) return;
+    const had = state.settings.launcherPlain === undefined ? true : !!state.settings.launcherPlain;
+    if (want === had && state.settings.launcherPlain !== undefined) return;
+    try { if (want !== had) N.setLauncher(want); state.settings.launcherPlain = want; save(); } catch { /* older app */ }
+  }
   function loadPictureSafe() { try { return localStorage.getItem('rias-companion-picture') || ''; } catch { return ''; } }
   applyPlain();
+  syncLauncher();
   // A light tick on every button; a firmer one for the main actions.
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button, .chip, .row-item');
@@ -9180,7 +9208,7 @@ window.createTranslator = function createTranslator(ctx) {
   const DEFAULT_PIC = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && img.closest('.top') ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar')) ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -9447,7 +9475,7 @@ window.createTranslator = function createTranslator(ctx) {
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     sf.elements.riasOutfit.value = state.settings.riasOutfit || 'auto';
     sf.elements.theme.value = state.settings.theme || 'crimson';
-    sf.elements.plain.checked = !!state.settings.plain;
+    sf.elements.rias.checked = !state.settings.plain;
     sf.elements.plainName.value = state.settings.plainName || '';
     sf.elements.plainIcon.checked = !!state.settings.plainIcon;
     $('#plain-opts').hidden = !state.settings.plain;
@@ -9737,9 +9765,9 @@ window.createTranslator = function createTranslator(ctx) {
       homeChar: sf.elements.homeChar.value,
       riasOutfit: sf.elements.riasOutfit.value,
       theme: sf.elements.theme.value,
-      plain: sf.elements.plain.checked,
+      plain: !sf.elements.rias.checked,
       plainName: sf.elements.plainName.value.trim(),
-      plainIcon: sf.elements.plain.checked && sf.elements.plainIcon.checked,
+      plainIcon: !sf.elements.rias.checked && sf.elements.plainIcon.checked,
       haptics: sf.elements.haptics.checked,
       alarmCats: [...sf.querySelectorAll('[name=alarmCat]:checked')].map((b) => b.value),
       waterGoal: Number(sf.elements.waterGoal.value),
@@ -9753,9 +9781,7 @@ window.createTranslator = function createTranslator(ctx) {
     applyTheme();
     applyPlain();
     renderStatus();
-    // Home-screen icon: only touch it when the choice changed (Android re-shuffles the launcher).
-    { const N = window.RiasNative; const want = !!state.settings.plainIcon;
-      if (N && N.setLauncher && want !== !!state.settings.launcherPlain) { try { N.setLauncher(want); state.settings.launcherPlain = want; } catch { /* older app */ } } }
+    syncLauncher();
     pushLook();
     Object.assign(state.ai, {
       on: sf.elements.aiOn.checked, provider: sf.elements.aiProvider.value,
@@ -9814,7 +9840,7 @@ window.createTranslator = function createTranslator(ctx) {
     $('#voice-reset').hidden = natural;
   }
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
-  sf.elements.plain.addEventListener('change', () => { $('#plain-opts').hidden = !sf.elements.plain.checked; });
+  sf.elements.rias.addEventListener('change', () => { $('#plain-opts').hidden = sf.elements.rias.checked; });
   initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });

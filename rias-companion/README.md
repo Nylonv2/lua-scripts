@@ -1,6 +1,6 @@
 # Rias Companion
 
-Rias Gremory looks after your day. She reminds you of your routine, keeps your work schedule and food diary, talks with
+A personal assistant for your day, with an optional **Rias mode** where Rias Gremory looks after you. It reminds you of your routine, keeps your work schedule and food diary, talks with
 you (by text or voice), wakes you up, and works as your phone's assistant. Everything stays on your phone.
 
 *An unofficial fan project, not affiliated with the High School DxD rights holders. Rias is an original drawing and her
@@ -104,18 +104,19 @@ just show the text). "Translator" in the chat opens it.
 5. **Track:** filter clients by New, Emailed, Replied, Booked or Not interested, add notes, add clients yourself, and see
    your totals at the top. Saying "find me some clients" in the chat opens the search.
 
-### Discreet mode
-Settings → Look & pictures → **Discreet mode** makes it look like an ordinary assistant app, for opening in public. Every
-feature stays the same; only the look changes:
-- A plain slate-and-blue design: no character, no magic circle, ordinary chat bubbles.
-- Give it any name (it's "Assistant" until you change it). The header, chat, notifications, widgets, the alarm screen and
-  the home-button pop-up all use that name and a plain icon.
-- With her AI on, she answers as a friendly, neutral assistant. Without AI, the written lines skip show references and
-  pet names.
-- Optional: also change the **home-screen icon and name** to "Assistant". Your launcher may take a moment to update, and
-  you may need to add the icon to your home screen again.
+### Standard look and Rias mode
+The app opens as a **standard assistant app**: a plain slate-and-blue design, ordinary chat bubbles, and the name
+"Assistant" with a plain icon on your home screen. It's fine to open anywhere.
 
-Turn it off any time to bring Rias back.
+Settings → Look & pictures → **Rias mode** turns Rias on. Every feature works the same in both styles; only the look,
+voice and personality change:
+- **Standard:** no character on screen. You can rename the assistant; the header, chat, notifications, widgets, alarm
+  screen and home-button pop-up use that name. With AI on it answers as a friendly, neutral assistant. You can also
+  keep or drop the plain home-screen icon.
+- **Rias mode:** the animated Rias, her pictures, the full-art alarm card, her voice and her personality.
+
+Changing the home-screen icon can take a few seconds, and you may need to add the icon to your home screen again from
+the app drawer. If you used Rias before this option existed, you keep Rias mode until you turn it off.
 
 ### Widgets
 Long-press your home screen → Widgets → Rias:
@@ -147,7 +148,7 @@ say), finds the address in your contacts, signs it (*Sign my emails as* under Yo
 |---|---|
 | **You** | Your name, wake-up and bedtime, what she calls you, how your emails are signed |
 | **Her voice** | Speaking out loud, phone voice or natural AI voice, pitch and speed |
-| **Look & pictures** | Discreet mode, theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
+| **Look & pictures** | Rias mode on/off, assistant name, theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
 | **Reminders & alarms** | Check-ins, notifications, the pop-up check, which reminders pop up, alarm sound, test buttons |
 | **Your day** | Briefing, weather city, recap, wind-down, phone calendar, food & water goals |
 | **Rias's mind** | AI on/off and service, monthly cost (Claude), what she remembers |
