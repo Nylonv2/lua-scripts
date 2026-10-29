@@ -1940,12 +1940,6 @@ html[data-plain="1"] .onboard-praise { display: none; }
             </select>
           </label>
           <label>Wake word <span class="wake-word"><span>Hey</span><input name="wakeName" maxlength="24" placeholder="Rias" autocomplete="off"></span></label>
-          <label>When she hears it
-            <select name="wakeAction">
-              <option value="voice">She says hello out loud, then listens (nothing on screen)</option>
-              <option value="popup">Open the home-button pop-up</option>
-            </select>
-          </label>
           <p class="small voice-hint" id="wake-hint"></p>
           <p class="muted small" id="wake-heard" hidden></p>
           <p class="muted small">Listening happens on your phone with an offline speech model (a one-time 40 MB download); nothing leaves the phone until you say the wake word. No beeps while it waits. Android requires a small silent “listening” notification while the microphone is on (on Android 13+ you can swipe it away). A one-word name that's easy to hear works best.</p>
@@ -9539,7 +9533,6 @@ window.createTranslator = function createTranslator(ctx) {
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.wakeName.value = state.settings.wakeName || '';
-    sf.elements.wakeAction.value = state.settings.wakeAction || 'voice';
     sf.elements.wakeName.placeholder = defaultWakeWord();
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
@@ -9797,7 +9790,6 @@ window.createTranslator = function createTranslator(ctx) {
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value, kokoroVoice: Number(sf.elements.kokoroVoice.value),
       wakeMode: sf.elements.wakeMode.value,
       wakeName: sf.elements.wakeName.value.trim(),
-      wakeAction: sf.elements.wakeAction.value,
     });
     pushWakeWord();
     pushVoiceChoice();
@@ -9940,7 +9932,7 @@ window.createTranslator = function createTranslator(ctx) {
   function defaultWakeWord() { return state.settings.plain ? plainName() : 'Rias'; }
   function wakeWord() { return (state.settings.wakeName || '').trim() || defaultWakeWord(); }
   function pushWakeWord() {
-    try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); if (d && d.wakeAction) d.wakeAction(state.settings.wakeAction || 'voice'); } catch { /* older app */ }
+    try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); if (d && d.wakeAction) d.wakeAction('voice'); } catch { /* older app */ }
   }
   // Start/stop "Hey …" listening to match the setting (asks for the mic first).
   function applyWake() {
@@ -9995,7 +9987,6 @@ window.createTranslator = function createTranslator(ctx) {
     const heard = $('#wake-heard');
     heard.hidden = !(s && s.wakeRunning && mode !== 'off');
     heard.textContent = s && s.wakeHeard ? `Last heard: “${s.wakeHeard}”. Try saying ${ww} now; this updates live.` : `Nothing heard yet. Try saying ${ww} now; this updates live.`;
-    if (s && state.settings.wakeAction === 'popup' && s.overlay === false) heard.textContent += ' The pop-up needs “Appear on top” (Reminders & alarms → pop-up check); until then she answers by voice.';
     // Keep the progress and what she heard moving while this section is open.
     clearTimeout(renderAssist.t);
     if (mode !== 'off' && document.getElementById('settings').offsetParent && !$('#wake-hint').closest('[data-cat]')?.hidden) renderAssist.t = setTimeout(renderAssist, 1500);
@@ -10326,7 +10317,7 @@ window.createTranslator = function createTranslator(ctx) {
   Assistant.restore();
   // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
   pushVoiceChoice();
-  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wakeAction) Dv.wakeAction(state.settings.wakeAction || 'voice'); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wakeAction) Dv.wakeAction('voice'); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;

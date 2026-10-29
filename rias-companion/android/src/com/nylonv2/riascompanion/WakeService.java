@@ -375,30 +375,8 @@ public class WakeService extends Service {
         woke(cmd);
     }
 
-    /** Heard "Hey …": open the pop-up (if chosen and allowed), or answer by voice. */
-    private void woke(final String cmd) {
-        String action = getSharedPreferences("rias", MODE_PRIVATE).getString("wakeAction", "voice");
-        boolean canPop = Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(this);
-        if ("popup".equals(action) && canPop) {
-            stopMic();
-            turn = true;
-            AssistActivity.opened = false;
-            try {
-                startActivity(new Intent(this, AssistActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        .putExtra(AssistActivity.EXTRA_COMMAND, cmd).putExtra(AssistActivity.EXTRA_WAKE, true));
-            } catch (Exception ignored) {
-            }
-            // If Android didn't let it open, answer by voice instead. (The pop-up resumes listening when it closes.)
-            main.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (AssistActivity.opened) { turn = false; return; }
-                    turn = false;
-                    byVoice(cmd);
-                }
-            }, 2000);
-            return;
-        }
+    /** Heard "Hey …": she answers by voice, nothing on screen. */
+    private void woke(String cmd) {
         byVoice(cmd);
     }
 

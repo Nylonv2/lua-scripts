@@ -141,8 +141,7 @@ say), finds the address in your contacts, signs it (*Sign my emails as* under Yo
 **Hands-free, like Siri** (Settings → Phone assistant → *Hands-free: “Hey …”*, off by default): say “Hey” and her name
 (or a wake word you pick), then your question. A short buzz means she heard you; she answers out loud with nothing on
 screen and no notification. If you only say the wake word, she says hello ("Yes? What do you need?") and listens for
-the question. Prefer to see her? Set *When she hears it* to *Open the home-button pop-up* (needs "Appear on top"). The
-settings show what she last heard, live, which helps if she isn't picking up her name. Listening runs on the
+the question. The settings show what she last heard, live, which helps if she isn't picking up her name. Listening runs on the
 phone with an offline speech model (a one-time 40 MB download), so it's silent while it waits and nothing leaves the
 phone until you say the wake word. Choose *Always* or *Only while charging*; always-on uses some extra battery. Android
 requires a small silent "listening" notification while the microphone is on.

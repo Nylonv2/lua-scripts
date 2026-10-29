@@ -2838,7 +2838,6 @@
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.wakeName.value = state.settings.wakeName || '';
-    sf.elements.wakeAction.value = state.settings.wakeAction || 'voice';
     sf.elements.wakeName.placeholder = defaultWakeWord();
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
@@ -3096,7 +3095,6 @@
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value, kokoroVoice: Number(sf.elements.kokoroVoice.value),
       wakeMode: sf.elements.wakeMode.value,
       wakeName: sf.elements.wakeName.value.trim(),
-      wakeAction: sf.elements.wakeAction.value,
     });
     pushWakeWord();
     pushVoiceChoice();
@@ -3239,7 +3237,7 @@
   function defaultWakeWord() { return state.settings.plain ? plainName() : 'Rias'; }
   function wakeWord() { return (state.settings.wakeName || '').trim() || defaultWakeWord(); }
   function pushWakeWord() {
-    try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); if (d && d.wakeAction) d.wakeAction(state.settings.wakeAction || 'voice'); } catch { /* older app */ }
+    try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); if (d && d.wakeAction) d.wakeAction('voice'); } catch { /* older app */ }
   }
   // Start/stop "Hey …" listening to match the setting (asks for the mic first).
   function applyWake() {
@@ -3294,7 +3292,6 @@
     const heard = $('#wake-heard');
     heard.hidden = !(s && s.wakeRunning && mode !== 'off');
     heard.textContent = s && s.wakeHeard ? `Last heard: “${s.wakeHeard}”. Try saying ${ww} now; this updates live.` : `Nothing heard yet. Try saying ${ww} now; this updates live.`;
-    if (s && state.settings.wakeAction === 'popup' && s.overlay === false) heard.textContent += ' The pop-up needs “Appear on top” (Reminders & alarms → pop-up check); until then she answers by voice.';
     // Keep the progress and what she heard moving while this section is open.
     clearTimeout(renderAssist.t);
     if (mode !== 'off' && document.getElementById('settings').offsetParent && !$('#wake-hint').closest('[data-cat]')?.hidden) renderAssist.t = setTimeout(renderAssist, 1500);
@@ -3625,7 +3622,7 @@
   Assistant.restore();
   // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
   pushVoiceChoice();
-  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wakeAction) Dv.wakeAction(state.settings.wakeAction || 'voice'); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wakeAction) Dv.wakeAction('voice'); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;
