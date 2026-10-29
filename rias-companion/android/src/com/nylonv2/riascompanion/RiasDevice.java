@@ -48,6 +48,7 @@ final class RiasDevice {
     }
     @JavascriptInterface public void openSettings(String what) { DeviceActions.openSettings(ctx, what); }
     @JavascriptInterface public void wake(String mode) { WakeService.setMode(ctx, mode); }
+    @JavascriptInterface public void wakeName(String name) { WakeService.setWakeName(ctx, name); }
 
     /** What's allowed: {mic, contacts, call, dnd, notifications, assistant, wake, overlay}. */
     @JavascriptInterface
@@ -68,6 +69,8 @@ final class RiasDevice {
             o.put("assistant", assistant);
             o.put("wake", WakeService.mode(ctx));
             o.put("wakeRunning", WakeService.running);
+            o.put("wakeModel", WakeModel.status(ctx));
+            o.put("wakeName", WakeService.wakeName(ctx));
         } catch (Exception ignored) {
         }
         return o.toString();

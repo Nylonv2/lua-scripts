@@ -14,21 +14,34 @@ fetch https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/ube
 fetch https://repo1.maven.org/maven2/com/jakewharton/android/repackaged/dalvik-dx/16.0.1/dalvik-dx-16.0.1.jar "$TOOLS/dx/dx.jar"
 # Android 14 (API 34) framework classes to compile against.
 fetch https://repo1.maven.org/maven2/org/robolectric/android-all/14-robolectric-10818077/android-all-14-robolectric-10818077.jar "$TOOLS/android/android-all-34.jar"
+# "Hey …" wake word: Vosk offline speech recognition (Apache 2.0) and JNA, which it uses to reach its native library.
+fetch https://repo1.maven.org/maven2/com/alphacephei/vosk-android/0.3.47/vosk-android-0.3.47.aar "$TOOLS/vosk/vosk-android.aar"
+fetch https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.13.0/jna-5.13.0.aar "$TOOLS/vosk/jna.aar"
+for aar in vosk-android jna; do
+  [ -d "$TOOLS/vosk/$aar" ] || (mkdir -p "$TOOLS/vosk/$aar" && cd "$TOOLS/vosk/$aar" && unzip -q ../$aar.aar)
+done
+# Only Vosk's core classes (its Android helpers need API 26; WakeService has its own microphone loop).
+[ -d "$TOOLS/vosk/core" ] || (mkdir -p "$TOOLS/vosk/core" && cd "$TOOLS/vosk/core" && unzip -q ../vosk-android/classes.jar 'org/vosk/*.class' -x 'org/vosk/android/*')
+LIBS="$TOOLS/vosk/core:$TOOLS/vosk/jna/classes.jar"
 
 rm -rf "$WORK" && mkdir -p "$WORK/classes" "$WORK/app/assets/www"
 
 echo "Compiling Java…"
 javac -nowarn --release 8 -encoding UTF-8 \
-  -cp "$TOOLS/android/android-all-34.jar" \
+  -cp "$TOOLS/android/android-all-34.jar:$LIBS" \
   -d "$WORK/classes" $(find src -name '*.java')
 
 echo "Converting to dex…"
 java -cp "$TOOLS/dx/dx.jar" com.android.dx.command.Main --dex --min-sdk-version=24 \
-  --output="$WORK/app/classes.dex" "$WORK/classes"
+  --output="$WORK/app/classes.dex" "$WORK/classes" "$TOOLS/vosk/core" "$TOOLS/vosk/jna/classes.jar"
 
 echo "Packaging…"
 cp AndroidManifest.xml apktool.yml "$WORK/app/"
 cp -r res "$WORK/app/res"
+for abi in arm64-v8a armeabi-v7a; do   # phones only; the speech model itself downloads when "Hey …" is turned on
+  mkdir -p "$WORK/app/lib/$abi"
+  cp "$TOOLS/vosk/vosk-android/jni/$abi/libvosk.so" "$TOOLS/vosk/jna/jni/$abi/libjnidispatch.so" "$WORK/app/lib/$abi/"
+done
 mkdir -p "$WORK/app/res/raw" && cp ../sounds/alarm_*.ogg "$WORK/app/res/raw/"   # alarm sounds (sounds/make_sounds.py)
 (cd .. && cp -r index.html style.css app.js dialogue.js talk.js chat.js food.js work.js ai.js rias-avatar.js living-photo.js photo-cutout.js alarm-card.js natural-voice.js assistant.js biz.js translate.js alarm.html assist.html manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
 mkdir -p "$WORK/app/assets/www/vendor/mediapipe" && cp ../vendor/anthropic-sdk.js "$WORK/app/assets/www/vendor/" && cp ../vendor/mediapipe/vision_bundle.js "$WORK/app/assets/www/vendor/mediapipe/"

@@ -10,28 +10,35 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.media.AudioManager;
-import android.media.ToneGenerator;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.speech.RecognitionListener;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 
+import org.json.JSONObject;
+import org.vosk.LibVosk;
+import org.vosk.LogLevel;
+import org.vosk.Model;
+import org.vosk.Recognizer;
+
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * "Hey Rias": listens for her name in the background (a foreground service, so Android shows
- * a small notification while it's on), then opens the assistant sheet, or answers out loud
- * when the sheet can't open. Modes: off, charging (only while plugged in), always.
+ * "Hey …" like Siri: an offline speech model (Vosk) listens on the phone itself, silently, for
+ * "Hey" + her name. Nothing is sent anywhere until you say it. Then a short buzz, and she answers
+ * out loud: no pop-up, no reply notification. If you only said her name, she listens once more
+ * for your question (the phone's sounds are muted for that moment so it doesn't beep).
+ * Android requires a small silent "listening" notification while the microphone is in use.
+ * Modes: off, charging (only while plugged in), always.
  */
-public class WakeService extends Service implements RecognitionListener {
+public class WakeService extends Service {
     static final String CHANNEL = "rias_wake";
     static final int NOTE_ID = 7900;
     static final String ACTION_OFF = "com.nylonv2.riascompanion.WAKE_OFF";
@@ -39,24 +46,50 @@ public class WakeService extends Service implements RecognitionListener {
     private static volatile boolean paused;
     private static WakeService instance;
 
-    // Speech recognizers hear "Rias" many ways.
-    private static final Pattern WAKE = Pattern.compile(
-            "(?:^|\\b)(?:hey|hi|hay|okay|ok|yo)\\s+(?:rias|reese|reece|rhea'?s|ria'?s|rios|reyes|rees|reez|rhys|rheas|rias's|ryas)\\b[\\s,.!?]*(.*)$"
-                    + "|^(?:rias|ryas)\\b[\\s,.!?]*(.*)$");
-
     private final Handler main = new Handler(Looper.getMainLooper());
-    private SpeechRecognizer rec;
-    private int errors;
-    private boolean awaitingCommand; // heard her name but the sheet couldn't open: listening for the request
+    private Model model;
+    private Recognizer recognizer;
+    private Mic mic;
+    private boolean loading, cued, turn, awaitingCommand;
+    private SpeechRecognizer google;
+    private final ArrayList<Integer> muted = new ArrayList<>();
     private final Runnable listenRun = new Runnable() {
         @Override
         public void run() {
             listen();
         }
     };
+    private final Runnable chargeCheck = new Runnable() {
+        @Override
+        public void run() {
+            if (!running) return;
+            if ("charging".equals(mode(WakeService.this)) && !charging() && mic != null) stopMic();
+            if (mic == null && !turn && !paused) listen();
+            main.postDelayed(this, 60000);
+        }
+    };
+    private final Runnable turnTimeout = new Runnable() {
+        @Override
+        public void run() {
+            endTurn(false);
+        }
+    };
+    private final Runnable stopAwaiting = new Runnable() {
+        @Override
+        public void run() {
+            awaitingCommand = false;
+        }
+    };
 
     static String mode(Context c) {
         return c.getSharedPreferences("rias", Context.MODE_PRIVATE).getString("wakeMode", "off");
+    }
+
+    /** The name after "Hey": set in the app, or the assistant's / Rias's name. */
+    static String wakeName(Context c) {
+        String n = c.getSharedPreferences("rias", Context.MODE_PRIVATE).getString("wakeName", "");
+        if (n == null || n.trim().isEmpty()) n = Scheduler.plain(c) ? Scheduler.name(c) : "Rias";
+        return n.trim();
     }
 
     /** Saves the mode and starts/stops listening. Only works while the app is on screen (Android rule for the mic). */
@@ -68,10 +101,23 @@ public class WakeService extends Service implements RecognitionListener {
             c.stopService(i);
             return;
         }
+        WakeModel.ensure(c, null); // fetch the speech model now, while the app is open
         try {
             if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
         } catch (Exception ignored) {
         }
+    }
+
+    static void setWakeName(Context c, String name) {
+        c.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString("wakeName", name == null ? "" : name.trim()).apply();
+        final WakeService w = instance;
+        if (w != null) w.main.post(new Runnable() {
+            @Override
+            public void run() {
+                w.shown = "";
+                if (w.mic != null) w.updateNote(w.idleText());
+            }
+        });
     }
 
     /** The assistant sheet opened (stop listening so it can use the mic) / closed (start again). */
@@ -81,7 +127,7 @@ public class WakeService extends Service implements RecognitionListener {
         if (w != null) w.main.post(new Runnable() {
             @Override
             public void run() {
-                w.stopRec();
+                w.stopMic();
             }
         });
     }
@@ -93,6 +139,17 @@ public class WakeService extends Service implements RecognitionListener {
             w.main.removeCallbacks(w.listenRun);
             w.main.postDelayed(w.listenRun, 700);
         }
+    }
+
+    /** RiasReplyService finished a hands-free answer (`question`: she asked you something back). */
+    static void replied(final boolean question) {
+        final WakeService w = instance;
+        if (w != null) w.main.post(new Runnable() {
+            @Override
+            public void run() {
+                w.endTurn(question);
+            }
+        });
     }
 
     @Override
@@ -107,7 +164,7 @@ public class WakeService extends Service implements RecognitionListener {
             stopSelf();
             return START_NOT_STICKY;
         }
-        Notification n = note("Say “Hey Rias” anytime");
+        Notification n = note(idleText());
         try {
             if (Build.VERSION.SDK_INT >= 30) startForeground(NOTE_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
             else startForeground(NOTE_ID, n);
@@ -119,73 +176,40 @@ public class WakeService extends Service implements RecognitionListener {
         running = true;
         main.removeCallbacks(listenRun);
         main.post(listenRun);
+        main.removeCallbacks(chargeCheck);
+        main.postDelayed(chargeCheck, 60000);
         return START_NOT_STICKY;
+    }
+
+    private String idleText() {
+        return "Say “Hey " + wakeName(this) + "” anytime";
     }
 
     private Notification note(String text) {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm != null && nm.getNotificationChannel(CHANNEL) == null) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Hey Rias (listening)", NotificationManager.IMPORTANCE_MIN);
-            ch.setDescription("Shown while Rias listens for her name");
+            NotificationChannel ch = new NotificationChannel(CHANNEL, "Hands-free listening", NotificationManager.IMPORTANCE_MIN);
+            ch.setDescription("Shown (silently) while she listens for “Hey …”");
             ch.setShowBadge(false);
+            ch.setSound(null, null);
             nm.createNotificationChannel(ch);
         }
         int small = getResources().getIdentifier("ic_stat_rias", "drawable", getPackageName());
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
         PendingIntent off = PendingIntent.getService(this, 7901, new Intent(this, WakeService.class).setAction(ACTION_OFF),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent open = PendingIntent.getActivity(this, 7902, new Intent(this, AssistActivity.class),
+        PendingIntent open = PendingIntent.getActivity(this, 7902, new Intent(this, MainActivity.class),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         return b.setSmallIcon(small != 0 ? small : android.R.drawable.ic_btn_speak_now)
-                .setContentTitle("Rias is listening for her name")
+                .setContentTitle("Listening for “Hey " + wakeName(this) + "”")
                 .setContentText(text)
-                .setColor(0xFFC8173A)
+                .setColor(Scheduler.plain(this) ? 0xFF2563EB : 0xFFC8173A)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
+                .setShowWhen(false)
                 .setContentIntent(open)
                 .addAction(0, "Turn off", off)
                 .build();
-    }
-
-    private boolean charging() {
-        Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        int plugged = b == null ? 0 : b.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0);
-        return plugged != 0;
-    }
-
-    private void listen() {
-        if (!running) return;
-        if (paused) return;
-        if ("charging".equals(mode(this)) && !charging()) {
-            stopRec();
-            updateNote("Waiting for the charger (Hey Rias works while charging)");
-            main.postDelayed(listenRun, 30000);
-            return;
-        }
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            updateNote("Speech recognition isn't available on this phone");
-            return;
-        }
-        try {
-            if (rec == null) {
-                if (Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
-                    rec = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
-                } else {
-                    rec = SpeechRecognizer.createSpeechRecognizer(this);
-                }
-                rec.setRecognitionListener(this);
-            }
-            Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-                    .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-                    .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                    .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-            rec.startListening(i);
-            updateNote(awaitingCommand ? "Listening…" : "Say “Hey Rias” anytime");
-        } catch (Exception e) {
-            retry(2000, true);
-        }
     }
 
     private String shown = "";
@@ -197,99 +221,377 @@ public class WakeService extends Service implements RecognitionListener {
         if (nm != null) nm.notify(NOTE_ID, note(text));
     }
 
-    private void retry(long delay, boolean recreate) {
-        if (recreate) stopRec();
+    private boolean charging() {
+        Intent b = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int plugged = b == null ? 0 : b.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0);
+        return plugged != 0;
+    }
+
+    // ---------- listening for "Hey …" (on the phone, silent) ----------
+
+    private void listen() {
+        if (!running || paused || turn) return;
         main.removeCallbacks(listenRun);
-        main.postDelayed(listenRun, delay);
-    }
-
-    private void stopRec() {
-        if (rec == null) return;
-        try {
-            rec.cancel();
-            rec.destroy();
-        } catch (Exception ignored) {
+        if ("charging".equals(mode(this)) && !charging()) {
+            stopMic();
+            updateNote("Waiting for the charger (hands-free works while charging)");
+            return; // chargeCheck looks again every minute
         }
-        rec = null;
-    }
-
-    @Override
-    public void onResults(Bundle results) {
-        errors = 0;
-        ArrayList<String> heard = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        if (awaitingCommand) {
-            awaitingCommand = false;
-            if (heard != null && !heard.isEmpty() && !heard.get(0).trim().isEmpty()) RiasReplyService.say(this, heard.get(0).trim(), true, false);
-            retry(1500, false);
+        if (!WakeModel.ready(this)) {
+            String st = WakeModel.status(this);
+            if (st.startsWith("error")) {
+                updateNote("Couldn't download the speech model. Trying again soon (needs internet once).");
+                main.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        WakeModel.state = "";
+                        listen();
+                    }
+                }, 120000);
+                return;
+            }
+            updateNote("Getting ready: downloading the speech model (one time, about 40 MB)…");
+            WakeModel.ensure(this, new Runnable() {
+                @Override
+                public void run() {
+                    main.post(listenRun);
+                }
+            });
+            main.postDelayed(listenRun, 5000);
             return;
         }
-        if (heard != null) {
-            for (String h : heard) {
-                Matcher m = WAKE.matcher(h.toLowerCase(Locale.US).trim());
-                if (m.find()) {
-                    String cmd = m.group(1) != null ? m.group(1) : m.group(2);
-                    woke(cmd == null ? "" : cmd.trim());
-                    return;
+        if (model == null) {
+            if (loading) return;
+            loading = true;
+            updateNote("Getting ready…");
+            final String path = WakeModel.dir(this).getAbsolutePath();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Model m = null;
+                    String err = null;
+                    try {
+                        LibVosk.setLogLevel(LogLevel.WARNINGS);
+                        m = new Model(path);
+                    } catch (Throwable t) {
+                        err = t.toString();
+                    }
+                    final Model got = m;
+                    final String why = err;
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            loading = false;
+                            if (got == null) {
+                                updateNote("Hands-free listening couldn't start on this phone.");
+                                android.util.Log.w("RiasWake", "model: " + why);
+                                return;
+                            }
+                            model = got;
+                            listen();
+                        }
+                    });
+                }
+            }, "wake-load").start();
+            return;
+        }
+        if (mic != null) {
+            mic.setPause(false);
+            updateNote(awaitingCommand ? "Listening…" : idleText());
+            return;
+        }
+        try {
+            recognizer = new Recognizer(model, 16000f);
+            mic = new Mic(recognizer);
+            mic.start();
+            cued = false;
+            updateNote(idleText());
+        } catch (Throwable t) {
+            stopMic();
+            main.postDelayed(listenRun, 5000);
+        }
+    }
+
+    private void stopMic() {
+        if (mic != null) {
+            mic.finish();
+            mic = null;
+        }
+        if (recognizer != null) {
+            try {
+                recognizer.close();
+            } catch (Throwable ignored) {
+            }
+            recognizer = null;
+        }
+    }
+
+    private void resetRecognizer() {
+        if (recognizer == null) return;
+        synchronized (recognizer) {
+            recognizer.reset();
+        }
+    }
+
+    private static String field(String json, String key) {
+        try {
+            return new JSONObject(json).optString(key, "").trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    void onPartialResult(String json) {
+        if (turn || awaitingCommand || cued) return;
+        if (Wake.command(field(json, "partial"), wakeName(this)) != null) {
+            cued = true;
+            buzz(); // you know she heard you, before you've finished the sentence
+        }
+    }
+
+    void onResult(String json) {
+        if (turn) return;
+        String text = field(json, "text");
+        if (awaitingCommand) {
+            if (text.isEmpty()) return;
+            awaitingCommand = false;
+            main.removeCallbacks(stopAwaiting);
+            ask(text);
+            return;
+        }
+        String cmd = Wake.command(text, wakeName(this));
+        boolean wasCued = cued;
+        cued = false;
+        if (cmd == null) return;
+        if (!wasCued) buzz();
+        if (cmd.split("\\s+").length >= 2) ask(cmd);
+        else listenForQuestion();
+    }
+
+    void onMicError() {
+        stopMic();
+        main.postDelayed(listenRun, 3000);
+    }
+
+    /** Reads the microphone (quietly: no system sounds) and feeds the offline recognizer. */
+    private class Mic extends Thread {
+        private final Recognizer rec;
+        private volatile boolean done, hold;
+        private String lastPartial = "";
+
+        Mic(Recognizer rec) {
+            super("wake-mic");
+            this.rec = rec;
+        }
+
+        void setPause(boolean p) {
+            hold = p;
+        }
+
+        void finish() {
+            done = true;
+            interrupt();
+            try {
+                join(1500);
+            } catch (InterruptedException ignored) {
+            }
+        }
+
+        @Override
+        public void run() {
+            int min = android.media.AudioRecord.getMinBufferSize(16000, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT);
+            int size = Math.max(min, 16000 / 5 * 2); // 0.2 s of audio
+            android.media.AudioRecord rec2 = null;
+            try {
+                rec2 = new android.media.AudioRecord(android.media.MediaRecorder.AudioSource.VOICE_RECOGNITION, 16000,
+                        android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT, size * 2);
+                if (rec2.getState() != android.media.AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("mic busy");
+                rec2.startRecording();
+                byte[] buf = new byte[size];
+                while (!done) {
+                    int n = rec2.read(buf, 0, buf.length);
+                    if (n <= 0 || hold) continue;
+                    final String out;
+                    final boolean fin;
+                    synchronized (rec) {
+                        fin = rec.acceptWaveForm(buf, n);
+                        out = fin ? rec.getResult() : rec.getPartialResult();
+                    }
+                    if (!fin && out.equals(lastPartial)) continue;
+                    lastPartial = fin ? "" : out;
+                    main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mic != Mic.this) return;
+                            if (fin) onResult(out); else onPartialResult(out);
+                        }
+                    });
+                }
+            } catch (final Throwable t) {
+                if (!done) main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mic == Mic.this) onMicError();
+                    }
+                });
+            } finally {
+                if (rec2 != null) {
+                    try {
+                        rec2.stop();
+                    } catch (Throwable ignored) {
+                    }
+                    rec2.release();
                 }
             }
         }
-        retry(150, false);
     }
 
-    /** Heard her name: open the assistant sheet (with whatever you said after it). */
-    private void woke(final String command) {
-        stopRec();
-        paused = true;
-        AssistActivity.opened = false;
+    private void buzz() {
         try {
-            startActivity(new Intent(this, AssistActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    .putExtra(AssistActivity.EXTRA_COMMAND, command).putExtra(AssistActivity.EXTRA_WAKE, true));
+            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (v == null) return;
+            if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createOneShot(45, 120));
+            else v.vibrate(45);
         } catch (Exception ignored) {
         }
-        // Android may refuse to open it from the background (allow "Appear on top" to fix that).
+    }
+
+    // ---------- answering ----------
+
+    /** Hands her what you said; she answers out loud with nothing on screen. */
+    private void ask(String text) {
+        turn = true;
+        if (mic != null) mic.setPause(true); // don't listen to her own voice
+        updateNote("Thinking…");
+        try {
+            RiasReplyService.say(this, text, true, false, true);
+        } catch (Exception e) {
+            endTurn(false);
+            return;
+        }
+        main.removeCallbacks(turnTimeout);
+        main.postDelayed(turnTimeout, 100000);
+    }
+
+    private void endTurn(final boolean question) {
+        main.removeCallbacks(turnTimeout);
+        if (google != null) closeGoogle(); // the phone's recognizer never answered
+        final long since = System.currentTimeMillis();
+        // Wait until she has finished speaking.
+        main.post(new Runnable() {
+            @Override
+            public void run() {
+                AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                boolean talking = RiasVoice.speaking() || (am != null && am.isMusicActive());
+                if (talking && System.currentTimeMillis() - since < 45000) {
+                    main.postDelayed(this, 300);
+                    return;
+                }
+                turn = false;
+                if (question) listenForQuestion();
+                else {
+                    resetRecognizer();
+                    listen();
+                }
+            }
+        });
+    }
+
+    /** You said only "Hey …" (or she asked you something): listen once for the question, no wake word needed. */
+    private void listenForQuestion() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            // No phone speech service: the offline model takes the question instead.
+            awaitingCommand = true;
+            main.removeCallbacks(stopAwaiting);
+            main.postDelayed(stopAwaiting, 8000);
+            resetRecognizer();
+            listen();
+            return;
+        }
+        stopMic(); // the phone's recognizer needs the microphone
+        turn = true;
+        main.removeCallbacks(turnTimeout);
+        main.postDelayed(turnTimeout, 15000);
+        updateNote("Listening…");
+        mute();
+        try {
+            google = SpeechRecognizer.createSpeechRecognizer(this);
+            google.setRecognitionListener(new android.speech.RecognitionListener() {
+                @Override public void onResults(Bundle b) {
+                    ArrayList<String> heard = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    String text = heard == null || heard.isEmpty() ? "" : heard.get(0).trim();
+                    closeGoogle();
+                    main.removeCallbacks(turnTimeout);
+                    if (text.isEmpty()) { turn = false; listen(); }
+                    else ask(text);
+                }
+                @Override public void onError(int error) {
+                    closeGoogle();
+                    main.removeCallbacks(turnTimeout);
+                    turn = false;
+                    listen();
+                }
+                @Override public void onReadyForSpeech(Bundle p) { }
+                @Override public void onBeginningOfSpeech() { }
+                @Override public void onRmsChanged(float r) { }
+                @Override public void onBufferReceived(byte[] b) { }
+                @Override public void onEndOfSpeech() { }
+                @Override public void onPartialResults(Bundle p) { }
+                @Override public void onEvent(int t, Bundle p) { }
+            });
+            google.startListening(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+                    .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName()));
+        } catch (Exception e) {
+            closeGoogle();
+            turn = false;
+            listen();
+        }
+    }
+
+    private void closeGoogle() {
+        if (google != null) {
+            try {
+                google.cancel();
+                google.destroy();
+            } catch (Exception ignored) {
+            }
+            google = null;
+        }
+        // Unmute a moment later, after the recognizer's closing sound would have played.
         main.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (AssistActivity.opened) return;
-                paused = false;
-                if (!command.isEmpty()) {
-                    RiasReplyService.say(WakeService.this, command, true, false);
-                    retry(1500, false);
-                } else {
-                    try {
-                        new ToneGenerator(AudioManager.STREAM_MUSIC, 70).startTone(ToneGenerator.TONE_PROP_BEEP2, 180);
-                    } catch (Exception ignored) {
-                    }
-                    awaitingCommand = true;
-                    retry(300, false);
-                }
+                unmute();
             }
-        }, 1800);
+        }, 450);
     }
 
-    @Override
-    public void onError(int error) {
-        if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-            updateNote("Rias needs microphone permission. Open the app to allow it.");
-            running = false;
-            stopSelf();
-            return;
+    /** The phone's recognizer beeps when it starts and stops; silence those sounds for the moment it listens. */
+    private void mute() {
+        AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (am == null) return;
+        for (int s : new int[] {AudioManager.STREAM_MUSIC, AudioManager.STREAM_SYSTEM, AudioManager.STREAM_NOTIFICATION}) {
+            try {
+                if (Build.VERSION.SDK_INT >= 23 && am.isStreamMute(s)) continue;
+                am.adjustStreamVolume(s, AudioManager.ADJUST_MUTE, 0);
+                muted.add(s);
+            } catch (Exception ignored) {
+                // Do Not Disturb can block changing some streams
+            }
         }
-        if (awaitingCommand && (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)) awaitingCommand = false;
-        switch (error) {
-            case SpeechRecognizer.ERROR_NO_MATCH:
-            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                errors = 0;
-                retry(100, false);
-                break;
-            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                retry(1000, true);
-                break;
-            default:
-                // Network, server, client errors: back off a little more each time.
-                errors++;
-                retry(Math.min(60000, 1000L * errors * errors), true);
+    }
+
+    private void unmute() {
+        AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (am != null) for (int s : muted) {
+            try {
+                am.adjustStreamVolume(s, AudioManager.ADJUST_UNMUTE, 0);
+            } catch (Exception ignored) {
+            }
         }
+        muted.clear();
     }
 
     @Override
@@ -297,15 +599,22 @@ public class WakeService extends Service implements RecognitionListener {
         running = false;
         instance = null;
         main.removeCallbacksAndMessages(null);
-        stopRec();
+        stopMic();
+        if (google != null) {
+            try {
+                google.destroy();
+            } catch (Exception ignored) {
+            }
+            google = null;
+        }
+        unmute();
+        if (model != null) {
+            try {
+                model.close();
+            } catch (Throwable ignored) {
+            }
+            model = null;
+        }
         super.onDestroy();
     }
-
-    @Override public void onReadyForSpeech(Bundle params) { }
-    @Override public void onBeginningOfSpeech() { }
-    @Override public void onRmsChanged(float rmsdB) { }
-    @Override public void onBufferReceived(byte[] buffer) { }
-    @Override public void onEndOfSpeech() { }
-    @Override public void onPartialResults(Bundle partialResults) { }
-    @Override public void onEvent(int eventType, Bundle params) { }
 }

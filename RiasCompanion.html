@@ -1446,6 +1446,9 @@ html[data-plain="1"] .ac-snooze button { background: rgba(255, 255, 255, .05); }
 html[data-plain="1"] .quick :is([data-say="Praise me"], [data-say^="How's Akeno"], [data-say*="peerage"], [data-say^="Play chess"]) { display: none; }
 html[data-plain="1"] .onboarding .intro { font-family: inherit; font-style: normal; color: var(--muted); }
 html[data-plain="1"] .onboard-praise { display: none; }
+.wake-word { display: flex; align-items: center; gap: 8px; }
+.wake-word > span { font-weight: 600; color: var(--muted); }
+.wake-word input { flex: 1; }
 </style>
 </head>
 <body>
@@ -1904,17 +1907,18 @@ html[data-plain="1"] .onboard-praise { display: none; }
           <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
           </section>
           <section class="set-group" data-cat="assist">
-          <h2>“Hey Rias”</h2>
-          <p class="muted small">Say “Hey Rias” and she answers, without touching your phone. For example: “Hey Rias, set a timer for 10 minutes”.</p>
-          <label>Listen for her name
+          <h2>Hands-free: “Hey …”</h2>
+          <p class="muted small">Like Siri: say “Hey” and her name, then ask anything (“Hey Rias, set a timer for 10 minutes”). She answers out loud; nothing pops up and nothing is typed out. A short buzz tells you she heard you.</p>
+          <label>Listen for “Hey …”
             <select name="wakeMode">
               <option value="off">Off</option>
               <option value="charging">Only while charging (saves battery)</option>
               <option value="always">Always</option>
             </select>
           </label>
+          <label>Wake word <span class="wake-word"><span>Hey</span><input name="wakeName" maxlength="24" placeholder="Rias" autocomplete="off"></span></label>
           <p class="small voice-hint" id="wake-hint"></p>
-          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Reminders &amp; alarms → pop-up check) so she can pop up over other apps.</p>
+          <p class="muted small">Listening happens on your phone with an offline speech model (a one-time 40 MB download); nothing leaves the phone until you say the wake word. No beeps while it waits. Android requires a small silent “listening” notification while the microphone is on (on Android 13+ you can swipe it away). A one-word name that's easy to hear works best.</p>
           </section>
           <section class="set-group" data-cat="assist">
           <h2>Things you can say</h2>
@@ -9415,7 +9419,7 @@ window.createTranslator = function createTranslator(ctx) {
     { k: 'alerts', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
     { k: 'day', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
-    { k: 'assist', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, “Hey Rias”' },
+    { k: 'assist', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, hands-free “Hey …”' },
     { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
   ];
   let setCat = null;
@@ -9427,7 +9431,7 @@ window.createTranslator = function createTranslator(ctx) {
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
       voice: st.voice === false ? 'Silent' : st.voiceStyle === 'natural' ? 'Natural AI voice' : 'Phone voice',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
-      assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ' · “Hey Rias” while charging', always: ' · “Hey Rias” on' }[st.wakeMode] || ''),
+      assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ` · “Hey ${wakeWord()}” while charging`, always: ` · “Hey ${wakeWord()}” on` }[st.wakeMode] || ''),
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
       alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
       day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
@@ -9502,6 +9506,8 @@ window.createTranslator = function createTranslator(ctx) {
     fillNaturalVoices();
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
+    sf.elements.wakeName.value = state.settings.wakeName || '';
+    sf.elements.wakeName.placeholder = defaultWakeWord();
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
@@ -9757,7 +9763,9 @@ window.createTranslator = function createTranslator(ctx) {
     Object.assign(state.settings, {
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
       wakeMode: sf.elements.wakeMode.value,
+      wakeName: sf.elements.wakeName.value.trim(),
     });
+    pushWakeWord();
     applyWake();
     Object.assign(state.settings, {
       foodReminders: sf.elements.foodReminders.checked,
@@ -9856,7 +9864,11 @@ window.createTranslator = function createTranslator(ctx) {
     if (!d || !d.status) return null;
     try { return JSON.parse(d.status()); } catch { return null; }
   }
-  // Start/stop "Hey Rias" listening to match the setting (asks for the mic first).
+  // The name after "Hey": chosen in Settings, else the assistant's (standard look) or Rias's.
+  function defaultWakeWord() { return state.settings.plain ? plainName() : 'Rias'; }
+  function wakeWord() { return (state.settings.wakeName || '').trim() || defaultWakeWord(); }
+  function pushWakeWord() { try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); } catch { /* older app */ } }
+  // Start/stop "Hey …" listening to match the setting (asks for the mic first).
   function applyWake() {
     const d = Dev();
     if (!d || !d.wake) return;
@@ -9869,7 +9881,7 @@ window.createTranslator = function createTranslator(ctx) {
   sf.elements.wakeMode.addEventListener('change', () => { state.settings.wakeMode = sf.elements.wakeMode.value; save(); applyWake(); });
   const PERMS = [
     ['assistant', 'Rias is your phone\'s assistant', 'Long-press home to talk to her', 'Set up', () => Dev().openSettings('assistant')],
-    ['mic', 'Microphone', 'For “Hey Rias” and talking in the assistant', 'Allow', () => Dev().requestPermission('mic')],
+    ['mic', 'Microphone', 'For hands-free “Hey …” and talking in the assistant', 'Allow', () => Dev().requestPermission('mic')],
     ['contacts', 'Calls & texts by name', '“Call Mom”, “Text Jake…”', 'Allow', () => Dev().requestPermission('calls')],
     ['notifications', 'Read notifications', '“What did I miss?”', 'Allow', () => Dev().openSettings('notifications')],
     ['dnd', 'Do Not Disturb', 'Turn it on and off for you', 'Allow', () => Dev().openSettings('dnd')],
@@ -9896,11 +9908,18 @@ window.createTranslator = function createTranslator(ctx) {
     }
     const hint = $('#wake-hint');
     const mode = state.settings.wakeMode || 'off';
-    hint.textContent = !s ? '“Hey Rias” needs the Android app.'
+    const model = (s && s.wakeModel) || '';
+    const ww = `“Hey ${wakeWord()}”`;
+    hint.textContent = !s ? 'Hands-free listening needs the Android app.'
       : mode === 'off' ? ''
         : !s.mic ? 'Allow the microphone (below) so she can listen.'
-          : s.wakeRunning ? (mode === 'charging' ? 'On: she listens while your phone is charging.' : 'On: say “Hey Rias” anytime.')
-            : 'Starting… If it doesn’t start, reopen the app.';
+          : model.startsWith('downloading') ? `Getting ready: downloading the speech model… ${model.split(':')[1] || 0}%`
+            : model.startsWith('error') ? 'Couldn’t download the speech model. Check your internet; it tries again on its own.'
+              : s.wakeRunning ? (mode === 'charging' ? `On: say ${ww} while your phone is charging.` : `On: say ${ww} anytime.`)
+                : 'Starting… If it doesn’t start, reopen the app.';
+    // Keep the download progress moving while Settings is open.
+    clearTimeout(renderAssist.t);
+    if (mode !== 'off' && model.startsWith('downloading') && document.getElementById('settings').offsetParent) renderAssist.t = setTimeout(renderAssist, 1500);
   }
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
@@ -10227,7 +10246,7 @@ window.createTranslator = function createTranslator(ctx) {
 
   Assistant.restore();
   // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
-  try { const Dv = window.RiasDevice; if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;

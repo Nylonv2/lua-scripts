@@ -138,7 +138,12 @@ say), finds the address in your contacts, signs it (*Sign my emails as* under Yo
 - **"What did I miss?"** reads your new notifications aloud
 - **Quick answers:** the time and date, "15% of 80", "tip on $45"
 
-"Hey Rias" hands-free listening is also there (off by default). Some phones beep each time it restarts listening.
+**Hands-free, like Siri** (Settings → Phone assistant → *Hands-free: “Hey …”*, off by default): say “Hey” and her name
+(or a wake word you pick), then your question. A short buzz means she heard you; she answers out loud with nothing on
+screen and no notification. If you only say the wake word, she listens once more for the question. Listening runs on the
+phone with an offline speech model (a one-time 40 MB download), so it's silent while it waits and nothing leaves the
+phone until you say the wake word. Choose *Always* or *Only while charging*; always-on uses some extra battery. Android
+requires a small silent "listening" notification while the microphone is on.
 
 ---
 
@@ -152,7 +157,7 @@ say), finds the address in your contacts, signs it (*Sign my emails as* under Yo
 | **Reminders & alarms** | Check-ins, notifications, the pop-up check, which reminders pop up, alarm sound, test buttons |
 | **Your day** | Briefing, weather city, recap, wind-down, phone calendar, food & water goals |
 | **Rias's mind** | AI on/off and service, monthly cost (Claude), what she remembers |
-| **Phone assistant** | Home-button setup, pop-up style, permissions, "Hey Rias" |
+| **Phone assistant** | Home-button setup, pop-up style, permissions, hands-free “Hey …” and your wake word |
 | **Backup & data** | Save / restore a backup, weekly auto backup, updates, reset |
 
 ---
@@ -185,7 +190,7 @@ If she's silent: turn up your *media* volume, then tap **▶ Hear her**; the mes
 Your reminders, chat, food diary, schedule, pictures and memories are stored only on your phone. There is no account and
 no server. The app only connects to: the AI service you pick (if any), Gemini's voice service (if you choose the natural
 voice), Open-Meteo for weather (your city only), GitHub to check for updates, and, the first time you make an alarm-card
-cutout, a one-time download of the cutout engine (your photo is processed on the phone, never uploaded). Notifications read by "What did I
+cutout, a one-time download of the cutout engine (your photo is processed on the phone, never uploaded), and, when you turn on hands-free, a one-time download of the offline speech model from alphacephei.com (listening itself stays on the phone). Notifications read by "What did I
 miss?" stay on the phone. Back up your data with **Save backup** before switching phones.
 
 ---

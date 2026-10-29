@@ -40,6 +40,7 @@ public class RiasReplyService extends Service {
     static final String EXTRA_CANCEL = "cancelId";
     static final String EXTRA_VOICE = "voice";   // answer out loud
     static final String EXTRA_ASSIST = "assist"; // asked from the assistant sheet (it shows the answer itself)
+    static final String EXTRA_QUIET = "quiet";   // hands-free ("Hey …"): answer out loud only, no notification at all
 
     /** The assistant sheet, while it's open: gets her lines as soon as they're ready. */
     interface AssistListener {
@@ -89,9 +90,16 @@ public class RiasReplyService extends Service {
     };
 
     static void say(Context c, String text, boolean voice, boolean fromAssist) {
+        say(c, text, voice, fromAssist, false);
+    }
+
+    /** `quiet`: called by WakeService, whose own (silent) foreground notification keeps the app allowed to run this. */
+    static void say(Context c, String text, boolean voice, boolean fromAssist, boolean quiet) {
         Intent i = new Intent(c, RiasReplyService.class).setAction(ACTION_SAY).putExtra(EXTRA_TEXT, text)
-                .putExtra(EXTRA_VOICE, voice).putExtra(EXTRA_ASSIST, fromAssist);
-        if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i); else c.startService(i);
+                .putExtra(EXTRA_VOICE, voice).putExtra(EXTRA_ASSIST, fromAssist).putExtra(EXTRA_QUIET, quiet);
+        if (quiet) c.startService(i);
+        else if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i);
+        else c.startService(i);
     }
 
     static PendingIntent replyIntent(Context c, int cancelId) {
@@ -164,8 +172,9 @@ public class RiasReplyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String text = null;
-        boolean voice = false, fromAssist = false;
+        boolean voice = false, fromAssist = false, quiet = false;
         if (intent != null) {
+            quiet = intent.getBooleanExtra(EXTRA_QUIET, false);
             voice = intent.getBooleanExtra(EXTRA_VOICE, false);
             fromAssist = intent.getBooleanExtra(EXTRA_ASSIST, false);
             text = intent.getStringExtra(EXTRA_TEXT);
@@ -191,15 +200,17 @@ public class RiasReplyService extends Service {
         }
         main.removeCallbacks(idleStop);
         if (text != null && !text.trim().isEmpty()) ChatLog.add(this, "me", text);
-        Notification n = conversation(this, true);
-        if (Build.VERSION.SDK_INT >= 34) startForeground(NOTE_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
-        else startForeground(NOTE_ID, n);
+        if (!quiet) {
+            Notification n = conversation(this, true);
+            if (Build.VERSION.SDK_INT >= 34) startForeground(NOTE_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE);
+            else startForeground(NOTE_ID, n);
+        }
         if (text == null || text.trim().isEmpty()) {
             if (!busy && queue.isEmpty()) stopTurn();
             return START_NOT_STICKY;
         }
         // While the app is on screen, it answers in its own chat instead.
-        queue.add(new String[] {text.trim(), voice ? "1" : "", fromAssist ? "1" : ""});
+        queue.add(new String[] {text.trim(), voice ? "1" : "", fromAssist ? "1" : "", quiet ? "1" : ""});
         ensureWeb();
         pump();
         return START_NOT_STICKY;
@@ -274,7 +285,19 @@ public class RiasReplyService extends Service {
         }
         if (added == 0) ChatLog.add(this, "rias", "Sorry, I couldn't answer just now. Try again in a moment, or open the app.");
         boolean shown = current != null && !current[2].isEmpty() && assist != null;
-        if (shown) {
+        boolean handsFree = current != null && current.length > 3 && !current[3].isEmpty();
+        if (handsFree) {
+            // Already said out loud: nothing on screen. Tell the listener so it can start again.
+            String last = "";
+            try {
+                JSONArray lines = new JSONArray(json == null ? "[]" : json);
+                if (lines.length() > 0) last = lines.optString(lines.length() - 1).trim();
+            } catch (Exception ignored) {
+            }
+            if (added == 0) RiasVoice.say(this, "Sorry, I couldn't answer just now.");
+            WakeService.replied(last.endsWith("?"));
+            shown = true;
+        } else if (shown) {
             if (added == 0) assist.onLines("[\"Sorry, I couldn't answer just now. Try again in a moment.\"]");
             assist.onDone();
         } else {

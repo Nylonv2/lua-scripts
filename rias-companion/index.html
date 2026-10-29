@@ -469,17 +469,18 @@
           <p class="muted small">Texts: she writes the message in your texting app and you tap Send, so nothing goes out without you. Your notifications are read on the phone only; nothing is saved or uploaded.</p>
           </section>
           <section class="set-group" data-cat="assist">
-          <h2>“Hey Rias”</h2>
-          <p class="muted small">Say “Hey Rias” and she answers, without touching your phone. For example: “Hey Rias, set a timer for 10 minutes”.</p>
-          <label>Listen for her name
+          <h2>Hands-free: “Hey …”</h2>
+          <p class="muted small">Like Siri: say “Hey” and her name, then ask anything (“Hey Rias, set a timer for 10 minutes”). She answers out loud; nothing pops up and nothing is typed out. A short buzz tells you she heard you.</p>
+          <label>Listen for “Hey …”
             <select name="wakeMode">
               <option value="off">Off</option>
               <option value="charging">Only while charging (saves battery)</option>
               <option value="always">Always</option>
             </select>
           </label>
+          <label>Wake word <span class="wake-word"><span>Hey</span><input name="wakeName" maxlength="24" placeholder="Rias" autocomplete="off"></span></label>
           <p class="small voice-hint" id="wake-hint"></p>
-          <p class="muted small">While it's on, Android shows a small “Rias is listening” notification. Some phones beep when listening restarts. If her name isn't picked up, try “Hey Rias” clearly and a bit slower. Allow “Appear on top” (Reminders &amp; alarms → pop-up check) so she can pop up over other apps.</p>
+          <p class="muted small">Listening happens on your phone with an offline speech model (a one-time 40 MB download); nothing leaves the phone until you say the wake word. No beeps while it waits. Android requires a small silent “listening” notification while the microphone is on (on Android 13+ you can swipe it away). A one-word name that's easy to hear works best.</p>
           </section>
           <section class="set-group" data-cat="assist">
           <h2>Things you can say</h2>

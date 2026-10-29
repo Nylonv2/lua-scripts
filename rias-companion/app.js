@@ -2748,7 +2748,7 @@
     { k: 'alerts', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
     { k: 'day', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
     { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
-    { k: 'assist', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, “Hey Rias”' },
+    { k: 'assist', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, hands-free “Hey …”' },
     { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
   ];
   let setCat = null;
@@ -2760,7 +2760,7 @@
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
       voice: st.voice === false ? 'Silent' : st.voiceStyle === 'natural' ? 'Natural AI voice' : 'Phone voice',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
-      assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ' · “Hey Rias” while charging', always: ' · “Hey Rias” on' }[st.wakeMode] || ''),
+      assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ` · “Hey ${wakeWord()}” while charging`, always: ` · “Hey ${wakeWord()}” on` }[st.wakeMode] || ''),
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
       alerts: alarmOn() ? 'Alarm pop-ups on' : 'Alarm pop-ups off',
       day: state.weather && state.weather.place ? `Weather: ${state.weather.place}` : '',
@@ -2835,6 +2835,8 @@
     fillNaturalVoices();
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
+    sf.elements.wakeName.value = state.settings.wakeName || '';
+    sf.elements.wakeName.placeholder = defaultWakeWord();
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
     refreshPicPreviews();
@@ -3090,7 +3092,9 @@
     Object.assign(state.settings, {
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
       wakeMode: sf.elements.wakeMode.value,
+      wakeName: sf.elements.wakeName.value.trim(),
     });
+    pushWakeWord();
     applyWake();
     Object.assign(state.settings, {
       foodReminders: sf.elements.foodReminders.checked,
@@ -3189,7 +3193,11 @@
     if (!d || !d.status) return null;
     try { return JSON.parse(d.status()); } catch { return null; }
   }
-  // Start/stop "Hey Rias" listening to match the setting (asks for the mic first).
+  // The name after "Hey": chosen in Settings, else the assistant's (standard look) or Rias's.
+  function defaultWakeWord() { return state.settings.plain ? plainName() : 'Rias'; }
+  function wakeWord() { return (state.settings.wakeName || '').trim() || defaultWakeWord(); }
+  function pushWakeWord() { try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); } catch { /* older app */ } }
+  // Start/stop "Hey …" listening to match the setting (asks for the mic first).
   function applyWake() {
     const d = Dev();
     if (!d || !d.wake) return;
@@ -3202,7 +3210,7 @@
   sf.elements.wakeMode.addEventListener('change', () => { state.settings.wakeMode = sf.elements.wakeMode.value; save(); applyWake(); });
   const PERMS = [
     ['assistant', 'Rias is your phone\'s assistant', 'Long-press home to talk to her', 'Set up', () => Dev().openSettings('assistant')],
-    ['mic', 'Microphone', 'For “Hey Rias” and talking in the assistant', 'Allow', () => Dev().requestPermission('mic')],
+    ['mic', 'Microphone', 'For hands-free “Hey …” and talking in the assistant', 'Allow', () => Dev().requestPermission('mic')],
     ['contacts', 'Calls & texts by name', '“Call Mom”, “Text Jake…”', 'Allow', () => Dev().requestPermission('calls')],
     ['notifications', 'Read notifications', '“What did I miss?”', 'Allow', () => Dev().openSettings('notifications')],
     ['dnd', 'Do Not Disturb', 'Turn it on and off for you', 'Allow', () => Dev().openSettings('dnd')],
@@ -3229,11 +3237,18 @@
     }
     const hint = $('#wake-hint');
     const mode = state.settings.wakeMode || 'off';
-    hint.textContent = !s ? '“Hey Rias” needs the Android app.'
+    const model = (s && s.wakeModel) || '';
+    const ww = `“Hey ${wakeWord()}”`;
+    hint.textContent = !s ? 'Hands-free listening needs the Android app.'
       : mode === 'off' ? ''
         : !s.mic ? 'Allow the microphone (below) so she can listen.'
-          : s.wakeRunning ? (mode === 'charging' ? 'On: she listens while your phone is charging.' : 'On: say “Hey Rias” anytime.')
-            : 'Starting… If it doesn’t start, reopen the app.';
+          : model.startsWith('downloading') ? `Getting ready: downloading the speech model… ${model.split(':')[1] || 0}%`
+            : model.startsWith('error') ? 'Couldn’t download the speech model. Check your internet; it tries again on its own.'
+              : s.wakeRunning ? (mode === 'charging' ? `On: say ${ww} while your phone is charging.` : `On: say ${ww} anytime.`)
+                : 'Starting… If it doesn’t start, reopen the app.';
+    // Keep the download progress moving while Settings is open.
+    clearTimeout(renderAssist.t);
+    if (mode !== 'off' && model.startsWith('downloading') && document.getElementById('settings').offsetParent) renderAssist.t = setTimeout(renderAssist, 1500);
   }
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
@@ -3560,7 +3575,7 @@
 
   Assistant.restore();
   // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
-  try { const Dv = window.RiasDevice; if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;
