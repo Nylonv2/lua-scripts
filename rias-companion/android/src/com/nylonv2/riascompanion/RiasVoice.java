@@ -37,7 +37,7 @@ final class RiasVoice {
     static boolean speaking() {
         try {
             if (pending && System.currentTimeMillis() - pendingSince > 90000) pending = false; // never stuck
-            return pending || (tts != null && tts.isSpeaking());
+            return pending || (tts != null && tts.isSpeaking()) || KokoroVoice.speaking();
         } catch (Exception e) {
             return false;
         }
@@ -47,6 +47,30 @@ final class RiasVoice {
     static void say(Context ctx, final String text, final boolean assistant) {
         stop();
         if (text == null || text.isEmpty()) return;
+        // Kokoro (Settings → Her voice), when it's chosen and downloaded.
+        if (KokoroVoice.say(ctx, text, assistant ? AudioAttributes.USAGE_ASSISTANT : AudioAttributes.USAGE_ALARM)) return;
+        sayTts(ctx, text, assistant);
+    }
+
+    /** The phone's own voice, skipping Kokoro (its fallback when something goes wrong). */
+    static void sayPhone(final Context ctx, final String text) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                sayTts(ctx, text, true);
+            }
+        });
+    }
+
+    private static void sayTts(Context ctx, final String text, final boolean assistant) {
+        if (tts != null) {
+            try {
+                tts.stop();
+                tts.shutdown();
+            } catch (Exception ignored) {
+            }
+            tts = null;
+        }
         pending = true;
         pendingSince = System.currentTimeMillis();
         final Context c = ctx.getApplicationContext();
@@ -91,6 +115,7 @@ final class RiasVoice {
 
     static void stop() {
         pending = false;
+        KokoroVoice.stop();
         if (tts == null) return;
         try {
             tts.stop();

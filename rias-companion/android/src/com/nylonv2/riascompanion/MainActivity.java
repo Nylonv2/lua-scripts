@@ -398,6 +398,7 @@ public class MainActivity extends Activity {
     private int utterance;
 
     private void speakNow(String text) {
+        if (KokoroVoice.say(this, text, AudioAttributes.USAGE_MEDIA, false)) return; // Kokoro chosen in Settings → Her voice
         if (!ttsReady) {
             pendingSpeech = text; // spoken as soon as the engine is up
             return;
@@ -936,6 +937,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void stopSpeaking() {
+            KokoroVoice.stop();
             if (activity.ttsReady) activity.tts.stop();
         }
 

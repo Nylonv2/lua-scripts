@@ -179,6 +179,10 @@ Keys stay on your phone, are sent only to the service you picked, and are never 
   such as **SherpaTTS** (free) or Google's voice data, choose it under Android Settings → Accessibility → Text-to-speech,
   then fully close and reopen Rias and pick the voice under **Her voice**. With engines like SherpaTTS keep pitch and
   speed in the middle; other values can sound robotic.
+- **Kokoro (free, recommended):** a natural, human-sounding voice that runs on your phone: no key, no account, works
+  offline. Choose *Kokoro* under **Her voice**, tap *Download the voice* (about 100 MB, once), pick a voice (Emma, British
+  and poised, suits Rias; Bella, Isabella, Sarah, Nicole, Sky, plus male voices) and tap *▶ Hear her*. It's used everywhere
+  she talks: chat, the pop-up, hands-free "Hey …" and alarms. Needs a 64-bit phone (nearly every phone from recent years).
 - **Natural AI voice:** an original voice made to fit her (warm, poised, a little teasing; not a copy of any actor),
   from Google's Gemini voice service with a free Google key. Chats keep using whichever AI you chose. If it can't
   connect or the free quota runs out, she uses the phone voice.
@@ -189,7 +193,7 @@ If she's silent: turn up your *media* volume, then tap **▶ Hear her**; the mes
 
 Your reminders, chat, food diary, schedule, pictures and memories are stored only on your phone. There is no account and
 no server. The app only connects to: the AI service you pick (if any), Gemini's voice service (if you choose the natural
-voice), Open-Meteo for weather (your city only), GitHub to check for updates, and, the first time you make an alarm-card
+voice), GitHub once to download the Kokoro voice (if you choose it), Open-Meteo for weather (your city only), GitHub to check for updates, and, the first time you make an alarm-card
 cutout, a one-time download of the cutout engine (your photo is processed on the phone, never uploaded), and, when you turn on hands-free, a one-time download of the offline speech model from alphacephei.com (listening itself stays on the phone). Notifications read by "What did I
 miss?" stay on the phone. Back up your data with **Save backup** before switching phones.
 
@@ -208,6 +212,8 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 | `biz.js` | Assistant tab → Clients: business profile, client finder, outreach emails, follow-ups |
 | `translate.js` | Assistant tab → Translate: the face-to-face interpreter |
 | `natural-voice.js` | Gemini text-to-speech |
+| `android/src/…/KokoroVoice.java`, `TarBz2.java`, `com/k2fsa/…` | Kokoro on-phone voice (sherpa-onnx engine) and its model download |
+| `android/src/…/WakeService.java`, `Wake.java`, `WakeModel.java` | Hands-free "Hey …" (Vosk offline wake word) |
 | `food.js`, `work.js` | Food diary, work schedule |
 | `rias-avatar.js`, `living-photo.js`, `alarm-card.js`, `photo-cutout.js` | Animated Rias, living photo, alarm card, on-device cutout |
 | `alarm.html`, `assist.html` | The Android alarm screen and assistant pop-up |
@@ -219,3 +225,7 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 - Build the single-file page: `python3 build_standalone.py`.
 - Try it in a browser: `python3 -m http.server` in this folder, then open http://localhost:8000.
 - Her lines: `dialogue.js` (by situation; `{name}` and `{title}` are filled in) and `talk.js`.
+
+### Credits
+Kokoro-82M voice model (Apache-2.0) by hexgrad; sherpa-onnx speech engine (Apache-2.0) by k2-fsa, whose Java bindings
+are included in `android/src/com/k2fsa`; Vosk offline speech recognition (Apache-2.0) by Alpha Cephei; JNA (Apache-2.0).

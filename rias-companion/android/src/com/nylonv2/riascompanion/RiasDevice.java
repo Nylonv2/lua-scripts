@@ -49,6 +49,13 @@ final class RiasDevice {
     @JavascriptInterface public void openSettings(String what) { DeviceActions.openSettings(ctx, what); }
     @JavascriptInterface public void wake(String mode) { WakeService.setMode(ctx, mode); }
     @JavascriptInterface public void wakeName(String name) { WakeService.setWakeName(ctx, name); }
+    /** Kokoro voice (Settings → Her voice): "unsupported", "", "downloading:NN", "ready" or "error:…". */
+    @JavascriptInterface public String kokoroStatus() { return KokoroVoice.status(ctx); }
+    @JavascriptInterface public void kokoroDownload() { KokoroVoice.download(ctx); }
+    @JavascriptInterface public void kokoroRemove() { KokoroVoice.remove(ctx); }
+    @JavascriptInterface public boolean kokoroPreview(String text, int voice) { return KokoroVoice.preview(ctx, text, voice); }
+    /** style: "phone", "natural" or "kokoro"; voice: Kokoro speaker number. */
+    @JavascriptInterface public void voiceChoice(String style, int voice) { KokoroVoice.choose(ctx, style, voice); }
 
     /** What's allowed: {mic, contacts, call, dnd, notifications, assistant, wake, overlay}. */
     @JavascriptInterface

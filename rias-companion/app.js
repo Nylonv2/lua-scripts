@@ -2758,7 +2758,7 @@
     const st = state.settings;
     const extra = {
       you: state.profile ? `${state.profile.name} · wakes ${fmtTime(state.profile.wake)}` : '',
-      voice: st.voice === false ? 'Silent' : st.voiceStyle === 'natural' ? 'Natural AI voice' : 'Phone voice',
+      voice: st.voice === false ? 'Silent' : st.voiceStyle === 'natural' ? 'Natural AI voice' : st.voiceStyle === 'kokoro' ? 'Kokoro voice' : 'Phone voice',
       look: `${{ crimson: 'Crimson', amethyst: 'Amethyst', midnight: 'Midnight blue', gold: 'Royal gold' }[st.theme] || 'Crimson'} theme`,
       assist: (st.assistStyle === 'full' ? 'Full pop-up' : 'Quiet bubble') + ({ charging: ` · “Hey ${wakeWord()}” while charging`, always: ` · “Hey ${wakeWord()}” on` }[st.wakeMode] || ''),
       mind: state.ai.on ? `AI on · ${state.ai.provider === 'gemini' ? 'Gemini' : 'Claude'}` : 'AI off',
@@ -2830,7 +2830,9 @@
     $('#test-lock').hidden = !(N2 && N2.testAlarm);
     sf.elements.praise.value = state.settings.praise || 'neutral';
     sf.elements.voice.checked = state.settings.voice !== false;
-    sf.elements.voiceStyle.value = state.settings.voiceStyle || 'phone';
+    if (!kokoroAvailable()) sf.elements.voiceStyle.querySelector('option[value=kokoro]')?.remove();
+    sf.elements.voiceStyle.value = state.settings.voiceStyle === 'kokoro' && !kokoroAvailable() ? 'phone' : state.settings.voiceStyle || 'phone';
+    sf.elements.kokoroVoice.value = String(state.settings.kokoroVoice ?? 7);
     sf.elements.voiceKey.value = state.ai.geminiKey;
     fillNaturalVoices();
     voiceStyleShown();
@@ -3090,11 +3092,12 @@
     Object.assign(state.settings, { checkins: sf.elements.checkins.checked, checkinEvery: Number(sf.elements.checkinEvery.value), notify: sf.elements.notify.checked, praise: sf.elements.praise.value, voice: sf.elements.voice.checked,
       voiceName: sf.elements.voiceName.value, voicePitch: Number(sf.elements.voicePitch.value), voiceRate: Number(sf.elements.voiceRate.value) });
     Object.assign(state.settings, {
-      voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value,
+      voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value, kokoroVoice: Number(sf.elements.kokoroVoice.value),
       wakeMode: sf.elements.wakeMode.value,
       wakeName: sf.elements.wakeName.value.trim(),
     });
     pushWakeWord();
+    pushVoiceChoice();
     applyWake();
     Object.assign(state.settings, {
       foodReminders: sf.elements.foodReminders.checked,
@@ -3140,6 +3143,15 @@
   if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { if (!$('#view-settings').hidden) fillVoices(); });
   // Try the voice settings on the form before saving them.
   $('#hear').addEventListener('click', async () => {
+    if (sf.elements.voiceStyle.value === 'kokoro') {
+      const d = Dev();
+      stopSpeaking();
+      if (!(d && d.kokoroPreview && d.kokoroPreview(say(pick(praiseLines())), Number(sf.elements.kokoroVoice.value)))) {
+        const st = $('#kokoro-status');
+        st.textContent = 'Download the voice first (button below).';
+      }
+      return;
+    }
     if (sf.elements.voiceStyle.value === 'natural' && window.NaturalVoice) {
       // Her natural voice needs the key typed in Rias's mind (saved or not yet).
       stopSpeaking();
@@ -3170,12 +3182,40 @@
     sel.value = state.settings.naturalVoice || NaturalVoice.VOICES[0][0];
   }
   function voiceStyleShown() {
-    const natural = sf.elements.voiceStyle.value === 'natural';
+    const style = sf.elements.voiceStyle.value;
+    const natural = style === 'natural', kokoro = style === 'kokoro';
     $('#natural-voice-box').hidden = !natural;
-    $('#phone-voice-pick').hidden = natural;
-    for (const el of sf.querySelectorAll('[name=voicePitch], [name=voiceRate]')) el.closest('label').hidden = natural;
-    $('#voice-reset').hidden = natural;
+    $('#kokoro-box').hidden = !kokoro;
+    $('#phone-voice-pick').hidden = natural || kokoro;
+    for (const el of sf.querySelectorAll('[name=voicePitch], [name=voiceRate]')) el.closest('label').hidden = natural || kokoro;
+    $('#voice-reset').hidden = natural || kokoro;
+    if (kokoro) renderKokoro();
   }
+  // ---------- Kokoro: the free on-phone voice (Android app, 64-bit phones) ----------
+  function kokoroStatus() { try { const d = Dev(); return d && d.kokoroStatus ? d.kokoroStatus() : 'unsupported'; } catch { return 'unsupported'; } }
+  function kokoroAvailable() { return kokoroStatus() !== 'unsupported'; }
+  function pushVoiceChoice() {
+    try { const d = Dev(); if (d && d.voiceChoice) d.voiceChoice(state.settings.voiceStyle || 'phone', Number(state.settings.kokoroVoice ?? 7)); } catch { /* older app */ }
+  }
+  function renderKokoro() {
+    clearTimeout(renderKokoro.t);
+    const st = kokoroStatus();
+    const msg = $('#kokoro-status'), get = $('#kokoro-get'), rm = $('#kokoro-remove');
+    get.hidden = st === 'ready' || st.startsWith('downloading');
+    rm.hidden = st !== 'ready';
+    get.textContent = st.startsWith('error') ? 'Try the download again' : 'Download the voice (100 MB)';
+    msg.textContent = st === 'ready' ? 'Ready. Tap ▶ Hear her to try a voice, then Save.'
+      : st.startsWith('downloading') ? `Downloading her voice… ${st.split(':')[1] || 0}% (you can leave this screen)`
+        : st.startsWith('error') ? `The download didn't finish (${st.slice(6)}). Check your internet and try again.`
+          : 'Not downloaded yet.';
+    if (st.startsWith('downloading') && !$('#kokoro-box').hidden) renderKokoro.t = setTimeout(renderKokoro, 1000);
+  }
+  $('#kokoro-get').addEventListener('click', () => { try { Dev().kokoroDownload(); } catch { /* older app */ } setTimeout(renderKokoro, 300); });
+  $('#kokoro-remove').addEventListener('click', () => {
+    if (!confirm('Remove the downloaded Kokoro voice? She will use the phone voice until you download it again.')) return;
+    try { Dev().kokoroRemove(); } catch { /* older app */ }
+    renderKokoro();
+  });
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
   sf.elements.rias.addEventListener('change', () => { $('#plain-opts').hidden = sf.elements.rias.checked; });
   initAssistPic();
@@ -3575,6 +3615,7 @@
 
   Assistant.restore();
   // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
+  pushVoiceChoice();
   try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {

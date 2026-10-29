@@ -42,6 +42,11 @@ for abi in arm64-v8a armeabi-v7a; do   # phones only; the speech model itself do
   mkdir -p "$WORK/app/lib/$abi"
   cp "$TOOLS/vosk/vosk-android/jni/$abi/libvosk.so" "$TOOLS/vosk/jna/jni/$abi/libjnidispatch.so" "$WORK/app/lib/$abi/"
 done
+# Kokoro voice: sherpa-onnx (Apache-2.0) engine, 64-bit phones only (its model downloads when chosen in Settings)
+SHERPA=v1.13.6
+fetch https://github.com/k2-fsa/sherpa-onnx/releases/download/$SHERPA/sherpa-onnx-$SHERPA-android.tar.bz2 "$TOOLS/sherpa/android.tar.bz2"
+[ -f "$TOOLS/sherpa/jniLibs/arm64-v8a/libsherpa-onnx-jni.so" ] || (cd "$TOOLS/sherpa" && tar xjf android.tar.bz2 ./jniLibs/arm64-v8a/libsherpa-onnx-jni.so ./jniLibs/arm64-v8a/libonnxruntime.so)
+cp "$TOOLS/sherpa/jniLibs/arm64-v8a/libsherpa-onnx-jni.so" "$TOOLS/sherpa/jniLibs/arm64-v8a/libonnxruntime.so" "$WORK/app/lib/arm64-v8a/"
 mkdir -p "$WORK/app/res/raw" && cp ../sounds/alarm_*.ogg "$WORK/app/res/raw/"   # alarm sounds (sounds/make_sounds.py)
 (cd .. && cp -r index.html style.css app.js dialogue.js talk.js chat.js food.js work.js ai.js rias-avatar.js living-photo.js photo-cutout.js alarm-card.js natural-voice.js assistant.js biz.js translate.js alarm.html assist.html manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
 mkdir -p "$WORK/app/assets/www/vendor/mediapipe" && cp ../vendor/anthropic-sdk.js "$WORK/app/assets/www/vendor/" && cp ../vendor/mediapipe/vision_bundle.js "$WORK/app/assets/www/vendor/mediapipe/"

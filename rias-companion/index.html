@@ -336,9 +336,32 @@
           <label>Voice type
             <select name="voiceStyle">
               <option value="phone">Phone voice (works offline)</option>
+              <option value="kokoro">Kokoro: natural voice on your phone (free, offline)</option>
               <option value="natural">Natural AI voice, closest to Rias (needs a Gemini key)</option>
             </select>
           </label>
+          <div id="kokoro-box" hidden>
+            <label>Kokoro voice
+              <select name="kokoroVoice">
+                <option value="7">Emma: British, poised (suits Rias)</option>
+                <option value="8">Isabella: British, warm</option>
+                <option value="1">Bella: American, warm and expressive</option>
+                <option value="3">Sarah: American, clear</option>
+                <option value="2">Nicole: soft and breathy</option>
+                <option value="4">Sky: American, bright</option>
+                <option value="9">George: British, male</option>
+                <option value="10">Lewis: British, male</option>
+                <option value="5">Adam: American, male</option>
+                <option value="6">Michael: American, male</option>
+              </select>
+            </label>
+            <p class="small voice-hint" id="kokoro-status"></p>
+            <div class="row">
+              <button type="button" id="kokoro-get">Download the voice (100 MB)</button>
+              <button type="button" id="kokoro-remove" hidden>Remove download</button>
+            </div>
+            <p class="muted small">A free, human-sounding voice (Kokoro) that runs on your phone: no key, no account, works offline. It downloads once (Wi-Fi recommended). Used everywhere she talks, including “Hey …” and alarms. Until it's downloaded, she uses the phone voice.</p>
+          </div>
           <div id="natural-voice-box">
             <label>Her natural voice
               <select name="naturalVoice"></select>
