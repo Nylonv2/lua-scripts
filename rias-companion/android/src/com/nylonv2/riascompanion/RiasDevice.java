@@ -49,6 +49,7 @@ final class RiasDevice {
     @JavascriptInterface public void openSettings(String what) { DeviceActions.openSettings(ctx, what); }
     @JavascriptInterface public void wake(String mode) { WakeService.setMode(ctx, mode); }
     @JavascriptInterface public void wakeName(String name) { WakeService.setWakeName(ctx, name); }
+    @JavascriptInterface public void wakeAction(String action) { ctx.getSharedPreferences("rias", Context.MODE_PRIVATE).edit().putString("wakeAction", "popup".equals(action) ? "popup" : "voice").apply(); }
     /** Kokoro voice (Settings → Her voice): "unsupported", "", "downloading:NN", "ready" or "error:…". */
     @JavascriptInterface public String kokoroStatus() { return KokoroVoice.status(ctx); }
     @JavascriptInterface public void kokoroDownload() { KokoroVoice.download(ctx); }
@@ -78,6 +79,8 @@ final class RiasDevice {
             o.put("wakeRunning", WakeService.running);
             o.put("wakeModel", WakeModel.status(ctx));
             o.put("wakeName", WakeService.wakeName(ctx));
+            o.put("wakeState", WakeService.stateText);
+            o.put("wakeHeard", WakeService.lastHeard);
         } catch (Exception ignored) {
         }
         return o.toString();

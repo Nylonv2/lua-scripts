@@ -43,6 +43,11 @@ public class WakeService extends Service {
     static final int NOTE_ID = 7900;
     static final String ACTION_OFF = "com.nylonv2.riascompanion.WAKE_OFF";
     static volatile boolean running;
+    /** For Settings: what it's doing (same as the notification) and the last thing it heard. */
+    static volatile String stateText = "", lastHeard = "";
+    private static final String[] HELLO_RIAS = {"Yes? What do you need?", "I'm here. What is it?", "Mm? I'm listening."};
+    private static final String[] HELLO_PLAIN = {"Yes?", "How can I help?", "I'm listening."};
+    private static int hello;
     private static volatile boolean paused;
     private static WakeService instance;
 
@@ -174,6 +179,7 @@ public class WakeService extends Service {
         }
         instance = this;
         running = true;
+        paused = AssistActivity.opened; // never left stuck from a pop-up that closed without saying so
         main.removeCallbacks(listenRun);
         main.post(listenRun);
         main.removeCallbacks(chargeCheck);
@@ -215,6 +221,7 @@ public class WakeService extends Service {
     private String shown = "";
 
     private void updateNote(String text) {
+        stateText = text;
         if (text.equals(shown)) return; // re-posting the same notification can make some phones chime
         shown = text;
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -352,6 +359,7 @@ public class WakeService extends Service {
     void onResult(String json) {
         if (turn) return;
         String text = field(json, "text");
+        if (!text.isEmpty()) lastHeard = text;
         if (awaitingCommand) {
             if (text.isEmpty()) return;
             awaitingCommand = false;
@@ -364,8 +372,53 @@ public class WakeService extends Service {
         cued = false;
         if (cmd == null) return;
         if (!wasCued) buzz();
+        woke(cmd);
+    }
+
+    /** Heard "Hey …": open the pop-up (if chosen and allowed), or answer by voice. */
+    private void woke(final String cmd) {
+        String action = getSharedPreferences("rias", MODE_PRIVATE).getString("wakeAction", "voice");
+        boolean canPop = Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(this);
+        if ("popup".equals(action) && canPop) {
+            stopMic();
+            turn = true;
+            AssistActivity.opened = false;
+            try {
+                startActivity(new Intent(this, AssistActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        .putExtra(AssistActivity.EXTRA_COMMAND, cmd).putExtra(AssistActivity.EXTRA_WAKE, true));
+            } catch (Exception ignored) {
+            }
+            // If Android didn't let it open, answer by voice instead. (The pop-up resumes listening when it closes.)
+            main.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (AssistActivity.opened) { turn = false; return; }
+                    turn = false;
+                    byVoice(cmd);
+                }
+            }, 2000);
+            return;
+        }
+        byVoice(cmd);
+    }
+
+    private void byVoice(String cmd) {
         if (cmd.split("\\s+").length >= 2) ask(cmd);
-        else listenForQuestion();
+        else greetThenListen();
+    }
+
+    /** Just "Hey …": she says hello out loud, then listens for your question. */
+    private void greetThenListen() {
+        turn = true;
+        if (mic != null) mic.setPause(true);
+        String[] lines = Scheduler.plain(this) ? HELLO_PLAIN : HELLO_RIAS;
+        String line = lines[hello++ % lines.length];
+        updateNote(line);
+        try {
+            RiasVoice.say(this, line, true);
+        } catch (Exception ignored) {
+        }
+        endTurn(true); // waits until she's done talking, then listens
     }
 
     void onMicError() {

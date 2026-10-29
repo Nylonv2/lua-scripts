@@ -7,7 +7,7 @@ import java.util.Locale;
  * as "reese" or "rios"), so names are compared by how they sound, not how they're spelled.
  */
 final class Wake {
-    private static final String[] STARTERS = {"hey", "hi", "hay", "okay", "ok", "yo", "hello"};
+    private static final String[] STARTERS = {"hey", "hi", "hay", "he", "okay", "ok", "yo", "hello"}; // how the model may spell "hey"
 
     private Wake() {
     }
@@ -57,7 +57,8 @@ final class Wake {
         s = s.toLowerCase(Locale.US).replaceAll("[^a-z]", "");
         if (s.isEmpty()) return "";
         s = s.replace("ph", "f").replace("ck", "k").replace("sch", "sk").replace("sh", "s").replace("ch", "k")
-                .replace("th", "t").replace("qu", "kw").replace("x", "ks").replace("wh", "w");
+                .replace("th", "t").replace("qu", "kw").replace("x", "ks").replace("wh", "w")
+                .replaceAll("c(?=[eiy])", "s"); // soft c: "reece" sounds like "reese"
         StringBuilder out = new StringBuilder();
         char first = s.charAt(0);
         boolean vowelStart = "aeiouy".indexOf(first) >= 0;

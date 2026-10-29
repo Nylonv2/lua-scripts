@@ -493,7 +493,7 @@
           </section>
           <section class="set-group" data-cat="assist">
           <h2>Hands-free: “Hey …”</h2>
-          <p class="muted small">Like Siri: say “Hey” and her name, then ask anything (“Hey Rias, set a timer for 10 minutes”). She answers out loud; nothing pops up and nothing is typed out. A short buzz tells you she heard you.</p>
+          <p class="muted small">Like Siri: say “Hey” and her name, then ask anything (“Hey Rias, set a timer for 10 minutes”), or just “Hey Rias” and she'll say hello and wait for your question. A short buzz tells you she heard you.</p>
           <label>Listen for “Hey …”
             <select name="wakeMode">
               <option value="off">Off</option>
@@ -502,7 +502,14 @@
             </select>
           </label>
           <label>Wake word <span class="wake-word"><span>Hey</span><input name="wakeName" maxlength="24" placeholder="Rias" autocomplete="off"></span></label>
+          <label>When she hears it
+            <select name="wakeAction">
+              <option value="voice">She says hello out loud, then listens (nothing on screen)</option>
+              <option value="popup">Open the home-button pop-up</option>
+            </select>
+          </label>
           <p class="small voice-hint" id="wake-hint"></p>
+          <p class="muted small" id="wake-heard" hidden></p>
           <p class="muted small">Listening happens on your phone with an offline speech model (a one-time 40 MB download); nothing leaves the phone until you say the wake word. No beeps while it waits. Android requires a small silent “listening” notification while the microphone is on (on Android 13+ you can swipe it away). A one-word name that's easy to hear works best.</p>
           </section>
           <section class="set-group" data-cat="assist">

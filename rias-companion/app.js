@@ -2838,6 +2838,7 @@
     voiceStyleShown();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.wakeName.value = state.settings.wakeName || '';
+    sf.elements.wakeAction.value = state.settings.wakeAction || 'voice';
     sf.elements.wakeName.placeholder = defaultWakeWord();
     sf.elements.assistChar.value = state.settings.assistChar || 'same';
     sf.elements.assistStyle.value = state.settings.assistStyle || 'quiet';
@@ -3095,6 +3096,7 @@
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value, kokoroVoice: Number(sf.elements.kokoroVoice.value),
       wakeMode: sf.elements.wakeMode.value,
       wakeName: sf.elements.wakeName.value.trim(),
+      wakeAction: sf.elements.wakeAction.value,
     });
     pushWakeWord();
     pushVoiceChoice();
@@ -3236,7 +3238,9 @@
   // The name after "Hey": chosen in Settings, else the assistant's (standard look) or Rias's.
   function defaultWakeWord() { return state.settings.plain ? plainName() : 'Rias'; }
   function wakeWord() { return (state.settings.wakeName || '').trim() || defaultWakeWord(); }
-  function pushWakeWord() { try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); } catch { /* older app */ } }
+  function pushWakeWord() {
+    try { const d = Dev(); if (d && d.wakeName) d.wakeName(wakeWord()); if (d && d.wakeAction) d.wakeAction(state.settings.wakeAction || 'voice'); } catch { /* older app */ }
+  }
   // Start/stop "Hey …" listening to match the setting (asks for the mic first).
   function applyWake() {
     const d = Dev();
@@ -3284,11 +3288,16 @@
         : !s.mic ? 'Allow the microphone (below) so she can listen.'
           : model.startsWith('downloading') ? `Getting ready: downloading the speech model… ${model.split(':')[1] || 0}%`
             : model.startsWith('error') ? 'Couldn’t download the speech model. Check your internet; it tries again on its own.'
-              : s.wakeRunning ? (mode === 'charging' ? `On: say ${ww} while your phone is charging.` : `On: say ${ww} anytime.`)
+              : s.wakeRunning ? (s.wakeState && !/anytime/.test(s.wakeState) ? s.wakeState : mode === 'charging' ? `On: say ${ww} while your phone is charging.` : `On: say ${ww} anytime.`)
                 : 'Starting… If it doesn’t start, reopen the app.';
-    // Keep the download progress moving while Settings is open.
+    // What the listener last heard: shows whether it hears you and how it spells her name.
+    const heard = $('#wake-heard');
+    heard.hidden = !(s && s.wakeRunning && mode !== 'off');
+    heard.textContent = s && s.wakeHeard ? `Last heard: “${s.wakeHeard}”. Try saying ${ww} now; this updates live.` : `Nothing heard yet. Try saying ${ww} now; this updates live.`;
+    if (s && state.settings.wakeAction === 'popup' && s.overlay === false) heard.textContent += ' The pop-up needs “Appear on top” (Reminders & alarms → pop-up check); until then she answers by voice.';
+    // Keep the progress and what she heard moving while this section is open.
     clearTimeout(renderAssist.t);
-    if (mode !== 'off' && model.startsWith('downloading') && document.getElementById('settings').offsetParent) renderAssist.t = setTimeout(renderAssist, 1500);
+    if (mode !== 'off' && document.getElementById('settings').offsetParent && !$('#wake-hint').closest('[data-cat]')?.hidden) renderAssist.t = setTimeout(renderAssist, 1500);
   }
   // Explains why she might be silent: no speech engine, missing voice data, volume at zero…
   function voiceHint() {
@@ -3616,7 +3625,7 @@
   Assistant.restore();
   // "Hey Rias" listening restarts whenever the app opens (Android only allows starting it from here).
   pushVoiceChoice();
-  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
+  try { const Dv = window.RiasDevice; if (Dv && Dv.wakeName) Dv.wakeName((state.settings.wakeName || '').trim() || (state.settings.plain ? ((state.settings.plainName || '').trim() || 'Assistant') : 'Rias')); if (Dv && Dv.wakeAction) Dv.wakeAction(state.settings.wakeAction || 'voice'); if (Dv && Dv.wake && state.settings.wakeMode && state.settings.wakeMode !== 'off') Dv.wake(state.settings.wakeMode); } catch { /* older app */ }
   renderFeed();
   if (!state.profile) {
     $('#onboarding').hidden = false;
