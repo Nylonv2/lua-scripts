@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cleetus McFarland Incident Record</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: single readable column, stacked race cards, no tables — built for phones */
+:root {
+  --bg: #f5f6f4;
+  --surface: #ffffff;
+  --fg: #1c1f22;
+  --muted: #5b636b;
+  --line: #dde1dd;
+  --accent: #1f5fae;
+  --flag: #c8401f;
+  --clean: #2e7d4f;
+  --warn: #9a5a00;
+  --display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181b; --surface: #1e2226; --fg: #e9ecee; --muted: #a2abb3;
+    --line: #2f353a; --accent: #7fb0ec; --flag: #f08a6c; --clean: #74c896;
+    --warn: #e8b05a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181b; --surface: #1e2226; --fg: #e9ecee; --muted: #a2abb3;
+  --line: #2f353a; --accent: #7fb0ec; --flag: #f08a6c; --clean: #74c896;
+  --warn: #e8b05a;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--body); font-size: 17px; line-height: 1.55;
+}
+.wrap {
+  max-width: 680px; margin: 0 auto;
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 36px;
+}
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.1; margin: 0; }
+h1 { font-size: 2.4rem; }
+h2 { font-size: 1.9rem; padding-top: 8px; border-top: 3px solid var(--fg); }
+h3 { font-size: 1.3rem; }
+p { margin: 0; }
+.lede { color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 10px; }
+nav a {
+  font-weight: 600; text-decoration: none; color: var(--accent);
+  border: 1px solid var(--line); background: var(--surface);
+  border-radius: 999px; padding: 6px 14px;
+}
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: flex; flex-direction: column; gap: 18px; }
+.label {
+  font-family: var(--display); text-transform: uppercase; letter-spacing: .06em;
+  font-size: .95rem; color: var(--muted);
+}
+.big { font-family: var(--display); font-size: 3rem; font-weight: 700; line-height: 1; }
+.big small { font-size: 1.1rem; color: var(--muted); font-weight: 600; margin-left: 6px; }
+.stats { display: flex; flex-direction: column; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.stat:first-child { border-top: 0; }
+.stat span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.races { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.race {
+  background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--flag);
+  border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
+}
+.race.clean { border-left-color: var(--clean); }
+.race .top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+.race .fin { font-variant-numeric: tabular-nums; }
+.race .meta { color: var(--muted); font-size: .95rem; }
+.key { display: flex; flex-wrap: wrap; gap: 14px; font-size: .95rem; color: var(--muted); }
+.key span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; background: var(--flag); }
+.key span.c::before { background: var(--clean); }
+ul.points { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; }
+.sources { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; font-size: .97rem; }
+.sources a { word-break: break-word; }
+.note { font-size: .93rem; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; }
+nav { display: flex; flex-wrap: wrap; gap: 10px; }
+nav a { font-weight: 600; text-decoration: none; color: var(--accent); border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px; }
+.check { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: .9rem; padding-top: 6px; margin-top: 4px; border-top: 1px dashed var(--line); }
+.check b { font-family: var(--display); text-transform: uppercase; letter-spacing: .05em; font-size: .85rem; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.check b.ok { color: var(--clean); }
+.check b.mixed { color: var(--warn); }
+.check b.weak { color: var(--flag); }
+.check .why { color: var(--muted); }
+details.fold { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.fold > summary { cursor: pointer; list-style: none; padding: 12px 16px; font-family: var(--display); font-size: 1.25rem; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "+"; margin-left: 8px; color: var(--accent); font-size: 1.4rem; line-height: 1; }
+details.fold[open] > summary::after { content: "\2212"; }
+details.fold > summary .count { margin-left: auto; font-family: var(--body); font-size: .9rem; font-weight: 600; color: var(--muted); }
+details.fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+details.fold > .fold-body { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+details.fold .card, details.fold .race { background: var(--bg); }
+.glance { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; }
+</style>
+
+</head>
+<body>
+<main class="wrap">
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <h1>Cleetus McFarland Incident Record</h1>
+    <p class="lede">Every ARCA, Truck and O'Reilly start, with each wreck, spin and wall hit counted. Every race has its own fact check and source link.</p>
+    <nav>
+      <a href="#glance">At a glance</a>
+      <a href="#races">Race by race</a>
+      <a href="#sources">All sources</a>
+    </nav>
+  </header>
+
+  <section id="glance">
+    <div>
+      <div class="label">Incident percentage</div>
+      <div class="big">64%<small>0.64 · 9 of 14 races</small></div>
+    </div>
+    <h2>At a glance</h2>
+    <ul class="glance">
+      <li>14 starts across ARCA, ARCA East, the Truck Series and the O'Reilly Series, from February 2025 to October 2026.</li>
+      <li>15 incidents in all: 6 crashes, 2 wall hits, 5 spins and 2 sideways saves. That's about one per race.</li>
+      <li>He's been much cleaner in ARCA (incidents in 3 of 9 races) than in Trucks and O'Reilly (incidents in all 5).</li>
+      <li>Best finish: 2nd at Talladega in 2026. He also won a pole at Michigan.</li>
+    </ul>
+
+    <details class="fold"><summary>Full stats<span class="count">12 stats</span></summary><div class="fold-body">
+      <div class="stats">
+        <div class="stat"><span>Total starts</span><span>14</span></div>
+        <div class="stat"><span>ARCA / ARCA East / Trucks / O'Reilly</span><span>8 / 1 / 3 / 2</span></div>
+        <div class="stat"><span>Total incidents</span><span>15</span></div>
+        <div class="stat"><span>Crashes / wrecks</span><span>6</span></div>
+        <div class="stat"><span>Wall hits without a full crash</span><span>2</span></div>
+        <div class="stat"><span>Spins with no contact</span><span>5</span></div>
+        <div class="stat"><span>Sideways saves (Rockingham)</span><span>2</span></div>
+        <div class="stat"><span>Incidents per race</span><span>1.07</span></div>
+        <div class="stat"><span>DNFs</span><span>4</span></div>
+        <div class="stat"><span>Top 10s</span><span>4</span></div>
+        <div class="stat"><span>Poles</span><span>1</span></div>
+        <div class="stat"><span>Best finish</span><span>2nd</span></div>
+      </div>
+    </div></details>
+
+    <details class="fold"><summary>By series<span class="count">3 series</span></summary><div class="fold-body">
+      <div class="stats">
+        <div class="stat"><span>ARCA + ARCA East</span><span>3 of 9 · 33%</span></div>
+        <div class="stat"><span>Truck Series</span><span>3 of 3 · 100%</span></div>
+        <div class="stat"><span>O'Reilly Series</span><span>2 of 2 · 100%</span></div>
+      </div>
+    </div></details>
+
+    <details class="fold"><summary>How each race is fact-checked</summary><div class="fold-body">
+      <div class="check" style="border-top:0"><b class="ok">Verified</b><span class="why">The result and incidents match the race recaps.</span></div>
+      <div class="check" style="border-top:0"><b class="mixed">Disputed details</b><span class="why">Sources disagree on a finishing spot, an incident count or who was at fault.</span></div>
+    </div></details>
+  </section>
+
+  <section id="races">
+    <h2>Race by race</h2>
+    <div class="key"><span>Had an incident</span><span class="c">Clean race</span></div>
+
+    <details class="fold"><summary>2025<span class="count">4 races</span></summary><div class="fold-body">
+    <ol class="races">
+      <li class="race"><div class="top"><span>ARCA · Daytona · Feb 2025</span><span class="fin">30th, DNF</span></div><div class="meta">2 incidents. Collected twice by Amber Balcaen; out about 17 laps in.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://frontstretch.com/2025/02/15/arca-field-decimated-by-3-first-half-wrecks-cleetus-mcfarland-eliminated/">Frontstretch</a></div></li>
+      <li class="race clean"><div class="top"><span>ARCA · Talladega · Apr 2025</span><span class="fin">10th</span></div><div class="meta">Clean. Valve-train problem, avoided late wrecks.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://frontstretch.com/2025/04/26/automotive-youtube-sensation-cleetus-mcfarland-earns-top-10-at-talladega/">Frontstretch</a></div></li>
+      <li class="race"><div class="top"><span>ARCA · Charlotte · May 2025</span><span class="fin">9th</span></div><div class="meta">1 incident. Fishtailed on a restart and caused a pileup; he apologized.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/cleetus-mcfarland-apologizes-causing-multi-car-arca-wreck/10725840/">Motorsport.com</a></div></li>
+      <li class="race"><div class="top"><span>ARCA · Bristol · Sep 2025</span><span class="fin">17th</span></div><div class="meta">1 incident. Right-front tire failure, touched the outside wall.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/cleetus-mcfarland-arca-short-track-debut-bristol/10758646/">Motorsport.com</a> · <a target="_blank" rel="noopener" href="https://dailydownforce.com/cleetus-mcfarlands-2025-nascar-racing-schedule/">Daily Downforce</a></div></li>
+    </ol>
+    </div></details>
+
+    <details class="fold" open><summary>2026<span class="count">10 races</span></summary><div class="fold-body">
+    <ol class="races">
+      <li class="race"><div class="top"><span>Truck · Daytona · Feb 13</span><span class="fin">37th, DNF</span></div><div class="meta">1 incident. Spun alone on lap 6 into the inside wall ("100% my fault").</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://www.motorsport.com/nascar-truck/news/cleetus-mcfarland-daytona-nascar-truck-debut-wrecks/10797587/">Motorsport.com</a></div></li>
+      <li class="race clean"><div class="top"><span>ARCA · Daytona · Feb 14</span><span class="fin">11th</span></div><div class="meta">Clean. Pit-stop jack problem, dodged every wreck.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://www.sportskeeda.com/nascar/news-it-sickest-thing-i-ve-ever-in-cleetus-mcfarland-redeems-clean-daytona-arca-finish-disaster-truck-series-debut">Sportskeeda</a></div></li>
+      <li class="race"><div class="top"><span>O'Reilly · Rockingham · Apr 4</span><span class="fin">32nd</span></div><div class="meta">4 incidents. Fox Sports counted 2 spins and 2 sideways saves, including the lap 206 spin that brought out a caution.</div><div class="check"><b class="mixed">Disputed details</b><span class="why">Fox counted 4; other recaps describe only the lap 206 spin and a lap 4 save.</span><a target="_blank" rel="noopener" href="https://www.foxsports.com/stories/nascar/cleetus-mcfarland-youtube-nascar-rockingham">Fox Sports</a> · <a target="_blank" rel="noopener" href="https://www.nascar.com/news-media/2026/04/04/oreilly-auto-parts-series-cleetus-mcfarland-debut-rockingham/">NASCAR.com</a></div></li>
+      <li class="race clean"><div class="top"><span>ARCA East · Rockingham · Apr 4</span><span class="fin">4th</span></div><div class="meta">Clean all race.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://tobychristie.com/arca/east/mckee-holds-off-brown-in-dominant-arca-east-win-cleetus-mcfarland-finishes-fourth/">Toby Christie</a></div></li>
+      <li class="race clean"><div class="top"><span>ARCA · Kansas · Apr 2026</span><span class="fin">20th, DNF</span></div><div class="meta">No crash. Engine blew while running about 10th; slid without contact.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://www.on3.com/pro/news/cleetus-mcfarland-suffers-blown-engine-while-running-10th-in-arca-race/">On3</a></div></li>
+      <li class="race clean"><div class="top"><span>ARCA · Talladega · Apr 25</span><span class="fin">2nd</span></div><div class="meta">Clean. Led 19 laps, lost by 0.111 seconds.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/andy-jankowiak-wins-cleetus-mcfarland-second-arca-talladega/10815493/">Motorsport.com</a></div></li>
+      <li class="race"><div class="top"><span>O'Reilly · Nashville · May 30</span><span class="fin">35th</span></div><div class="meta">2 incidents. Spun through the grass at the end of stage 1, spun again entering pit road. No wall contact.</div><div class="check"><b class="mixed">Disputed details</b><span class="why">Some reports list him 36th; the race recaps say 35th.</span><a target="_blank" rel="noopener" href="https://www.motorsport.com/nascar-os/news/cleetus-mcfarland-spins-picks-up-penalties-in-tough-nascar-oreilly-race/10825618/">Motorsport.com</a> · <a target="_blank" rel="noopener" href="https://frontstretch.com/2026/05/31/lots-good-learnings-upbeat-cleetus-mcfarland/">Frontstretch</a></div></li>
+      <li class="race"><div class="top"><span>ARCA · Michigan · Jun 2026</span><span class="fin">14th</span></div><div class="meta">2 incidents. Won the pole, brushed the wall early, then hit the wall in a three-wide incident.</div><div class="check"><b class="mixed">Disputed details</b><span class="why">One report's text says 12th; its own results table and other recaps say 14th.</span><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/gio-ruggiero-wins-arca-michigan-cleetus-pole-crash-rain-shortened/10827306/">Motorsport.com</a> · <a target="_blank" rel="noopener" href="https://www.thelascopress.com/2026/06/cleetus-mcfarland-is-fast-at-michigan-but-brushes-the-wall-twice/">The Lasco Press</a></div></li>
+      <li class="race"><div class="top"><span>Truck · Michigan · Jun 6</span><span class="fin">25th</span></div><div class="meta">1 incident. Spun around halfway with no contact and kept going.</div><div class="check"><b class="ok">Verified</b><a target="_blank" rel="noopener" href="https://frontstretch.com/2026/06/06/cleetus-mcfarland-completes-a-full-day-of-learning-at-michigan/">Frontstretch</a></div></li>
+      <li class="race"><div class="top"><span>Truck · Talladega · Oct 23</span><span class="fin">36th, DNF</span></div><div class="meta">1 incident. Caught in an 8-truck wreck and hit the inside wall.</div><div class="check"><b class="mixed">Disputed details</b><span class="why">He said it was "probably my fault"; other coverage blames contact from another truck.</span><a target="_blank" rel="noopener" href="https://www.nascar.com/news-media/2026/10/23/craftsman-truck-series-talladega-stage-1-crash/">NASCAR.com</a></div></li>
+    </ol>
+    </div></details>
+
+    <p class="note">NASCAR and ARCA don't publish an official incident stat. These counts come from reading race recaps, so another person counting could land a little differently.</p>
+  </section>
+
+  <section id="sources">
+    <h2>All sources</h2>
+    <details class="fold"><summary>Every source used<span class="count">21 links</span></summary><div class="fold-body">
+    <ol class="sources">
+      <li><a target="_blank" rel="noopener" href="https://frontstretch.com/2025/02/15/arca-field-decimated-by-3-first-half-wrecks-cleetus-mcfarland-eliminated/">Frontstretch: ARCA Daytona 2025 wrecks</a></li>
+      <li><a target="_blank" rel="noopener" href="https://frontstretch.com/2025/04/26/automotive-youtube-sensation-cleetus-mcfarland-earns-top-10-at-talladega/">Frontstretch: Top 10 at Talladega 2025</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/cleetus-mcfarland-apologizes-causing-multi-car-arca-wreck/10725840/">Motorsport.com: Apologizes after Charlotte pileup</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/cleetus-mcfarland-arca-short-track-debut-bristol/10758646/">Motorsport.com: Tire failure at Bristol</a></li>
+      <li><a target="_blank" rel="noopener" href="https://dailydownforce.com/cleetus-mcfarlands-2025-nascar-racing-schedule/">Daily Downforce: 2025 schedule and results</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.motorsport.com/nascar-truck/news/cleetus-mcfarland-daytona-nascar-truck-debut-wrecks/10797587/">Motorsport.com: Truck debut wreck at Daytona</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.sportskeeda.com/nascar/news-it-sickest-thing-i-ve-ever-in-cleetus-mcfarland-redeems-clean-daytona-arca-finish-disaster-truck-series-debut">Sportskeeda: Clean Daytona ARCA finish 2026</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.nascar.com/news-media/2026/04/04/oreilly-auto-parts-series-cleetus-mcfarland-debut-rockingham/">NASCAR.com: O'Reilly debut at Rockingham</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.foxsports.com/stories/nascar/cleetus-mcfarland-youtube-nascar-rockingham">Fox Sports: Inside the Garage, Rockingham (spin count)</a></li>
+      <li><a target="_blank" rel="noopener" href="https://tobychristie.com/arca/east/mckee-holds-off-brown-in-dominant-arca-east-win-cleetus-mcfarland-finishes-fourth/">Toby Christie: ARCA East Rockingham, 4th</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.on3.com/pro/news/cleetus-mcfarland-suffers-blown-engine-while-running-10th-in-arca-race/">On3: Engine failure at Kansas</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/andy-jankowiak-wins-cleetus-mcfarland-second-arca-talladega/10815493/">Motorsport.com: 2nd at Talladega 2026</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.motorsport.com/nascar-os/news/cleetus-mcfarland-spins-picks-up-penalties-in-tough-nascar-oreilly-race/10825618/">Motorsport.com: Spins and penalties at Nashville</a></li>
+      <li><a target="_blank" rel="noopener" href="https://frontstretch.com/2026/05/31/lots-good-learnings-upbeat-cleetus-mcfarland/">Frontstretch: Nashville recap</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.motorsport.com/arca/news/gio-ruggiero-wins-arca-michigan-cleetus-pole-crash-rain-shortened/10827306/">Motorsport.com: Michigan ARCA pole and crash</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.thelascopress.com/2026/06/cleetus-mcfarland-is-fast-at-michigan-but-brushes-the-wall-twice/">The Lasco Press: Brushes the wall twice at Michigan</a></li>
+      <li><a target="_blank" rel="noopener" href="https://frontstretch.com/2026/06/06/cleetus-mcfarland-completes-a-full-day-of-learning-at-michigan/">Frontstretch: Truck race at Michigan</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.nascar.com/news-media/2026/10/23/craftsman-truck-series-talladega-stage-1-crash/">NASCAR.com: Talladega Truck crash</a></li>
+      <li><a target="_blank" rel="noopener" href="https://speedwaydigest.com/index.php/news/oreilly-auto-parts-series-news/882901-noaps-cleetus-mcfarland-set-for-next-nascar-oreilly-auto-parts-series-start-at-nashville-superspeedway/">Speedway Digest: Nashville start and Talladega approval</a></li>
+      <li><a target="_blank" rel="noopener" href="https://frontstretch.com/2026/10/26/cleetus-mcfarland-running-full-time-arca-2027/">Frontstretch: Full-time ARCA in 2027</a></li>
+      <li><a target="_blank" rel="noopener" href="https://www.foxsports.com/nascar/cleetus-mitchell-driver-results">Fox Sports: Cleetus McFarland race results</a></li>
+    </ol>
+    </div></details>
+  </section>
+</main>
+</body>
+</html>
