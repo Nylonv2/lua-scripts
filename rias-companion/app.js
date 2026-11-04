@@ -1532,6 +1532,17 @@
         return;
       }
     }
+    // "Plan my day" with her AI on: she builds the day directly.
+    const planAsk = !photo && text.match(/^(?:can you |could you |please |hey,? )?(?:plan|organi[sz]e|schedule|map out|make (?:me )?a (?:plan|schedule) for)(?: out)? (?:my |the )?(day|today|tomorrow)\b/i);
+    if (planAsk && AI.enabled()) {
+      const k = /tomorrow/i.test(planAsk[1]) ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d); })() : dateKey();
+      const typing = showTyping();
+      const lines = (await Planner.planDayAI(k)) || Planner.planReply(k, true);
+      typing.remove();
+      lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 200 + i * 700));
+      renderToday();
+      return;
+    }
     // To-dos, plans and goals in plain words (her AI does this with its tools instead).
     if (!photo && !AI.enabled()) {
       const pl = Planner.handle(text);
@@ -1733,6 +1744,7 @@
     allItems: (d) => itemsOn(d),
     say: (t) => say(t), plain: () => !!state.settings.plain, ask: (t) => ask(t), prompt: (t) => askNumber(t),
     noteAdded: (r) => noteAdded(r), toTrash: (r) => toTrash(r),
+    aiPlan: (brief) => (AI.enabled() ? AI.planDay(brief) : Promise.resolve(null)), // AI is created further down; used only on demand
     toast: (text) => { addMessage('rias', text); showToast({ text }); },
     celebrateSmall: () => haptic([12, 60, 12]),
   }));
@@ -2062,9 +2074,9 @@
       },
       completeTodo({ title }) { return Planner.completeTodo(title); },
       deleteTodo({ title }) { return Planner.deleteTodo(title); },
-      planDay({ date, replan }) {
+      async planDay({ date, replan }) {
         const k = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : dateKey();
-        Planner.planDay(k, !!replan);
+        if (!replan || !(await Planner.planDayAI(k))) Planner.planDay(k, !!replan);
         save(); refresh();
         const d = new Date(`${k}T12:00`);
         const list = itemsOn(d).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
@@ -2301,12 +2313,25 @@
   }
   $('#home-coming').addEventListener('click', (e) => { if (e.target.closest('[data-go]')) show('today'); });
   // "Plan my day": a full schedule around work, calendar and reminders, with the daily essentials.
-  function planMyDay() {
-    const lines = Planner.planReply(dateKey(), true);
+  let planning = false;
+  async function planMyDay() {
+    if (planning) return;
+    planning = true;
     show('today');
     setRemMode('today');
+    const btns = ['#home-plan-day', '#today-plan-day'].map((id) => $(id));
+    const label = btns.map((b) => b.textContent);
+    let lines = null;
+    if (AI.enabled()) {
+      for (const b of btns) { b.disabled = true; b.textContent = '⏳ Planning your day…'; }
+      lines = await Planner.planDayAI(dateKey());
+      btns.forEach((b, i) => { b.disabled = false; b.textContent = label[i]; });
+    }
+    if (!lines) lines = Planner.planReply(dateKey(), true); // without AI, or if it couldn't answer
+    planning = false;
+    renderToday();
     lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
-    showToast({ text: lines[1] || 'Your day is planned.' });
+    showToast({ text: lines[0] });
   }
   for (const id of ['#home-plan-day', '#today-plan-day']) $(id).addEventListener('click', planMyDay);
   $('#next-card').addEventListener('click', (e) => {

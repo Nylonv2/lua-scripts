@@ -862,6 +862,59 @@ Rules:
     }
   }
 
+  // ---------- Plan my day: Claude (or Gemini) lays out the day ----------
+  const DAY_SCHEMA = {
+    type: 'object', additionalProperties: false, required: ['blocks', 'message'],
+    properties: {
+      blocks: {
+        type: 'array',
+        items: {
+          type: 'object', additionalProperties: false, required: ['time', 'minutes', 'title', 'kind', 'ref'],
+          properties: {
+            time: { type: 'string', description: 'Start time, 24-hour HH:MM' },
+            minutes: { type: 'integer', description: 'Length in minutes' },
+            title: { type: 'string', description: 'Short, specific, encouraging title, e.g. "Lunch away from your desk"' },
+            kind: { type: 'string', enum: ['essential', 'todo', 'goal', 'other'] },
+            ref: nullable({ type: 'string', description: 'For kind todo or goal: the exact id from the list; otherwise null' }),
+          },
+        },
+      },
+      message: { type: 'string', description: 'One to three short sentences to the user, in your voice: how the day looks and one tip. No list.' },
+    },
+  };
+  /** `brief`: everything about the day, written by the planner → { blocks, message } or { error }. */
+  async function planDay(brief) {
+    if (!enabled()) return { error: 'no-ai' };
+    try {
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          systemInstruction: { parts: [{ text: persona() }] },
+          contents: [{ role: 'user', parts: [{ text: brief }] }],
+          generationConfig: { maxOutputTokens: 4096, responseMimeType: 'application/json', responseSchema: geminiSchema(DAY_SCHEMA) },
+        });
+        if (data.error) return { error: data.error };
+        const parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+        return JSON.parse(parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''));
+      }
+      const api = getClient();
+      if (!api) return { error: 'Add your Claude key first.' };
+      const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+      const res = await api.messages.create({
+        model,
+        max_tokens: 6000,
+        system: persona(),
+        output_config: { effort: 'medium', format: { type: 'json_schema', schema: DAY_SCHEMA } },
+        messages: [{ role: 'user', content: brief }],
+      });
+      if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+      if (res.stop_reason === 'refusal') return { error: 'refused' };
+      return JSON.parse(res.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+    } catch (e) {
+      return { error: String((e && e.message) || e) };
+    }
+  }
+
   // ---------- Live translator ----------
   const translatePrompt = ({ text, from, to, context }) => `You are a live interpreter helping two people talk face to face. Translate what was said from ${from} into ${to}.
 - Natural, everyday spoken ${to}, the way a fluent local would say it. Keep the meaning, tone and politeness level.
@@ -902,5 +955,5 @@ ${text}`;
     }
   }
 
-  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, translate };
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, translate, planDay };
 };

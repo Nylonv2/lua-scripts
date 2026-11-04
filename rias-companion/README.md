@@ -65,7 +65,12 @@ builds your whole day: around your work (including the commute), calendar and re
 **daily essentials** you're missing (morning routine, breakfast, lunch, dinner, a focus block, movement, daylight,
 checking in with someone, winding down; tidying up is optional), fits in your to-dos and goal sessions, and reminds you
 at each one. Anything you already have a reminder for at a time you're free isn't added twice, and nothing lands during a
-shift. Find it on Today ("Want me to plan your day?"), at the top of Plan → Today, or just say "plan my day". Choose
+shift. **With her AI on (your Claude key, or Gemini), Claude makes up the day itself:** the app sends it your
+shifts (with commute), calendar, reminders, to-dos with deadlines, goals, the essentials you picked and what she knows
+about you; Claude lays out the day with its own block titles and a short note, and the app checks every block (nothing
+during work or in the past, no overlaps, only your real to-dos and goals) before scheduling it. Each plan is one
+request (roughly 1–4 cents with Opus, less with Sonnet; it shows in the cost meter). If AI is off or it can't answer, the
+built-in planner does it. Find it on Today ("Want me to plan your day?"), at the top of Plan → Today, or just say "plan my day". Choose
 the essentials, or have it done automatically every morning, in Settings → Your day → Planning. To-dos due soon
 always get time; the rest are spread out (up to 3 hours a day, changeable).
 
