@@ -51,7 +51,7 @@ Talk to her by typing, with 🎙, or by sending a photo (📷). Without AI she h
 "I work Saturday 10 to 6", "I just had a burger", "set a timer for 10 minutes".
 
 ### Plan
-Four views at the top: **Today**, **To-do**, **Goals** and **Month**.
+Five views at the top: **Today**, **To-do**, **Chores**, **Goals** and **Month**.
 
 **Today:** today's routine grouped by morning, afternoon, evening and night, plus work shifts and phone-calendar events. Swipe right
 for done, left for snooze or delete. **＋ New reminder** sets the time, repeat (once, daily, weekdays, weekends, picked
@@ -81,6 +81,14 @@ snoozed or unfinished at the check-in) is counted: it's planned **first thing** 
 it's been pushed twice it shrinks to a 25-minute **"Just start"** block, and the evening check-in says honestly what keeps
 getting pushed. A daily **tidy-up** is part of every planned day; the planner never adds tasks about texting or checking
 in with people. Turn the nudges and sprints on or off in Settings → Your day → Planning.
+
+**Chores:** recurring housework that she holds you to. **Starter chores** adds dishes, counters, trash, vacuuming,
+laundry, the bathroom, sheets, the fridge and a weekly **deep clean that rotates** kitchen → bathroom → bedroom → living
+room (edit or delete any). Each repeats on its own schedule; when one is due it's planned into your day with a tiny first
+step ("fill the sink with hot soapy water"). If it doesn't happen it **stays overdue** ("Dishes · 2 days overdue"), comes
+back the next day, earlier each time it's skipped, and the evening check-in calls it out (with an "I did it" button) until
+it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
+put it on today*.
 
 **Goals:** habits and targets, like "gym 4 times a week" (she plans the sessions into free days, with rest days when
 there's room) or "save $200 a month" (tell her as you go: "I saved $50"). Each goal shows this week's progress and your

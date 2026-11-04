@@ -1683,3 +1683,5 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 .plan-cta b { font-size: 1rem; }
 .plan-cta span { font-size: .875rem; color: var(--muted); }
 #view-today.month-mode .plan-day-btn { display: none; }
+.chore-row.overdue { box-shadow: inset 3px 0 0 #ff8a8a; }
+.chore-starter { width: 100%; margin: 0 0 14px; }

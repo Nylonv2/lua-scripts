@@ -8,6 +8,7 @@ window.createPlanner = function createPlanner(ctx) {
   state.todos ||= [];   // [{ id, title, due: 'YYYY-MM-DD'|null, mins, priority: 'high'|'normal', notes, done, doneAt, created, plan: { date, time }|null, notOn }]
   state.goals ||= [];   // [{ id, title, kind: 'times'|'amount', times, target, unit, per: 'day'|'week'|'month', time: 'HH:MM'|'', mins, sessions, log: { date: n }, plans: { date: 'HH:MM' }, created }]
   state.checkedIn ||= {};
+  state.chores ||= [];  // [{ id, title, every (days), mins, first, time, last: 'YYYY-MM-DD'|null, pushed, zones?: [...], zone, plans: { date: 'HH:MM' } }]
   state.dayPlans ||= {}; // { date: { made, items: [{ key, title, time, mins, cat }] } }: daily essentials placed by "Plan my day"
   const pad = (n) => String(n).padStart(2, '0');
   const minToTime = (m) => `${pad(Math.floor(((m % 1440) + 1440) % 1440 / 60))}:${pad(((m % 60) + 60) % 60)}`;
@@ -139,6 +140,13 @@ window.createPlanner = function createPlanner(ctx) {
       const tm = g.plans && g.plans[k];
       if (tm) out.push({ id: `g:${g.id}`, time: tm, title: g.title, category: 'goal', source: 'plan', goalId: g.id, mins: g.mins });
     }
+    for (const c of state.chores) {
+      const tm = c.plans && c.plans[k];
+      if (!tm) continue;
+      const shrunk = (c.pushed || 0) >= 2 && (c.mins || 15) > 25;
+      out.push({ id: `c:${c.id}`, time: tm, title: shrunk ? `Just start: ${choreTitle(c)}` : choreTitle(c), category: 'chores', source: 'plan', choreId: c.id,
+        mins: shrunk ? 25 : c.mins || 15, first: c.first || '', overdue: overdueOn(c, k) });
+    }
     const dp = state.dayPlans[k];
     if (dp) for (const x of dp.items) out.push({ id: `e:${k}:${x.key}`, time: x.time, title: x.title, category: x.cat, source: 'plan', essential: x.key, mins: x.mins, first: x.first || '' });
     return out;
@@ -189,6 +197,7 @@ window.createPlanner = function createPlanner(ctx) {
     const match = (it) => (it.category === e.cat && e.cat !== 'work' && e.cat !== 'break') || e.covers.test(it.title);
     if (ctx.baseItems(dayOf(k)).some((it) => !it.source && match(it) && toMin(it.time) >= lo - 30 && toMin(it.time) <= hi + 30 && free(toMin(it.time)))) return true;
     if (e.key === 'move') return state.goals.some((g) => g.plans && g.plans[k] && e.covers.test(g.title));
+    if (e.key === 'tidy') return state.chores.some((c) => c.plans && c.plans[k]); // a real chore beats a generic tidy-up
     return false;
   }
   /** Places the chosen essentials on day k (keeping ones already done). `which`: 'anchored' (meals, mornings, evenings) or 'flex'. */
@@ -222,6 +231,31 @@ window.createPlanner = function createPlanner(ctx) {
     const days = t.due ? Math.round((dayOf(t.due) - dayOf(dateKey())) / 86400000) : 30;
     return (t.pushed || 0) * 100 + (t.priority === 'high' ? 40 : 0) + Math.max(0, 30 - days);
   }
+
+  // ---------- chores: on a schedule, overdue until done ----------
+  const CHORE_PRESETS = [
+    { title: 'Dishes', every: 1, mins: 15, first: 'fill the sink with hot soapy water', time: '19:30' },
+    { title: 'Wipe the kitchen counters and stove', every: 1, mins: 5, first: 'grab a cloth and spray' },
+    { title: 'Take out the trash', every: 3, mins: 5, first: 'tie up the bag' },
+    { title: 'Vacuum or sweep the floors', every: 4, mins: 20, first: 'plug in the vacuum' },
+    { title: 'Laundry', every: 7, mins: 30, first: 'carry the hamper to the machine' },
+    { title: 'Clean the bathroom', every: 7, mins: 30, first: 'spray the sink and toilet, then let it sit' },
+    { title: 'Change the bed sheets', every: 14, mins: 15, first: 'pull the old sheets off' },
+    { title: 'Deep clean', every: 7, mins: 60, first: 'put on music and clear every surface in the room', zones: ['kitchen', 'bathroom', 'bedroom', 'living room'] },
+    { title: 'Clean out the fridge', every: 14, mins: 20, first: 'throw out anything expired' },
+  ];
+  const daysBetween = (a, b) => Math.round((dayOf(b) - dayOf(a)) / 86400000);
+  const choreTitle = (c) => (c.zones && c.zones.length ? `${c.title}: ${c.zones[(c.zone || 0) % c.zones.length]}` : c.title);
+  /** Days overdue on day k (0 = due that day, negative = not due yet). Never done counts as due. */
+  const overdueOn = (c, k = dateKey()) => (c.last ? daysBetween(c.last, k) - (Number(c.every) || 1) : c.firstDue ? daysBetween(c.firstDue, k) : 0);
+  const choreDue = (c, k = dateKey()) => overdueOn(c, k) >= 0;
+  function choreStatus(c) {
+    const o = overdueOn(c);
+    if (o > 0) return `${o} day${o === 1 ? '' : 's'} overdue`;
+    if (o === 0) return c.last || c.firstDue ? 'due today' : 'not done yet';
+    return `${c.last ? 'next' : 'first one'} in ${-o} day${o === -1 ? '' : 's'}`;
+  }
+  const choreRank = (c, k) => overdueOn(c, k) * 20 + (c.pushed || 0) * 30 + (Number(c.every) <= 1 ? 5 : 0);
 
   // ---------- fitting things into free time ----------
   function windowFor(k) {
@@ -281,6 +315,7 @@ window.createPlanner = function createPlanner(ctx) {
     const fullDay = replan || (state.settings.autoDay && !state.dayPlans[k]);
     if (replan) {
       clearEssentials(k, from);
+      for (const c of state.chores) if (c.plans && c.plans[k] && toMin(c.plans[k]) >= from && !(state.log[k] || {})[`c:${c.id}`]) delete c.plans[k];
       for (const t of openTodos()) if (t.plan && t.plan.date === k && toMin(t.plan.time) >= from) { before.set(t, t.plan); t.plan = null; }
       for (const g of state.goals) if (g.plans && g.plans[k] && toMin(g.plans[k]) >= from && !(state.log[k] || {})[`g:${g.id}`]) delete g.plans[k];
     }
@@ -299,6 +334,7 @@ window.createPlanner = function createPlanner(ctx) {
       const a = slot(busyOn(k).concat(held), from, to, mins, near != null ? near : Math.max(from, 17 * 60));
       if (a != null) g.plans[k] = minToTime(a);
     }
+    placeChores(k, from, to, before);
     // Then to-dos: overdue and soonest-due first, important first; spread over days by the daily budget.
     let used = openTodos().filter((t) => t.plan && t.plan.date === k).reduce((n, t) => n + (t.mins || 30), 0);
     // Most-avoided first (they get the earliest slot of the day), then by deadline and importance.
@@ -323,6 +359,24 @@ window.createPlanner = function createPlanner(ctx) {
       if (!busyOn(k).some(([bs, be]) => a < be && a + (t.mins || 30) > bs)) t.plan = old;
     }
     return items(dayOf(k)).sort((a, b) => toMin(a.time) - toMin(b.time));
+  }
+  /** Chores that are due (most overdue / most put off first). Put off twice: right after the morning, 25 minutes. */
+  function placeChores(k, from, to, before = new Map()) {
+    const held = [...before].map(([t, o]) => [toMin(o.time), toMin(o.time) + (t.mins || 30)]);
+    let used = 0;
+    const due = state.chores.filter((c) => choreDue(c, k) && !(c.plans && c.plans[k]) && !(state.log[k] || {})[`c:${c.id}`] && c.notOn !== k)
+      .sort((a, b) => choreRank(b, k) - choreRank(a, k));
+    for (const c of due) {
+      const stuck = (c.pushed || 0) >= 2;
+      const mins = stuck && (c.mins || 15) > 25 ? 25 : c.mins || 15;
+      if (used + mins > 90 && overdueOn(c, k) <= 0 && !stuck) continue; // spread big chore days out, but never skip overdue ones
+      const free = !ctx.shiftsOn(dayOf(k)).length;
+      const near = stuck ? from + 60 : c.time ? toMin(c.time) : (c.mins || 15) >= 45 ? (free ? 10 * 60 + 30 : 18 * 60) : 19 * 60;
+      const a = slot(busyOn(k).concat(held), from, to, mins, Math.max(from, near));
+      if (a == null) continue;
+      (c.plans ||= {})[k] = minToTime(a);
+      used += mins;
+    }
   }
   /** Should goal `g` get a session on day k? Daily: always. Weekly/monthly: when behind, with rest days if there's time. */
   function sessionDue(g, k) {
@@ -361,6 +415,22 @@ window.createPlanner = function createPlanner(ctx) {
       else if (!st && t.done && t.doneVia === 'plan') { t.done = false; t.doneAt = 0; t.doneVia = ''; } // undone from the list
       else if (st === 'skipped' && !t.done) { t.notOn = t.plan.date; t.plan = null; t.pushed = (t.pushed || 0) + 1; }
     }
+    for (const c of state.chores) {
+      for (const [k] of Object.entries(c.plans || {})) {
+        const st = (state.log[k] || {})[`c:${c.id}`];
+        if (st === 'done' && (!c.last || c.last < k)) finishChore(c, k);
+        else if (st === 'skipped' && !c.skipSeen?.includes(k)) { (c.skipSeen ||= []).push(k); c.pushed = (c.pushed || 0) + 1; c.notOn = k; }
+      }
+      for (const k of Object.keys(c.plans || {})) if (k < addDays(dateKey(), -7)) delete c.plans[k];
+      if (c.skipSeen) c.skipSeen = c.skipSeen.filter((k) => k >= addDays(dateKey(), -7));
+    }
+  }
+  function finishChore(c, k = dateKey()) {
+    c.last = k;
+    delete c.firstDue;
+    c.pushed = 0;
+    c.notOn = '';
+    if (c.zones && c.zones.length) c.zone = ((c.zone || 0) + 1) % c.zones.length;
   }
 
   // ---------- actions (UI, chat and her AI all use these) ----------
@@ -427,6 +497,34 @@ window.createPlanner = function createPlanner(ctx) {
     changed();
     return { ok: true, deleted: found[0].title };
   }
+  function addChore({ title, every = 7, mins = 15, first = '', time = '', zones = null }) {
+    title = String(title || '').trim();
+    if (!title) return { error: 'empty chore' };
+    const c = { id: uid(), title: title[0].toUpperCase() + title.slice(1), every: Math.max(1, Math.round(Number(every) || 7)), mins: Math.max(5, Math.round(Number(mins) || 15)),
+      first: String(first || '').trim().replace(/[.]+$/, ''), time: /^\d{2}:\d{2}$/.test(time || '') ? time : '', last: null, pushed: 0, plans: {}, ...(zones ? { zones, zone: 0 } : {}) };
+    state.chores.push(c);
+    planDay(dateKey());
+    changed();
+    return { ok: true, chore: choreTitle(c), every: c.every, planned: c.plans[dateKey()] ? `today at ${fmtTime(c.plans[dateKey()])}` : null };
+  }
+  /** Marks a chore done today (from the list, the chat or her AI). */
+  function choreDone(query) {
+    const found = typeof query === 'object' ? [query] : match(state.chores.map((c) => ({ ...c, title: choreTitle(c) + ' ' + c.title })), query).map((x) => state.chores.find((c) => c.id === x.id));
+    if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map(choreTitle) };
+    const c = found[0], k = dateKey();
+    const was = choreTitle(c), late = overdueOn(c);
+    if (c.plans && c.plans[k]) (state.log[k] ||= {})[`c:${c.id}`] = 'done';
+    finishChore(c, k);
+    changed();
+    return { ok: true, done: was, was_overdue_days: Math.max(0, late), next: `in ${c.every} day${c.every === 1 ? '' : 's'}` };
+  }
+  function deleteChore(query) {
+    const found = typeof query === 'object' ? [query] : match(state.chores, query);
+    if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map((c) => c.title) };
+    state.chores = state.chores.filter((c) => c !== found[0]);
+    changed();
+    return { ok: true, deleted: found[0].title };
+  }
   function changed() {
     save();
     ctx.refresh();
@@ -472,6 +570,7 @@ window.createPlanner = function createPlanner(ctx) {
       `My to-do list (schedule what fits, deadline-first and important first; at most ${(Number(state.settings.planHours) || 3)} hours of to-dos unless something is due today or tomorrow; split nothing): ${todos.length ? todos.join('; ') : 'empty'}.`,
       `Goals that could use a session today (plan one only if it makes sense for the rhythm, e.g. leave rest days): ${goals.length ? goals.join('; ') : 'none'}.`,
       amountGoals.length ? `Other goals (no time block needed, but you can mention them): ${amountGoals.join('; ')}.` : '',
+      `My chores (kind "chore" with ref = its id; overdue ones must get time today, most overdue first; a chore put off twice gets an early 25-minute "just start" block): ${state.chores.filter((c) => choreDue(c, k)).map((c) => `id ${c.id}: "${choreTitle(c)}", about ${c.mins || 15} min, ${choreStatus(c)}${c.pushed ? `, PUT OFF ${c.pushed}×` : ''}${c.first ? `, first step "${c.first}"` : ''}`).join('; ') || 'none due'}.`,
       `Daily essentials I want in every day, when I'm free for them: ${essentials.join(', ')}.`,
       'Why I use this: I procrastinate, and nobody else holds me to anything (no one comes over, no boss checking), so this plan is my structure and accountability. Plan to beat procrastination: put the hardest or most put-off task in the first good focus window of the day; keep task blocks 25 to 50 minutes (a task put off twice or more gets a short 25-minute "just start" block); give every to-do, goal and chore block a tiny, concrete first step that takes under two minutes (first_step, e.g. "open the project and drag in today\'s footage"); include a short daily tidy-up; leave some breathing room so the day is doable, not overpacked. Never add blocks about texting, calling or checking in with people.',
       memory.length ? `Things you know about me (use them to make the plan fit me): ${memory.join('; ')}.` : '',
@@ -491,6 +590,8 @@ window.createPlanner = function createPlanner(ctx) {
     const oldTodo = new Map(), oldGoal = new Map();
     for (const t of openTodos()) if (t.plan && t.plan.date === k && toMin(t.plan.time) >= from) { oldTodo.set(t, t.plan); t.plan = null; }
     for (const g of state.goals) if (g.plans && g.plans[k] && toMin(g.plans[k]) >= from && !(state.log[k] || {})[`g:${g.id}`]) { oldGoal.set(g, g.plans[k]); delete g.plans[k]; }
+    const oldChore = new Map();
+    for (const c of state.chores) if (c.plans && c.plans[k] && toMin(c.plans[k]) >= from && !(state.log[k] || {})[`c:${c.id}`]) { oldChore.set(c, c.plans[k]); delete c.plans[k]; }
     const plan = (state.dayPlans[k] ||= { made: Date.now(), items: [] });
     const taken = fixedOn(k).concat(items(dayOf(k)).map((it) => [toMin(it.time), toMin(it.time) + (it.mins || 30)]));
     let placed = 0, n = 0;
@@ -506,6 +607,11 @@ window.createPlanner = function createPlanner(ctx) {
         if (!t || (t.plan && t.plan.date === k)) continue;
         t.plan = mins < (t.mins || 30) ? { date: k, time: hm(a), mins } : { date: k, time: hm(a) };
         if (firstOf(x)) t.first = firstOf(x);
+      } else if (x.kind === 'chore') {
+        const c = state.chores.find((y) => y.id === x.ref);
+        if (!c || (c.plans && c.plans[k])) continue;
+        (c.plans ||= {})[k] = hm(a);
+        if (firstOf(x) && !c.first) c.first = firstOf(x);
       } else if (x.kind === 'goal') {
         const g = state.goals.find((y) => y.id === x.ref);
         if (!g || (g.plans && g.plans[k])) continue;
@@ -523,8 +629,11 @@ window.createPlanner = function createPlanner(ctx) {
       // Nothing usable came back: put things back as they were.
       for (const [t, old] of oldTodo) t.plan = old;
       for (const [g, old] of oldGoal) (g.plans ||= {})[k] = old;
+      for (const [c, old] of oldChore) (c.plans ||= {})[k] = old;
       return null;
     }
+    // Overdue chores Claude left out still get a slot (they don't get to slide).
+    placeChores(k, from, Math.min(bedMin(), to + 45));
     plan.made = Date.now();
     changed();
     const list = planList(k);
@@ -537,7 +646,7 @@ window.createPlanner = function createPlanner(ctx) {
   // ---------- what she says ----------
   function planList(k) {
     const list = ctx.allItems(dayOf(k)).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
-    return list.map((it) => `${fmtTime(it.time)} ${it.title}${it.source === 'plan' ? (it.todoId ? ' (to-do)' : it.goalId ? ' (goal)' : '') : it.source === 'work' ? ' (work)' : ''}`);
+    return list.map((it) => `${fmtTime(it.time)} ${it.title}${it.source === 'plan' ? (it.todoId ? ' (to-do)' : it.goalId ? ' (goal)' : it.choreId ? ` (chore${it.overdue > 0 ? `, ${it.overdue} day${it.overdue === 1 ? '' : 's'} overdue` : ''})` : '') : it.source === 'work' ? ' (work)' : ''}`);
   }
   function planReply(k = dateKey(), replan = false) {
     planDay(k, replan);
@@ -566,7 +675,8 @@ window.createPlanner = function createPlanner(ctx) {
   function summary() {
     const todos = openTodos().slice(0, 25).map((t) => `${t.title}${t.due ? ` (${dueLabel(t.due)})` : ''}${t.priority === 'high' ? ' [important]' : ''}${t.plan ? ` [planned ${dayWord(t.plan.date)} ${fmtTime(t.plan.time)}]` : ' [not planned yet]'}`);
     const goals = state.goals.map((g) => `${g.title}: ${progressText(g)}${streak(g) ? `, streak ${streak(g)}` : ''}${g.plans && g.plans[dateKey()] ? `, session today ${fmtTime(g.plans[dateKey()])}` : ''}`);
-    return [`To-do list: ${todos.length ? todos.join('; ') : 'empty'}.`, goals.length ? `Goals: ${goals.join('; ')}.` : ''].filter(Boolean).join('\n');
+    const chores = state.chores.map((c) => `${choreTitle(c)} (every ${c.every} day${c.every === 1 ? '' : 's'}, ${choreStatus(c)}${c.pushed ? `, put off ${c.pushed}×` : ''}${c.plans && c.plans[dateKey()] ? `, planned today ${fmtTime(c.plans[dateKey()])}` : ''})`);
+    return [`To-do list: ${todos.length ? todos.join('; ') : 'empty'}.`, goals.length ? `Goals: ${goals.join('; ')}.` : '', chores.length ? `Chores: ${chores.join('; ')}.` : ''].filter(Boolean).join('\n');
   }
 
   // ---------- evening check-in ----------
@@ -575,7 +685,7 @@ window.createPlanner = function createPlanner(ctx) {
     const w = toMin(state.profile.wake), s = toMin(state.profile.sleep);
     return Math.max(19 * 60, (s > w ? s : 24 * 60) - 90);
   }
-  const checkinOn = () => state.settings.eveningCheckin !== false && (state.todos.length > 0 || state.goals.length > 0);
+  const checkinOn = () => state.settings.eveningCheckin !== false && (state.todos.length > 0 || state.goals.length > 0 || state.chores.length > 0);
   /** Goes over today, moves what's left to tomorrow. Returns { text, todos } or null when there's nothing to say. */
   function checkIn() {
     const k = dateKey(), tomorrow = addDays(k, 1);
@@ -584,6 +694,10 @@ window.createPlanner = function createPlanner(ctx) {
     const doneToday = state.todos.filter((t) => t.done && t.doneAt && dateKey(new Date(t.doneAt)) === k);
     const left = openTodos().filter((t) => t.plan && t.plan.date === k);
     for (const t of left) { t.plan = null; t.notOn = ''; t.pushed = (t.pushed || 0) + 1; }
+    const choresDone = state.chores.filter((c) => c.last === k);
+    const choresLeft = state.chores.filter((c) => c.plans && c.plans[k] && c.last !== k);
+    // Re-place them for tomorrow with the new count (the evening may already have planned tomorrow).
+    for (const c of choresLeft) { c.pushed = (c.pushed || 0) + 1; c.notOn = ''; if (c.plans) delete c.plans[tomorrow]; }
     planDay(tomorrow);
     const moved = left.map((t) => (t.plan ? `${t.title} (tomorrow ${fmtTime(t.plan.time)})` : t.title));
     const stuck = left.filter((t) => t.pushed >= 2);
@@ -591,7 +705,7 @@ window.createPlanner = function createPlanner(ctx) {
       const p = progress(g);
       return `${g.title}: ${progressText(g)}${p.met ? ' ✓' : ''}`;
     });
-    if (!doneToday.length && !left.length && !goalBits.length) return null;
+    if (!doneToday.length && !left.length && !goalBits.length && !choresDone.length && !choresLeft.length) return null;
     const parts = [ctx.plain() ? 'Evening check-in.' : ctx.say('Evening check-in, {name}~')];
     if (doneToday.length) parts.push(`Done today: ${doneToday.map((t) => t.title).join(', ')} ✓`);
     if (left.length) parts.push(`Not finished: ${moved.join(', ')}. I moved ${left.length === 1 ? 'it' : 'them'} to tomorrow. If you did ${left.length === 1 ? 'it' : 'any'} after all, tap below.`);
@@ -600,11 +714,18 @@ window.createPlanner = function createPlanner(ctx) {
       const when = i === 0 ? "Tomorrow it's the first thing you do" : 'It comes right after';
       parts.push(`“${t.title}” has been pushed ${t.pushed} times now. ${when}, and only 25 minutes. All you have to do is start: ${t.first || 'open it and work on it for five minutes'}.`);
     });
+    if (choresDone.length) parts.push(`Chores done: ${choresDone.map((c) => c.title).join(', ')} ✓`);
+    // Chores don't get to slide quietly.
+    for (const c of choresLeft) {
+      const o = overdueOn(c, tomorrow);
+      const when = c.plans && c.plans[tomorrow] ? `tomorrow at ${fmtTime(c.plans[tomorrow])}` : 'tomorrow';
+      parts.push(`${choreTitle(c)} didn't happen${o > 0 ? `; by tomorrow it's ${o} day${o === 1 ? '' : 's'} overdue` : ''}. It's back on ${when}${c.pushed >= 2 ? `, early, and only ${Math.min(25, c.mins || 15)} minutes` : ''}. Start with: ${c.first || 'set a timer for five minutes and begin'}.`);
+    }
     if (goalBits.length) parts.push(`Goals: ${goalBits.join(' · ')}`);
     const firsts = planList(tomorrow).slice(0, 4);
     if (firsts.length) parts.push(`Tomorrow starts with: ${firsts.join(', ')}.`);
     save();
-    return { text: parts.join('\n\n'), todos: left.map((t) => t.id) };
+    return { text: parts.join('\n\n'), todos: left.map((t) => t.id), chores: choresLeft.map((c) => c.id) };
   }
   // ---------- getting started: nudges and sprint pings ----------
   const startLine = (it) => `${it.first ? `Just ${it.first.replace(/^just /i, '')}` : 'Just do the first five minutes'}.`;
@@ -614,7 +735,7 @@ window.createPlanner = function createPlanner(ctx) {
     const log = state.log[k] || {};
     for (const it of items(dayOf(k))) {
       if (log[it.id]) continue;
-      const nudgeable = it.todoId || it.goalId || ['focus', 'tidy'].includes(it.essential) || (it.essential && /work|chores|exercise/.test(it.category));
+      const nudgeable = it.todoId || it.goalId || it.choreId || ['focus', 'tidy'].includes(it.essential) || (it.essential && /work|chores|exercise/.test(it.category));
       if (!nudgeable) continue;
       const t0 = toMin(it.time);
       if (state.settings.startNudge !== false) {
@@ -716,6 +837,23 @@ window.createPlanner = function createPlanner(ctx) {
       const r = addGoal({ title: `${m[1]} ${unit === '$' ? '$' : ''}${m[2]}${unit && unit !== '$' ? ` ${unit}` : ''} a ${m[4]}`, kind: 'amount', target: Number(m[2]), unit, per: m[4].toLowerCase() });
       return [`New goal: ${r.goal}. Tell me as you go (“I saved $50”) and I'll keep track.`];
     }
+    // Chores: "I did the dishes", "washed the dishes", "cleaned the bathroom", "took out the trash"
+    if (state.chores.length && /\b(did|done|washed|cleaned|finished|took out|vacuumed|swept|changed|wiped|folded|deep cleaned)\b/i.test(s)) {
+      const hits = match(state.chores.map((c) => ({ id: c.id, title: `${choreTitle(c)} ${c.title}` })), s.replace(/\b(i|just|did|done|finished|today|the|my)\b/gi, ''));
+      if (hits.length === 1) {
+        const r = choreDone(state.chores.find((c) => c.id === hits[0].id));
+        if (r.ok) return [ctx.say(`${r.done} ✓${r.was_overdue_days ? ` (it was ${r.was_overdue_days} day${r.was_overdue_days === 1 ? '' : 's'} overdue, so that's a real win)` : ''}. Next one ${r.next}.`)];
+      }
+    }
+    if ((m = s.match(/^(?:add (?:a )?chore|new chore|chore)[:,]?\s+(.+?)(?:\s+every\s+(\d+)?\s*(day|days|week|weeks))?$/i))) {
+      const n = Number(m[2]) || 1, unit = (m[3] || 'week').toLowerCase();
+      const r = addChore({ title: m[1], every: /week/.test(unit) ? n * 7 : n });
+      return [`New chore: ${r.chore}, every ${r.every} day${r.every === 1 ? '' : 's'}.${r.planned ? ` First one ${r.planned}.` : ''} I'll keep track and keep it on your plan until it's done.`];
+    }
+    if (/^(?:what|which) chores|^my chores|^chores\??$/i.test(s)) {
+      if (!state.chores.length) return ['No chores yet. Open Plan → Chores and tap “Starter chores”, or say “add chore dishes every day”.'];
+      return [`Your chores:\n${state.chores.map((c) => `• ${choreTitle(c)}: ${choreStatus(c)}`).join('\n')}`];
+    }
     // "I went to the gym", "did my workout", "I saved $50", "read 20 pages"
     if (state.goals.length && /\b(went|did|done|finished|completed|hit|worked out|saved|read|ran|walked|studied|posted|made|earned|practiced|practised)\b/i.test(s)) {
       const amount = (s.match(/\$?(\d+(?:\.\d+)?)/) || [])[1];
@@ -743,6 +881,7 @@ window.createPlanner = function createPlanner(ctx) {
   // ---------- Plan tab: To-do and Goals panes ----------
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function render() {
+    if ($('#chores-pane') && !$('#chores-pane').hidden) renderChores();
     if ($('#todo-pane') && !$('#todo-pane').hidden) renderTodos();
     if ($('#goals-pane') && !$('#goals-pane').hidden) renderGoals();
   }
@@ -912,6 +1051,107 @@ window.createPlanner = function createPlanner(ctx) {
     openTodo(t);
   });
 
+  // ---------- Chores pane ----------
+  function renderChores() {
+    const box = $('#chore-list');
+    if (!box) return;
+    box.textContent = '';
+    $('#chore-starter').hidden = state.chores.length > 0;
+    if (!state.chores.length) {
+      const empty = el('div', 'empty-state');
+      empty.innerHTML = '<div class="empty-ic">🧽</div><b></b><p></p>';
+      empty.querySelector('b').textContent = 'No chores yet';
+      empty.querySelector('p').textContent = 'Tap “Starter chores” for dishes, trash, bathroom, laundry, a rotating deep clean and more. She plans them into your days and keeps overdue ones on your plan until they’re done.';
+      box.append(empty);
+      return;
+    }
+    const sorted = state.chores.slice().sort((a, b) => overdueOn(b) - overdueOn(a));
+    const card = el('div', 'list-card');
+    for (const c of sorted) {
+      const o = overdueOn(c);
+      const row = el('div', `row-item chore-row${o > 0 ? ' overdue' : ''}`);
+      row.dataset.chore = c.id;
+      row.innerHTML = '<button type="button" class="check" aria-label="">✓</button><div class="ri-main"><div class="ri-title"></div><div class="ri-meta"></div></div>';
+      row.querySelector('.check').setAttribute('aria-label', `Mark ${choreTitle(c)} done`);
+      row.querySelector('.ri-title').textContent = choreTitle(c);
+      const meta = row.querySelector('.ri-meta');
+      const add = (text, cls) => meta.append(el('span', cls || '', text));
+      add(choreStatus(c), o > 0 ? 'tag-chip flag warn' : o === 0 ? 'tag-chip plan' : 'ri-sub');
+      if ((c.pushed || 0) >= 1) add(`Pushed ${c.pushed}×`, 'tag-chip flag warn');
+      const tm = c.plans && c.plans[dateKey()];
+      if (tm && c.last !== dateKey()) add(`⏱ today ${fmtTime(tm)}`, 'tag-chip plan');
+      add(`every ${c.every === 1 ? 'day' : c.every === 7 ? 'week' : c.every === 14 ? '2 weeks' : `${c.every} days`} · ${c.mins}m`, 'ri-sub');
+      if (c.last) add(c.last === dateKey() ? 'done today ✓' : `last done ${dayOf(c.last).toLocaleDateString([], { month: 'short', day: 'numeric' })}`, 'ri-sub');
+      card.append(row);
+    }
+    box.append(card);
+  }
+  const cdlg = $('#chore-dlg'), cf = $('#chore-form');
+  let editingChore = null;
+  function openChore(c) {
+    editingChore = c || null;
+    cf.reset();
+    $('#chore-dlg-title').textContent = c ? 'Edit chore' : 'New chore';
+    cf.elements.title.value = c ? c.title : '';
+    cf.elements.every.value = String(c ? c.every : 7);
+    if (!cf.elements.every.value) cf.elements.every.value = '7';
+    cf.elements.mins.value = String(c ? c.mins : 15);
+    if (!cf.elements.mins.value) cf.elements.mins.value = '15';
+    cf.elements.first.value = c ? c.first || '' : '';
+    cf.elements.time.value = c && c.time ? c.time : '';
+    $('#chore-delete').hidden = !c;
+    cdlg.showModal();
+  }
+  cf.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = { title: cf.elements.title.value.trim(), every: Number(cf.elements.every.value) || 7, mins: Number(cf.elements.mins.value) || 15, first: cf.elements.first.value.trim().replace(/[.]+$/, ''), time: cf.elements.time.value || '' };
+    if (!data.title) return;
+    const dueNow = cf.elements.dueNow.checked;
+    if (editingChore && dueNow) { editingChore.last = null; editingChore.firstDue = dateKey(); } // overdue in real life: on today's plan
+    if (editingChore) {
+      Object.assign(editingChore, data);
+      const k = dateKey();
+      if (editingChore.plans && editingChore.plans[k] && !(state.log[k] || {})[`c:${editingChore.id}`]) delete editingChore.plans[k];
+      planDay(k);
+      changed();
+    } else {
+      addChore(data); // new chores are due right away
+    }
+    cdlg.close();
+  });
+  $('#chore-cancel').addEventListener('click', () => cdlg.close());
+  $('#chore-delete').addEventListener('click', async () => {
+    if (!editingChore || !(await ctx.ask(`Delete the chore “${editingChore.title}”?`))) return;
+    deleteChore(editingChore);
+    cdlg.close();
+  });
+  $('#chore-add').addEventListener('click', () => openChore(null));
+  $('#chore-starter').addEventListener('click', () => {
+    for (const pr of CHORE_PRESETS) {
+      if (state.chores.some((c) => c.title.toLowerCase() === pr.title.toLowerCase())) continue;
+      state.chores.push({ id: uid(), ...pr, zones: pr.zones ? pr.zones.slice() : undefined, zone: 0, last: null, pushed: 0, plans: {} });
+    }
+    // Spread the first round out: only the daily ones are due right away.
+    for (const c of state.chores) if (!c.last && !c.firstDue && c.every > 1) c.firstDue = addDays(dateKey(), Math.ceil(c.every / 2));
+    planDay(dateKey());
+    changed();
+    ctx.toast('Starter chores added. Edit or delete any that don’t fit; daily ones start today, the rest are spread over the coming days.');
+  });
+  $('#chore-list').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-chore]');
+    if (!row) return;
+    const c = state.chores.find((x) => x.id === row.dataset.chore);
+    if (!c) return;
+    if (e.target.closest('.check')) {
+      if (c.last === dateKey()) return;
+      const r = choreDone(c);
+      ctx.toast(`${r.done} ✓${r.was_overdue_days ? ` (was ${r.was_overdue_days} day${r.was_overdue_days === 1 ? '' : 's'} overdue)` : ''}`);
+      ctx.celebrateSmall && ctx.celebrateSmall();
+      return;
+    }
+    openChore(c);
+  });
+
   // Goal dialog
   const gdlg = $('#goal-dlg'), gf = $('#goal-form');
   let editingGoal = null;
@@ -985,6 +1225,7 @@ window.createPlanner = function createPlanner(ctx) {
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
     planReply, planDayAI, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
     nudgeEvents, dueNudges, notePushed, rankOf,
+    addChore, choreDone, deleteChore, renderChores, openChore: (id) => openChore(state.chores.find((c) => c.id === id) || null), choreTitle, overdueOn,
     parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
     restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },
   };

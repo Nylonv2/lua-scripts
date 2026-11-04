@@ -152,6 +152,7 @@
         <div class="segmented rem-mode" id="rem-mode" role="tablist" aria-label="View">
           <button type="button" data-m="today" class="active" role="tab">Today</button>
           <button type="button" data-m="todo" role="tab">To-do</button>
+          <button type="button" data-m="chores" role="tab">Chores</button>
           <button type="button" data-m="goals" role="tab">Goals</button>
           <button type="button" data-m="month" role="tab">Month</button>
         </div>
@@ -166,6 +167,15 @@
           </form>
           <p class="muted small">She fits each to-do into your free time around work, reminders and calendar events, and reminds you when it's time. Unfinished ones move to tomorrow at the evening check-in.</p>
           <div id="todo-list"></div>
+        </div>
+        <div class="plan-pane" id="chores-pane" hidden>
+          <div class="page-head">
+            <div><p class="eyebrow">Chores</p><h1 class="page-title">Keep the place up</h1></div>
+            <button type="button" class="btn-primary sm" id="chore-add">＋ Chore</button>
+          </div>
+          <button type="button" class="btn-primary chore-starter" id="chore-starter" hidden>🧽 Starter chores</button>
+          <p class="muted small">Each chore repeats on its own schedule. When it's due she plans it into your day; if it doesn't happen it stays overdue, comes back earlier the next day, and the check-in calls it out until it's done. Say “I did the dishes” or tap ✓.</p>
+          <div id="chore-list"></div>
         </div>
         <div class="plan-pane" id="goals-pane" hidden>
           <div class="page-head">
@@ -1145,6 +1155,31 @@
       <div class="row">
         <button type="button" id="todo-delete" class="danger">Delete</button>
         <button type="button" id="todo-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Plan → Chores -->
+  <dialog id="chore-dlg" class="sheet">
+    <form id="chore-form" class="stack">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <h2 id="chore-dlg-title">New chore</h2>
+      <input class="big-input" name="title" required maxlength="80" placeholder="e.g. Dishes, Clean the bathroom" aria-label="Chore">
+      <div class="row">
+        <label>Every
+          <select name="every"><option value="1">day</option><option value="2">2 days</option><option value="3">3 days</option><option value="4">4 days</option><option value="7">week</option><option value="14">2 weeks</option><option value="30">month</option></select>
+        </label>
+        <label>Takes about
+          <select name="mins"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="90">1½ hours</option></select>
+        </label>
+      </div>
+      <label>First tiny step <input name="first" maxlength="140" placeholder="e.g. fill the sink with hot soapy water"></label>
+      <label>Usually around (optional) <input name="time" type="time"></label>
+      <label class="switch"><input name="dueNow" type="checkbox"> Haven't done it in a while: put it on today</label>
+      <div class="row">
+        <button type="button" id="chore-delete" class="danger">Delete</button>
+        <button type="button" id="chore-cancel">Cancel</button>
         <button type="submit" class="primary">Save</button>
       </div>
     </form>

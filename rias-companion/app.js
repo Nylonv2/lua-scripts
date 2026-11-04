@@ -729,7 +729,7 @@
       for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();
-        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos });
+        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos, chores: c.chores });
         renderToday();
       }
     }
@@ -1162,15 +1162,22 @@
         acts.dataset.day = m.day;
         el.append(acts);
       }
-      if (m.action === 'checkin' && m.todos && m.todos.length) {
-        const left = m.todos.map((id) => state.todos.find((t) => t.id === id)).filter((t) => t && !t.done);
-        if (left.length) {
+      if (m.action === 'checkin' && ((m.todos && m.todos.length) || (m.chores && m.chores.length))) {
+        const left = (m.todos || []).map((id) => state.todos.find((t) => t.id === id)).filter((t) => t && !t.done);
+        const chores = (m.chores || []).map((id) => (state.chores || []).find((c) => c.id === id)).filter((c) => c && c.last !== dateKey(new Date(m.ts)) && c.last !== dateKey());
+        if (left.length || chores.length) {
           const acts = document.createElement('div');
           acts.className = 'actions';
           for (const t of left) {
             const b = document.createElement('button');
             b.dataset.todoDone = t.id;
             b.textContent = `✓ I did “${t.title}”`;
+            acts.append(b);
+          }
+          for (const c of chores) {
+            const b = document.createElement('button');
+            b.dataset.choreDone = c.id;
+            b.textContent = `✓ I did “${Planner.choreTitle(c)}”`;
             acts.append(b);
           }
           el.append(acts);
@@ -1344,7 +1351,8 @@
         add(fmtTime(it.time), 'ri-time');
         if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
-        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : '✦ Daily essential', 'tag-chip plan');
+        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : it.choreId ? '🧽 Chore' : '✦ Daily essential', 'tag-chip plan');
+        if (it.choreId && it.overdue > 0 && !st) add(`${it.overdue} day${it.overdue === 1 ? '' : 's'} overdue`, 'tag-chip flag warn');
         if (it.frog && !st) add('⭐ First thing', 'tag-chip flag warn');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
@@ -1657,6 +1665,13 @@
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
+    const cb = e.target.closest('[data-chore-done]');
+    if (cb) {
+      const c = (state.chores || []).find((x) => x.id === cb.dataset.choreDone);
+      if (c) { const was = Planner.choreTitle(c); Planner.choreDone(c); addMessage('me', `Done: ${was} ✓`); setTimeout(() => addMessage('rias', doneLine()), 600); }
+      renderFeed();
+      return;
+    }
     const tb = e.target.closest('[data-todo-done]');
     if (tb) {
       const t = state.todos.find((x) => x.id === tb.dataset.todoDone);
@@ -2095,6 +2110,8 @@
       addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
       logGoal({ title, amount }) { return Planner.logGoal(title, amount); },
       deleteGoal({ title }) { return Planner.deleteGoal(title); },
+      addChore({ title, every_days, minutes, first_step }) { return Planner.addChore({ title, every: every_days, mins: minutes, first: first_step || '' }); },
+      choreDone({ title }) { return Planner.choreDone(title); },
       completeTask({ title }) {
         const q = title.toLowerCase();
         const it = todaysItems().find((x) => !statusOf(x.id) && x.title.toLowerCase().includes(q));
@@ -2489,6 +2506,8 @@
     $('#view-today').classList.toggle('month-mode', m !== 'today');
     $('#month-pane').hidden = m !== 'month';
     $('#todo-pane').hidden = m !== 'todo';
+    $('#chores-pane').hidden = m !== 'chores';
+    if (m === 'chores') { Planner.autoPlan(); Planner.renderChores(); }
     $('#goals-pane').hidden = m !== 'goals';
     if (m === 'month') renderMonth();
     if (m === 'todo') { Planner.autoPlan(); Planner.renderTodos(); }
@@ -2698,7 +2717,7 @@
     const item = findItem(id);
     if (item && item.source === 'work') { show('work'); return; }
     if (item && item.source === 'calendar') return; // edit it in your phone's calendar
-    if (item && item.source === 'plan') { if (item.essential) return; setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
+    if (item && item.source === 'plan') { if (item.essential) return; if (item.choreId) { setRemMode('chores'); Planner.openChore(item.choreId); return; } setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
     openEditor(item && item.baseId ? state.items.find((it) => it.id === item.baseId) : item);
   });
 
@@ -2853,8 +2872,8 @@
         if (it.source === 'calendar') continue;
         const start = at(k, it.time);
         if (it.source === 'plan') {
-          const key = it.todoId ? `t:${it.todoId}` : it.goalId ? `g:${it.goalId}:${k}` : it.id;
-          out.push({ key, title: it.todoId ? `📋 ${it.title}` : it.goalId ? `🎯 ${it.title}` : it.title, start, end: start + (it.mins || 30) * 60000 });
+          const key = it.todoId ? `t:${it.todoId}` : it.goalId ? `g:${it.goalId}:${k}` : it.choreId ? `c:${it.choreId}:${k}` : it.id;
+          out.push({ key, title: it.todoId ? `📋 ${it.title}` : it.goalId ? `🎯 ${it.title}` : it.choreId ? `🧽 ${it.title}` : it.title, start, end: start + (it.mins || 30) * 60000 });
         } else if (!it.source && it.repeat === 'once') {
           out.push({ key: `r:${it.id}`, title: it.title, start, end: start + 15 * 60000 });
         }
