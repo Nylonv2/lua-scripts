@@ -5517,7 +5517,7 @@ Boundaries:
     {
       name: 'remove_water',
       description: 'Take glasses of water off today\'s count (e.g. when one was logged by mistake).',
-      strict: true,
+      strict: false,
       input_schema: { type: 'object', additionalProperties: false, required: ['glasses'], properties: { glasses: { type: 'integer' } } },
     },
     {
@@ -5660,7 +5660,7 @@ Boundaries:
     {
       name: 'forget',
       description: 'Delete remembered facts that contain this text, when the user says something you remember is wrong or asks you to forget it.',
-      strict: true,
+      strict: false,
       input_schema: {
         type: 'object',
         additionalProperties: false,
@@ -5685,19 +5685,19 @@ Boundaries:
     {
       name: 'complete_todo',
       description: 'Mark a to-do (from the to-do list in the app context) done.',
-      strict: true,
+      strict: false,
       input_schema: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', description: 'The to-do title or part of it' } } },
     },
     {
       name: 'delete_todo',
       description: 'Remove a to-do they no longer need (not for finished ones; use complete_todo).',
-      strict: true,
+      strict: false,
       input_schema: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', description: 'The to-do title or part of it' } } },
     },
     {
       name: 'plan_day',
       description: 'Plan a day: fits open to-dos and goal sessions into free time and returns the full plan for that day.',
-      strict: true,
+      strict: false,
       input_schema: {
         type: 'object', additionalProperties: false, required: ['date', 'replan'],
         properties: {
@@ -5727,7 +5727,7 @@ Boundaries:
     {
       name: 'log_goal',
       description: 'Record progress on one of their goals: one session done, or an amount for amount goals.',
-      strict: true,
+      strict: false,
       input_schema: {
         type: 'object', additionalProperties: false, required: ['title', 'amount'],
         properties: {
@@ -5739,13 +5739,13 @@ Boundaries:
     {
       name: 'delete_goal',
       description: 'Delete one of their goals when they ask.',
-      strict: true,
+      strict: false,
       input_schema: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', description: 'The goal name or part of it' } } },
     },
     {
       name: 'complete_task',
       description: 'Mark one of today\'s scheduled tasks as done, matched by its title.',
-      strict: true,
+      strict: false,
       input_schema: {
         type: 'object',
         additionalProperties: false,
@@ -5754,6 +5754,20 @@ Boundaries:
       },
     },
   ];
+
+  // Claude allows at most 20 strict tools and 16 nullable/union parameters across them per request
+  // (24 optional parameters). Past that the whole request fails, so extra tools quietly go non-strict.
+  function strictLimits(tools) {
+    let strict = 0, unions = 0;
+    return tools.map((t) => {
+      if (!t.strict) return t;
+      const props = Object.values((t.input_schema && t.input_schema.properties) || {});
+      const u = props.filter((v) => Array.isArray(v.type) || v.anyOf).length;
+      if (strict + 1 > 20 || unions + u > 16) return { ...t, strict: false };
+      strict++; unions += u;
+      return t;
+    });
+  }
 
   const MODELS = {
     'claude-opus-5-5': { fallbacks: true },
@@ -5853,7 +5867,7 @@ Boundaries:
       // Breakpoint on the persona caches tools + persona together (tools render first).
       system: [{ type: 'text', text: persona(), cache_control: { type: 'ephemeral' } }],
       // Web search runs on Anthropic's side (billed per search); a few per message is plenty.
-      tools: TOOLS.concat({ type: model === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: 3 }),
+      tools: strictLimits(TOOLS).concat({ type: model === 'claude-haiku-5-5' ? 'web_search_20250305' : 'web_search_20260209', name: 'web_search', max_uses: 3 }),
       output_config: { effort: image ? 'medium' : 'low' }, // chat: quick replies; reading a photo needs more care
       messages,
     };
