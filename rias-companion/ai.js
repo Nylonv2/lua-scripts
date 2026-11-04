@@ -26,6 +26,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done, and to take things back: delete_reminder, delete_food_log, remove_water, delete_work_shift, and undo (undo the last thing you added, or bring back the last thing deleted). Delete only what they ask for; if it's unclear which one, ask. After deleting, say what you removed and that they can say "bring it back". Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
+- You also keep their to-do list and goals (both in the app context). add_todo when they mention something they need to get done ("I need to finish the edit by Friday"): the app fits it into their free time and tells you when; mention that time. complete_todo / delete_todo when they finish or drop one. plan_day when they ask to plan or organize a day, or what's on their plan; it returns the plan, so summarize it briefly (the main blocks, not every reminder). add_goal for goals and habits ("gym 4 times a week", "save $200 a month"); the app plans sessions and tracks streaks. log_goal when they report progress ("went to the gym", "saved $50"). Be encouraging about progress and honest about what's behind.
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -276,6 +277,80 @@ Boundaries:
       },
     },
     {
+      name: 'add_todo',
+      description: 'Add something to the user\'s to-do list. The app schedules it into their free time (around work, meals and calendar events) and returns when.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['title', 'due', 'minutes', 'important'],
+        properties: {
+          title: { type: 'string', description: 'Short task title in their words, e.g. "Finish the wedding edit"' },
+          due: nullable({ type: 'string', description: 'Deadline YYYY-MM-DD, or null if none' }),
+          minutes: { type: 'number', description: 'Your best estimate of how long it takes, in minutes (e.g. 30, 60, 120)' },
+          important: { type: 'boolean', description: 'true if they said it is important or urgent' },
+        },
+      },
+    },
+    {
+      name: 'complete_todo',
+      description: 'Mark a to-do (from the to-do list in the app context) done.',
+      strict: true,
+      input_schema: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', description: 'The to-do title or part of it' } } },
+    },
+    {
+      name: 'delete_todo',
+      description: 'Remove a to-do they no longer need (not for finished ones; use complete_todo).',
+      strict: true,
+      input_schema: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', description: 'The to-do title or part of it' } } },
+    },
+    {
+      name: 'plan_day',
+      description: 'Plan a day: fits open to-dos and goal sessions into free time and returns the full plan for that day.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['date', 'replan'],
+        properties: {
+          date: nullable({ type: 'string', description: 'YYYY-MM-DD, or null for today' }),
+          replan: { type: 'boolean', description: 'true to rearrange what is already planned (when they ask to plan/organize the day); false to just read the plan' },
+        },
+      },
+    },
+    {
+      name: 'add_goal',
+      description: 'Create a goal or habit. kind "times" = do something N times per day/week/month (sessions get planned into free time); kind "amount" = reach a number per week/month (money saved, pages read).',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['title', 'kind', 'times', 'per', 'target', 'unit', 'time', 'minutes'],
+        properties: {
+          title: { type: 'string', description: 'Short goal name, e.g. "Gym", "Read", "Save money"' },
+          kind: { type: 'string', enum: ['times', 'amount'] },
+          times: nullable({ type: 'number', description: 'For kind "times": how many times per period; else null' }),
+          per: { type: 'string', enum: ['day', 'week', 'month'] },
+          target: nullable({ type: 'number', description: 'For kind "amount": the target number; else null' }),
+          unit: { type: 'string', description: 'For amounts: "$", "pages", "miles"…; else empty string' },
+          time: nullable({ type: 'string', description: 'Preferred time of day HH:MM if they said one, else null' }),
+          minutes: nullable({ type: 'number', description: 'Length of one session in minutes if known, else null' }),
+        },
+      },
+    },
+    {
+      name: 'log_goal',
+      description: 'Record progress on one of their goals: one session done, or an amount for amount goals.',
+      strict: true,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['title', 'amount'],
+        properties: {
+          title: { type: 'string', description: 'The goal name or part of it' },
+          amount: nullable({ type: 'number', description: 'For amount goals, how much (e.g. 50 for $50); null for one session' }),
+        },
+      },
+    },
+    {
+      name: 'delete_goal',
+      description: 'Delete one of their goals when they ask.',
+      strict: true,
+      input_schema: { type: 'object', additionalProperties: false, required: ['title'], properties: { title: { type: 'string', description: 'The goal name or part of it' } } },
+    },
+    {
       name: 'complete_task',
       description: 'Mark one of today\'s scheduled tasks as done, matched by its title.',
       strict: true,
@@ -341,6 +416,13 @@ Boundaries:
         case 'log_food': return ctx.tools.logFood(input);
         case 'log_water': return ctx.tools.logWater(input);
         case 'complete_task': return ctx.tools.completeTask(input);
+        case 'add_todo': return ctx.tools.addTodo(input);
+        case 'complete_todo': return ctx.tools.completeTodo(input);
+        case 'delete_todo': return ctx.tools.deleteTodo(input);
+        case 'plan_day': return ctx.tools.planDay(input);
+        case 'add_goal': return ctx.tools.addGoal(input);
+        case 'log_goal': return ctx.tools.logGoal(input);
+        case 'delete_goal': return ctx.tools.deleteGoal(input);
         case 'remember': return ctx.tools.remember(input);
         case 'forget': return ctx.tools.forget(input);
         default: return { error: `Unknown tool ${name}` };

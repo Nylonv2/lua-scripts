@@ -503,9 +503,11 @@ public class MainActivity extends Activity {
                 Cursor c = ctx.getContentResolver().query(b.build(), cols,
                         CalendarContract.Instances.VISIBLE + "=1", null,
                         CalendarContract.Instances.BEGIN + " ASC");
+                java.util.Set<Long> own = CalendarSync.ownIds(ctx); // what Rias put there herself
                 if (c != null) {
                     try {
                         while (c.moveToNext() && events.length() < 300) {
+                            if (own.contains(c.getLong(0))) continue;
                             JSONObject e = new JSONObject();
                             e.put("id", c.getLong(0));
                             e.put("title", c.getString(1) == null ? "" : c.getString(1));

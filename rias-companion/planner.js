@@ -188,8 +188,9 @@ window.createPlanner = function createPlanner(ctx) {
   function planDay(k = dateKey(), replan = false) {
     if (!state.profile) return [];
     const [from, to] = windowFor(k);
+    const before = new Map();
     if (replan) {
-      for (const t of openTodos()) if (t.plan && t.plan.date === k && toMin(t.plan.time) >= from) t.plan = null;
+      for (const t of openTodos()) if (t.plan && t.plan.date === k && toMin(t.plan.time) >= from) { before.set(t, t.plan); t.plan = null; }
       for (const g of state.goals) if (g.plans && g.plans[k] && toMin(g.plans[k]) >= from && !(state.log[k] || {})[`g:${g.id}`]) delete g.plans[k];
     }
     // Goal sessions first: they happen at a set rhythm.
@@ -200,7 +201,9 @@ window.createPlanner = function createPlanner(ctx) {
       if (!sessionDue(g, k)) continue;
       const mins = Number(g.mins) || 30;
       const near = g.time ? toMin(g.time) : null;
-      const a = slot(busyOn(k), from, to, mins, near != null ? near : Math.max(from, 17 * 60));
+      // While replanning, a goal doesn't take a slot a to-do already had (those keep it if nothing better turns up).
+      const held = [...before].map(([t, o]) => [toMin(o.time), toMin(o.time) + (t.mins || 30)]);
+      const a = slot(busyOn(k).concat(held), from, to, mins, near != null ? near : Math.max(from, 17 * 60));
       if (a != null) g.plans[k] = minToTime(a);
     }
     // Then to-dos: overdue and soonest-due first, important first; spread over days by the daily budget.
@@ -215,6 +218,12 @@ window.createPlanner = function createPlanner(ctx) {
       if (a == null) continue;
       t.plan = { date: k, time: minToTime(a) };
       used += mins;
+    }
+    // Replanning never loses a to-do: one that found no new spot keeps its old one if that's still free.
+    for (const [t, old] of before) {
+      if (t.plan) continue;
+      const a = toMin(old.time);
+      if (!busyOn(k).some(([bs, be]) => a < be && a + (t.mins || 30) > bs)) t.plan = old;
     }
     return items(dayOf(k)).sort((a, b) => toMin(a.time) - toMin(b.time));
   }

@@ -724,6 +724,8 @@
       }
     }
 
+    syncCalendar(); // picks up calendar permission granted since the last change
+
     // Scheduled items.
     const fired = (state.fired[today] ||= {});
     for (const item of todaysItems(d)) {
@@ -2029,6 +2031,24 @@
       getWeather: weatherTool,
       remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
       forget({ fact }) { return { ok: true, removed: forget(fact) }; },
+      addTodo({ title, due, minutes, important }) {
+        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal' });
+        return r.ok ? { ok: true, added: r.todo.title, due: r.todo.due, planned: r.planned || 'not yet: no free time soon, it waits on the list' } : r;
+      },
+      completeTodo({ title }) { return Planner.completeTodo(title); },
+      deleteTodo({ title }) { return Planner.deleteTodo(title); },
+      planDay({ date, replan }) {
+        const k = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : dateKey();
+        Planner.planDay(k, !!replan);
+        save(); refresh();
+        const d = new Date(`${k}T12:00`);
+        const list = itemsOn(d).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
+        return { date: k, plan: list.map((it) => `${it.time} ${it.title}${it.source === 'plan' ? (it.todoId ? ' [to-do]' : ' [goal]') : it.source === 'work' ? ' [work]' : ''}`),
+          not_planned: Planner.openTodos().filter((t) => !t.plan).map((t) => t.title) };
+      },
+      addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
+      logGoal({ title, amount }) { return Planner.logGoal(title, amount); },
+      deleteGoal({ title }) { return Planner.deleteGoal(title); },
       completeTask({ title }) {
         const q = title.toLowerCase();
         const it = todaysItems().find((x) => !statusOf(x.id) && x.title.toLowerCase().includes(q));
@@ -2731,6 +2751,61 @@
     lastSync = sig;
     try { Native.schedule(JSON.stringify(upcomingEvents())); } catch { /* bridge unavailable */ }
     try { if (Native.setWidget) Native.setWidget(widgetData()); } catch { /* older app */ }
+    syncCalendar();
+  }
+
+  // ---------- your plan in the phone's calendar (Settings → Your day → Planning) ----------
+  let lastCalSync = '';
+  function calendarPlan(days = 14) {
+    const out = [];
+    const at = (k, t) => new Date(`${k}T${t}:00`).getTime();
+    for (let i = 0; i < days; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      const k = dateKey(d);
+      for (const it of itemsOn(d)) {
+        if (it.source === 'calendar') continue;
+        const start = at(k, it.time);
+        if (it.source === 'plan') {
+          const key = it.todoId ? `t:${it.todoId}` : `g:${it.goalId}:${k}`;
+          out.push({ key, title: it.todoId ? `📋 ${it.title}` : `🎯 ${it.title}`, start, end: start + (it.mins || 30) * 60000 });
+        } else if (!it.source && it.repeat === 'once') {
+          out.push({ key: `r:${it.id}`, title: it.title, start, end: start + 15 * 60000 });
+        }
+      }
+      for (const sh of shiftsOn(d)) {
+        const start = at(k, sh.start);
+        let end = at(k, sh.end);
+        if (end <= start) end += 86400000;
+        out.push({ key: `w:${sh.id}:${k}`, title: `💼 ${sh.label || 'Work'}`, start, end });
+      }
+    }
+    return out;
+  }
+  function syncCalendar() {
+    const d = window.RiasDevice; // (Dev() is defined further down)
+    if (!d || !d.calendarSync) return;
+    const on = !!state.settings.calendarWrite;
+    let st = {};
+    try { st = JSON.parse(d.calendarSyncStatus()); } catch { /* older app */ }
+    if (on && !st.allowed) return; // waiting for permission (asked when it's switched on)
+    const plan = on ? calendarPlan() : [];
+    const sig = JSON.stringify(plan);
+    if (sig === lastCalSync) return;
+    lastCalSync = sig;
+    try { d.calendarSync(sig); } catch { /* older app */ }
+    setTimeout(calWriteHint, 1500);
+  }
+  function calWriteHint() {
+    const hint = $('#calwrite-hint');
+    const d = window.RiasDevice; // (Dev() is defined further down)
+    if (!hint) return;
+    if (!d || !d.calendarSync) { hint.textContent = state.settings.calendarWrite ? 'Calendar sync needs the Android app.' : ''; return; }
+    let st = {};
+    try { st = JSON.parse(d.calendarSyncStatus()); } catch { /* older app */ }
+    hint.textContent = !sf.elements.calendarWrite.checked ? ''
+      : !st.allowed ? 'Allow calendar access when Android asks (or in Android settings → Apps → Rias → Permissions).'
+        : st.error === 'no-calendar' ? 'No calendar you can add to was found. Add a Google account to your phone’s Calendar app.'
+          : st.calendar ? `On: ${st.count} event${st.count === 1 ? '' : 's'} in “${st.calendar}”.` : 'On. Your plans will appear in your calendar shortly.';
   }
 
   function upcomingEvents(days = 7) {
@@ -2915,6 +2990,11 @@
     sf.elements.voiceKey.value = state.ai.geminiKey;
     fillNaturalVoices();
     voiceStyleShown();
+    sf.elements.calendarWrite.checked = !!state.settings.calendarWrite;
+    sf.elements.eveningCheckin.checked = state.settings.eveningCheckin !== false;
+    sf.elements.checkinTime.value = state.settings.checkinTime || (state.profile ? minToTime(Planner.checkinMin()) : '21:30');
+    sf.elements.planHours.value = String(state.settings.planHours || 3);
+    calWriteHint();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.wakeName.value = state.settings.wakeName || '';
     sf.elements.wakeName.placeholder = defaultWakeWord();
@@ -3173,8 +3253,16 @@
     Object.assign(state.settings, {
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value, kokoroVoice: Number(sf.elements.kokoroVoice.value),
       wakeMode: sf.elements.wakeMode.value,
+      calendarWrite: sf.elements.calendarWrite.checked,
+      eveningCheckin: sf.elements.eveningCheckin.checked,
+      planHours: Number(sf.elements.planHours.value) || 3,
       wakeName: sf.elements.wakeName.value.trim(),
     });
+    { // Only keep a custom check-in time if it was changed from the suggestion.
+      const auto = minToTime(Math.max(19 * 60, (toMin(state.profile.sleep) > toMin(state.profile.wake) ? toMin(state.profile.sleep) : 1440) - 90));
+      state.settings.checkinTime = sf.elements.checkinTime.value && sf.elements.checkinTime.value !== auto ? sf.elements.checkinTime.value : '';
+    }
+    lastCalSync = '';
     pushWakeWord();
     pushVoiceChoice();
     applyWake();
@@ -3297,6 +3385,15 @@
   });
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
   sf.elements.rias.addEventListener('change', () => { $('#plain-opts').hidden = sf.elements.rias.checked; });
+  sf.elements.calendarWrite.addEventListener('change', () => {
+    const d = window.RiasDevice;
+    if (sf.elements.calendarWrite.checked && d && d.requestPermission) {
+      let st = {};
+      try { st = JSON.parse(d.calendarSyncStatus()); } catch { /* older app */ }
+      if (!st.allowed) d.requestPermission('calendar');
+    }
+    calWriteHint();
+  });
   initAssistPic();
   // The voice key and the Gemini key in Rias's mind are the same key: keep the two boxes in step.
   sf.elements.voiceKey.addEventListener('input', () => { sf.elements.geminiKey.value = sf.elements.voiceKey.value.trim(); });

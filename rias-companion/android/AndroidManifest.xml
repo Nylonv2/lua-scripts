@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Read-only access so events from Samsung/Google Calendar show up in Rias. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Optional: copy what Rias plans into your calendar (Settings → Your day). -->
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <!-- Reminder pop-ups over the lock screen, like an alarm app. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- "Appear on top": the centered reminder pop-up while you're using another app. -->

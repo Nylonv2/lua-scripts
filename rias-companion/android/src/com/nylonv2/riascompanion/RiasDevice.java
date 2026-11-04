@@ -49,6 +49,9 @@ final class RiasDevice {
     @JavascriptInterface public void openSettings(String what) { DeviceActions.openSettings(ctx, what); }
     @JavascriptInterface public void wake(String mode) { WakeService.setMode(ctx, mode); }
     @JavascriptInterface public void wakeName(String name) { WakeService.setWakeName(ctx, name); }
+    /** Copies the plan into the phone's calendar: [{key, title, start, end}] ([] removes what's still ahead). */
+    @JavascriptInterface public void calendarSync(String json) { CalendarSync.sync(ctx, json); }
+    @JavascriptInterface public String calendarSyncStatus() { return CalendarSync.status(ctx); }
     @JavascriptInterface public void wakeAction(String action) { } // older pages; "Hey …" always answers by voice
     /** Kokoro voice (Settings → Her voice): "unsupported", "", "downloading:NN", "ready" or "error:…". */
     @JavascriptInterface public String kokoroStatus() { return KokoroVoice.status(ctx); }
@@ -94,6 +97,7 @@ final class RiasDevice {
         switch (what) {
             case "mic": perms = new String[] {android.Manifest.permission.RECORD_AUDIO}; break;
             case "calls": perms = new String[] {android.Manifest.permission.READ_CONTACTS, android.Manifest.permission.CALL_PHONE}; break;
+            case "calendar": perms = new String[] {android.Manifest.permission.READ_CALENDAR, android.Manifest.permission.WRITE_CALENDAR}; break;
             default: return;
         }
         activity.runOnUiThread(new Runnable() {

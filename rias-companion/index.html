@@ -607,6 +607,20 @@
           <label class="switch"><input name="windDown" type="checkbox"> Bedtime nudges, and ask how I slept</label>
           </section>
           <section class="set-group" data-cat="day">
+          <h2>Planning</h2>
+          <label class="switch"><input name="calendarWrite" type="checkbox"> Add my plans to my phone's calendar (Google Calendar)</label>
+          <p class="small voice-hint" id="calwrite-hint"></p>
+          <p class="muted small">Planned to-dos, goal sessions, work shifts and one-time reminders appear in your calendar (and on your computer and watch). Only events she adds are ever changed.</p>
+          <label class="switch"><input name="eveningCheckin" type="checkbox"> Evening check-in: go over the day and move unfinished to-dos to tomorrow</label>
+          <div class="row">
+            <label>Check-in time <input name="checkinTime" type="time" aria-label="Check-in time"></label>
+            <label>To-do time per day
+              <select name="planHours"><option value="1">up to 1 hour</option><option value="2">up to 2 hours</option><option value="3">up to 3 hours</option><option value="4">up to 4 hours</option><option value="6">up to 6 hours</option><option value="8">up to 8 hours</option></select>
+            </label>
+          </div>
+          <p class="muted small">Check-in time: leave it as suggested (90 minutes before bed). To-dos due soon are always planned; the rest are spread out so no day gets more than this.</p>
+          </section>
+          <section class="set-group" data-cat="day">
           <h2>Phone calendar &amp; other apps</h2>
           <div class="sync-box">
           <div class="sync-row">
