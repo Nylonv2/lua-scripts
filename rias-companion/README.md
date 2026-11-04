@@ -99,6 +99,19 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**Bills & subscriptions (More → Tools):** everything you pay, with the monthly and yearly total and what's coming up
+in the next 7 days. Add one at a time, say "add Netflix 15.49 a month, renews the 12th" (with Claude on), or paste a list
+with **Import** (`Name | amount | month | next date | bill or sub | autopay`). Bills you pay yourself show up on your
+plan two days before they're due ("Pay Rent · due tomorrow"), and ticking it marks it paid and moves it to next month.
+Autopay ones just roll forward on their date.
+**Cancelling:** tap one → *Cancel this…*. Rias can't sign in to your accounts, so she gets you to the last tap. She
+opens that service's cancel or account page (Netflix, Spotify, YouTube, Disney+, Hulu, Prime, Apple, Claude, Xbox,
+Nintendo, iRacing and more), Google Play or Apple subscriptions, or shows the steps for app-only ones (Uber One,
+FloatMe, Flex, Dave, Brigit, Xfinity). She can also write a cancellation email in your mail app, which you send
+yourself. *Not now: remind me before it renews* puts "Cancel X before it renews" on your plan two days before the
+charge. *I cancelled it* stops counting it, keeps your access-until date, and shows what you're saving each month. In
+chat, try "cancel netflix" or "what subscriptions do I have".
+
 **iPhone-style look:** grouped inset lists, large titles that shrink into a frosted bar as you scroll, a frosted tab
 bar whose icons fill in when selected, iOS switches, segmented controls, pull-up sheets, notification-style banners
 and Messages-style chat bubbles. It uses Apple's system colors (the theme picks the accent: pink, purple, indigo or

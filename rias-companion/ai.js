@@ -370,6 +370,28 @@ Boundaries:
       },
     },
     {
+      name: 'add_bill',
+      description: 'Add a bill or subscription to Tools → Bills & subscriptions (rent, phone, streaming, memberships). The app tracks the next charge, the monthly total, and puts pay-by tasks on the plan for bills they pay themselves.',
+      strict: false,
+      input_schema: {
+        type: 'object', additionalProperties: false, required: ['name', 'amount'],
+        properties: {
+          name: { type: 'string', description: 'e.g. "Netflix", "Rent", "Xfinity"' },
+          amount: { type: 'number', description: 'Amount per charge' },
+          every: { type: 'string', enum: ['week', 'month', 'quarter', 'year'], description: 'How often it charges (default month)' },
+          next_date: { type: 'string', description: 'Next charge or due date YYYY-MM-DD, or empty if unknown' },
+          type: { type: 'string', enum: ['bill', 'sub'], description: 'bill (rent, utilities, phone, insurance) or sub (subscription/membership)' },
+          autopay: { type: 'boolean', description: 'true if it is charged automatically' },
+        },
+      },
+    },
+    {
+      name: 'cancel_subscription',
+      description: 'Open the cancel helper for one of their bills/subscriptions (from the list in the app context): it opens the official cancel/account page or in-app steps, can draft a cancellation email, and lets them mark it cancelled. You cannot cancel it yourself; they do the last tap.',
+      strict: false,
+      input_schema: { type: 'object', additionalProperties: false, required: ['name'], properties: { name: { type: 'string', description: 'The bill or subscription name' } } },
+    },
+    {
       name: 'chore_done',
       description: 'Mark one of their chores done today (from the chores in the app context), e.g. when they say they did the dishes.',
       strict: false,
@@ -463,6 +485,8 @@ Boundaries:
         case 'log_goal': return ctx.tools.logGoal(input);
         case 'delete_goal': return ctx.tools.deleteGoal(input);
         case 'add_chore': return ctx.tools.addChore(input);
+        case 'add_bill': return ctx.tools.addBill(input);
+        case 'cancel_subscription': return ctx.tools.cancelHelp(input);
         case 'chore_done': return ctx.tools.choreDone(input);
         case 'remember': return ctx.tools.remember(input);
         case 'forget': return ctx.tools.forget(input);

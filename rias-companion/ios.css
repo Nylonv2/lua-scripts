@@ -145,7 +145,7 @@ html:not([data-scene]) :is(.btn-primary, button.primary, .stack button.primary, 
   background: var(--ios-tint) !important; color: #fff !important; border: 0 !important; border-radius: 12px; font-weight: 600; font-size: 17px; letter-spacing: -.02em; box-shadow: none; }
 html:not([data-scene]) :is(.btn-primary, button.primary, .stack button.primary) { min-height: 50px; }
 html:not([data-scene]) .btn-primary.sm { min-height: 36px; font-size: 15px; padding: 0 14px; border-radius: 18px; }
-html:not([data-scene]) .btn-primary.sm.tonal, html:not([data-scene]) .btn-primary.tonal {
+html:not([data-scene]) :is(.btn-primary.sm.tonal, .btn-primary.tonal, .stack .btn-primary.tonal, dialog .btn-primary.tonal) {
   background: rgba(var(--ios-tint-rgb), .12) !important; color: var(--ios-tint) !important; }
 html:not([data-scene]) .stack button:not(.primary):not(.danger):not(.btn-primary):not(.mem-del):not(.check):not(.icon-btn):not(.set-tile):not(.btn-text) {
   background: var(--ios-fill); color: var(--ios-tint); border: 0; min-height: 50px; border-radius: 12px; font-size: 17px; font-weight: 500; }
@@ -346,3 +346,6 @@ html:not([data-scene]) .view-enter { animation: ios-push .32s cubic-bezier(.2, .
 @media (prefers-reduced-motion: reduce) {
   html:not([data-scene]) .view-enter, html:not([data-scene]) dialog[open], html:not([data-scene]) .ios-in { animation: none !important; }
 }
+
+/* Bills: rows have no checkbox, so dividers start at the text */
+html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; }

@@ -80,6 +80,7 @@
       <symbol id="i-flag" viewBox="0 0 256 256"><path d="M42.76,50A8,8,0,0,0,40,56V224a8,8,0,0,0,16,0V179.77c26.79-21.16,49.87-9.75,76.45,3.41,16.4,8.11,34.06,16.85,53,16.85,13.93,0,28.54-4.75,43.82-18a8,8,0,0,0,2.76-6V56A8,8,0,0,0,218.76,50c-28,24.23-51.72,12.49-79.21-1.12C111.07,34.76,78.78,18.79,42.76,50ZM216,172.25c-26.79,21.16-49.87,9.74-76.45-3.41-25-12.35-52.81-26.13-83.55-8.4V59.79c26.79-21.16,49.87-9.75,76.45,3.4,25,12.35,52.82,26.13,83.55,8.4Z"/></symbol>
       <symbol id="i-pen" viewBox="0 0 256 256"><path d="M227.31,73.37,182.63,28.68a16,16,0,0,0-22.63,0L36.69,152A15.86,15.86,0,0,0,32,163.31V208a16,16,0,0,0,16,16H92.69A15.86,15.86,0,0,0,104,219.31L227.31,96a16,16,0,0,0,0-22.63ZM92.69,208H48V163.31l88-88L180.69,120ZM192,108.68,147.31,64l24-24L216,84.68Z"/></symbol>
       <symbol id="i-sliders" viewBox="0 0 256 256"><path d="M40,88H73a32,32,0,0,0,62,0h81a8,8,0,0,0,0-16H135a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16Zm64-24A16,16,0,1,1,88,80,16,16,0,0,1,104,64ZM216,168H199a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16h97a32,32,0,0,0,62,0h17a8,8,0,0,0,0-16Zm-48,24a16,16,0,1,1,16-16A16,16,0,0,1,168,192Z"/></symbol>
+      <symbol id="i-card" viewBox="0 0 256 256"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48Zm0,16V88H32V64Zm0,128H32V104H224v88Zm-16-24a8,8,0,0,1-8,8H168a8,8,0,0,1,0-16h32A8,8,0,0,1,208,168Zm-64,0a8,8,0,0,1-8,8H120a8,8,0,0,1,0-16h16A8,8,0,0,1,144,168Z"/></symbol>
       <symbol id="i-home-fill" viewBox="0 0 256 256"><path d="M224,120v96a8,8,0,0,1-8,8H160a8,8,0,0,1-8-8V164a4,4,0,0,0-4-4H108a4,4,0,0,0-4,4v52a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V120a16,16,0,0,1,4.69-11.31l80-80a16,16,0,0,1,22.62,0l80,80A16,16,0,0,1,224,120Z"/></symbol>
       <symbol id="i-list-fill" viewBox="0 0 256 256"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM117.66,149.66l-32,32a8,8,0,0,1-11.32,0l-16-16a8,8,0,0,1,11.32-11.32L80,164.69l26.34-26.35a8,8,0,0,1,11.32,11.32Zm0-64-32,32a8,8,0,0,1-11.32,0l-16-16A8,8,0,0,1,69.66,90.34L80,100.69l26.34-26.35a8,8,0,0,1,11.32,11.32ZM192,168H144a8,8,0,0,1,0-16h48a8,8,0,0,1,0,16Zm0-64H144a8,8,0,0,1,0-16h48a8,8,0,0,1,0,16Z"/></symbol>
       <symbol id="i-chat-fill" viewBox="0 0 256 256"><path d="M232,128A104,104,0,0,1,79.12,219.82L45.07,231.17a16,16,0,0,1-20.24-20.24l11.35-34.05A104,104,0,1,1,232,128Z"/></symbol>
@@ -396,12 +397,31 @@
         <div class="biz-snack" id="biz-snack" role="status" hidden></div>
       </section>
       <!-- Settings -->
+      <!-- Tools → Bills & subscriptions (bills.js) -->
+      <section class="view pad" id="view-bills" hidden>
+        <button type="button" class="day-back" id="bills-back">‹ More</button>
+        <h1 class="page-title">Bills &amp; subscriptions</h1>
+        <div class="card bills-summary">
+          <p class="eyebrow">Every month</p>
+          <b id="bills-month">$0.00</b>
+          <span class="muted" id="bills-year"></span>
+          <span id="bills-next" class="bills-next"></span>
+          <span id="bills-saving" class="bills-saving" hidden></span>
+        </div>
+        <div class="dd-plan-row">
+          <button type="button" class="btn-primary sm" id="bills-add">＋ Add</button>
+          <button type="button" class="btn-primary sm tonal" id="bills-import-btn">Import a list</button>
+        </div>
+        <div id="bills-list"></div>
+        <p class="muted small bills-foot">Bills you pay yourself show up on your plan two days before they're due. Tap any one to edit it, mark it paid, or get help cancelling it.</p>
+      </section>
       <!-- More: the tools and settings that aren't needed every day -->
       <section class="view pad" id="view-more" hidden>
         <h1 class="page-title more-title">More</h1>
         <p class="more-label">Tools</p>
         <div class="list-card more-list">
           <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Bills &amp; subscriptions</b><small>What you pay, what's due, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
         </div>
         <p class="more-label">App</p>
@@ -1393,6 +1413,71 @@
       <button type="submit" class="primary">Join the Occult Research Club</button>
     </form>
   </div>
+<dialog id="bill-dlg" class="sheet" aria-labelledby="bill-dlg-title">
+  <form id="bill-form" class="stack" method="dialog">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h2 id="bill-dlg-title">Add a bill or subscription</h2>
+    <input class="big-input" name="name" required maxlength="60" placeholder="e.g. Netflix, Rent, Phone" aria-label="Name" list="bill-names">
+    <div class="row">
+      <label>Amount <input name="amount" inputmode="decimal" placeholder="0.00"></label>
+      <label>Every
+        <select name="cycle"><option value="week">week</option><option value="month">month</option><option value="quarter">3 months</option><option value="year">year</option></select>
+      </label>
+    </div>
+    <div class="row">
+      <label>Next charge / due <input name="next" type="date"></label>
+      <label>Type
+        <select name="kind"><option value="sub">Subscription</option><option value="bill">Bill</option></select>
+      </label>
+    </div>
+    <label class="switch"><input name="autopay" type="checkbox"> Paid automatically (autopay)</label>
+    <label>Notes <input name="notes" maxlength="200" placeholder="e.g. card ending 6889, account number"></label>
+    <button type="button" class="btn-primary tonal" id="bill-paid" hidden>✓ Mark this one paid</button>
+    <button type="button" class="btn-primary tonal" id="bill-cancel-help" hidden>Cancel this…</button>
+    <button type="button" class="btn-primary tonal" id="bill-restart" hidden>I started it again</button>
+    <div class="sheet-actions">
+      <button type="button" class="danger" id="bill-delete" hidden>Remove</button>
+      <button type="button" id="bill-close">Close</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+<datalist id="bill-names"><option value="Rent"><option value="Electric"><option value="Internet"><option value="Phone"><option value="Car insurance"><option value="Netflix"><option value="Spotify"><option value="YouTube Premium"><option value="Disney+"><option value="Hulu"><option value="Amazon Prime"><option value="Claude Pro"><option value="Xbox Game Pass"><option value="Nintendo Switch Online"><option value="Gym"></datalist>
+<dialog id="cancel-dlg" class="sheet" aria-labelledby="cx-title">
+  <div class="stack">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h2 id="cx-title">Cancel</h2>
+    <p class="muted small" id="cx-sub"></p>
+    <p class="cx-how" id="cx-how" hidden></p>
+    <button type="button" class="btn-primary" id="cx-open">Open the cancel page</button>
+    <div class="dd-plan-row">
+      <button type="button" class="btn-primary sm tonal" id="cx-play">Google Play</button>
+      <button type="button" class="btn-primary sm tonal" id="cx-apple">Apple / iPhone</button>
+    </div>
+    <div class="dd-plan-row">
+      <button type="button" class="btn-primary sm tonal" id="cx-email">Email them</button>
+      <button type="button" class="btn-primary sm tonal" id="cx-search">Search how</button>
+    </div>
+    <button type="button" class="btn-primary tonal" id="cx-remind">Not now: remind me before it renews</button>
+    <label>Access ends on <input type="date" id="cx-ends"></label>
+    <div class="sheet-actions">
+      <button type="button" id="cx-close">Close</button>
+      <button type="button" class="primary" id="cx-done">I cancelled it</button>
+    </div>
+  </div>
+</dialog>
+<dialog id="bills-import" class="sheet" aria-label="Import bills">
+  <div class="stack">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h2>Import a list</h2>
+    <p class="muted small">One per line: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
+    <textarea id="bills-import-text" rows="9" placeholder="Paste here"></textarea>
+    <div class="sheet-actions">
+      <button type="button" id="bills-import-close">Close</button>
+      <button type="button" class="primary" id="bills-import-go">Add them</button>
+    </div>
+  </div>
+</dialog>
 
   <script src="dialogue.js"></script>
   <script src="talk.js"></script>
@@ -1400,6 +1485,7 @@
   <script src="food.js"></script>
   <script src="work.js"></script>
   <script src="planner.js"></script>
+  <script src="bills.js"></script>
   <script src="vendor/anthropic-sdk.js"></script>
   <script src="ai.js"></script>
   <script src="rias-avatar.js"></script>

@@ -193,6 +193,7 @@
       && !(sh.skip || []).includes(k) && !oneOffs.some((o) => job(o) === job(sh))));
   }
   const overnight = (sh) => toMin(sh.end) <= toMin(sh.start);
+  let Bills = null; // bills.js: pay-by and cancel-before-it-renews tasks (created further down)
   let Planner = null; // planner.js: planned to-dos and goal sessions are items too (created further down)
   function virtualItems(d) {
     const out = [];
@@ -219,6 +220,7 @@
       }
     }
     if (Planner) out.push(...Planner.items(d));
+    if (Bills) out.push(...Bills.items(d));
     return out;
   }
   // All-day calendar events are stored at UTC midnight; timed ones in local time.
@@ -749,6 +751,7 @@
     // To-dos and goal sessions fitted into today's free time; the evening check-in.
     if (Planner) {
       if (Planner.autoPlan()) renderToday();
+      if (Bills) Bills.sync();
       for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();
@@ -1563,9 +1566,10 @@
     if (next && next.hidden) { next.classList.remove('view-enter'); void next.offsetWidth; next.classList.add('view-enter'); }
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
     if (view === 'food' || view === 'work') trackPane = view;
-    const tab = { work: 'food', biz: 'more', settings: 'more' }[view] || view; // the tab each screen lives under
+    const tab = { work: 'food', biz: 'more', settings: 'more', bills: 'more' }[view] || view; // the tab each screen lives under
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === tab);
     if (view === 'today') renderToday();
+    if (view === 'bills' && Bills) Bills.render();
     if (view === 'settings') fillSettings();
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
@@ -1592,6 +1596,7 @@
     if (!b) return;
     const m = b.dataset.more;
     if (m === 'clients') { show('biz'); setBizPane('clients'); }
+    else if (m === 'bills') { show('bills'); }
     else if (m === 'translate') { show('biz'); setBizPane('tr'); }
     else { show('settings'); openSetCat(m === 'settings' ? null : m); }
   });
@@ -1615,6 +1620,11 @@
         cmd.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 350 + i * 700));
         return;
       }
+    }
+    // Bills & subscriptions: "cancel netflix", "what subscriptions do I have" (works with or without AI).
+    if (!photo && Bills) {
+      const bl = Bills.handle(text);
+      if (bl) { bl.forEach((line, i) => setTimeout(() => addMessage('rias', say(line)), HEADLESS ? 30 : 300 + i * 700)); return; }
     }
     // "Plan my week" / "plan next week": every day left in that week.
     const weekAsk = !photo && text.match(/^(?:can you |could you |please |hey,? )?(?:plan|organi[sz]e|schedule|map out)(?: out)? (?:my |the )?(this |next )?week\b/i);
@@ -1870,6 +1880,12 @@
     celebrateSmall: () => haptic([12, 60, 12]),
   }));
 
+  Bills = window.createBills(Object.assign({}, modCtx, {
+    ask: (t) => ask(t),
+    toast: (text) => { addMessage('rias', text); showToast({ text }); },
+    accountEmail: () => '',
+  }));
+
   // What Rias's AI knows about right now. Rebuilt for every message.
   function contextText() {
     const now = new Date();
@@ -1890,6 +1906,7 @@
       allDay.length ? `All-day calendar events today: ${allDay.join(', ')}.` : '',
       `Work shifts, next 7 days: ${Work.summary()}.`,
       Planner ? Planner.summary() : '',
+      Bills ? Bills.summary() : '',
       `Food diary today: ${Food.summary()}`,
       Biz && Biz.summary() ? Biz.summary() : '',
       likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
@@ -2207,6 +2224,8 @@
       addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
       logGoal({ title, amount }) { return Planner.logGoal(title, amount); },
       deleteGoal({ title }) { return Planner.deleteGoal(title); },
+      addBill({ name, amount, every, next_date, type, autopay }) { const r = Bills.add({ name, amount, cycle: every, next: next_date || '', kind: type, autopay }); return r.ok ? { ok: true, added: r.bill.name } : r; },
+      cancelHelp({ name }) { const r = Bills.cancelHelp(name); return r.ok ? { ok: true, opened: `cancel helper for ${r.name} is open on screen`, cancel_page: r.url || null, in_app_steps: r.how || null } : { error: 'not on the bills list' }; },
       addChore({ title, every_days, minutes, first_step, after }) { return Planner.addChore({ title, every: every_days, mins: minutes, first: first_step || '', after: after || '' }); },
       choreDone({ title }) { return Planner.choreDone(title); },
       completeTask({ title }) {
@@ -2487,6 +2506,7 @@
     lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
     showToast({ text: 'Your week is planned. Tap a day to see it.' });
   }
+  $('#bills-back').addEventListener('click', () => show('more'));
   $('#home-plan-day').addEventListener('click', () => planMyDay(dateKey()));
   $('#today-plan-day').addEventListener('click', () => planMyDay(viewKey()));
   $('#next-card').addEventListener('click', (e) => {

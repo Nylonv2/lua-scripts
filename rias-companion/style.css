@@ -1724,3 +1724,18 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 .pair-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
 .actions.reshape { align-items: center; }
 .reshape-q { font-size: .85rem; color: var(--muted); width: 100%; }
+
+/* Bills & subscriptions */
+.bills-summary { display: flex; flex-direction: column; gap: 4px; padding: 18px; margin: 12px 0 14px; }
+.bills-summary b { font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.bills-next { font-size: .95rem; margin-top: 6px; }
+.bills-saving { font-size: .9rem; color: #34c759; font-weight: 600; }
+.bill-row { width: 100%; text-align: left; background: none; border: 0; color: inherit; display: flex; align-items: center; }
+.bill-amt { margin-left: auto; text-align: right; display: flex; align-items: baseline; gap: 2px; flex: none; }
+.bill-amt b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.bill-amt small { color: var(--muted); font-size: .8rem; }
+.cx-how { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: .95rem; line-height: 1.4; }
+.bills-foot { margin-top: 14px; }
+#cancel-dlg .dd-plan-row { flex-wrap: wrap; margin: 0; }
+#cancel-dlg .dd-plan-row button { flex: 1 1 40%; min-width: 0; white-space: normal; }
+.list-card > .bill-row { position: relative; }
