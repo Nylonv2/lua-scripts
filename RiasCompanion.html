@@ -1751,6 +1751,22 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 #cancel-dlg .dd-plan-row { flex-wrap: wrap; margin: 0; }
 #cancel-dlg .dd-plan-row button { flex: 1 1 40%; min-width: 0; white-space: normal; }
 .list-card > .bill-row { position: relative; }
+.sug-acts { display: flex; gap: 8px; margin-top: 8px; }
+.bill-sug .ri-main { width: 100%; }
+.bills-watch { margin-top: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+/* Money: spending */
+.spend-card { padding: 16px; margin: 12px 0 6px; display: flex; flex-direction: column; gap: 10px; }
+.spend-head { display: flex; align-items: center; gap: 10px; }
+.spend-head > div { flex: 1; text-align: center; }
+.spend-head b { font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; }
+.spend-head .icon-btn:disabled { opacity: .3; }
+.spend-cat { display: flex; flex-direction: column; gap: 4px; }
+.spend-cat-top { display: flex; justify-content: space-between; font-size: .95rem; }
+.spend-bar { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+.spend-bar i { display: block; height: 100%; border-radius: 3px; background: var(--g2); }
+.spend-cat.loan .spend-bar i { background: #ff9500; }
+.spend-cat.loan .spend-cat-top span::after { content: " · borrowed money"; color: var(--muted); font-size: .8rem; }
+.spend-row { width: 100%; text-align: left; background: none; border: 0; color: inherit; display: flex; align-items: center; }
 </style>
   <style>
 /* =====================================================================================
@@ -2104,6 +2120,8 @@ html:not([data-scene]) .view-enter { animation: ios-push .32s cubic-bezier(.2, .
 
 /* Bills: rows have no checkbox, so dividers start at the text */
 html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; }
+html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px; }
+.list-card > .spend-row { position: relative; }
 </style>
 </head>
 <body>
@@ -2492,7 +2510,20 @@ html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; 
       <!-- Tools → Bills & subscriptions (bills.js) -->
       <section class="view pad" id="view-bills" hidden>
         <button type="button" class="day-back" id="bills-back">‹ More</button>
-        <h1 class="page-title">Bills &amp; subscriptions</h1>
+        <h1 class="page-title">Money</h1>
+        <div class="card spend-card" id="spend-card">
+          <div class="spend-head">
+            <button type="button" class="icon-btn" id="spend-prev" aria-label="Previous month">‹</button>
+            <div><p class="eyebrow">Spent in <span id="spend-month"></span></p><b id="spend-total">$0.00</b></div>
+            <button type="button" class="icon-btn" id="spend-next" aria-label="Next month">›</button>
+          </div>
+          <div id="spend-cats"></div>
+        </div>
+        <div id="spend-recent-wrap" hidden>
+          <div class="group-title"><span>Recent spending</span></div>
+          <div class="list-card" id="spend-recent"></div>
+        </div>
+        <div class="group-title"><span>Bills &amp; subscriptions</span></div>
         <div class="card bills-summary">
           <p class="eyebrow">Every month</p>
           <b id="bills-month">$0.00</b>
@@ -2504,7 +2535,14 @@ html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; 
           <button type="button" class="btn-primary sm" id="bills-add">＋ Add</button>
           <button type="button" class="btn-primary sm tonal" id="bills-import-btn">Import a list</button>
         </div>
+        <div id="bills-suggest"></div>
         <div id="bills-list"></div>
+        <div class="card bills-watch">
+          <label class="switch"><input type="checkbox" id="bills-watch"> Watch my notifications for receipts, payments and renewals</label>
+          <p class="muted small" id="bills-watch-status"></p>
+          <button type="button" class="btn-primary sm tonal" id="bills-watch-allow" hidden>Allow notification access</button>
+          <p class="muted small">Receipts, payments and loan repayments that come in as notifications (email or your bank's app) are added to your spending. For subscriptions she updates the date or price and asks before adding anything new. She reads only the notification's sender, subject and preview, and it stays on your phone. Older emails: ask Claude Code for a full scan.</p>
+        </div>
         <p class="muted small bills-foot">Bills you pay yourself show up on your plan two days before they're due. Tap any one to edit it, mark it paid, or get help cancelling it.</p>
       </section>
       <!-- More: the tools and settings that aren't needed every day -->
@@ -2513,7 +2551,7 @@ html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; 
         <p class="more-label">Tools</p>
         <div class="list-card more-list">
           <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
-          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Bills &amp; subscriptions</b><small>What you pay, what's due, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>Spending, loans, bills and subscriptions, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
         </div>
         <p class="more-label">App</p>
@@ -3562,7 +3600,7 @@ html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; 
   <div class="stack">
     <div class="sheet-grab" aria-hidden="true"></div>
     <h2>Import a list</h2>
-    <p class="muted small">One per line: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
+    <p class="muted small">Spending: <b>date | what | amount | category</b> (e.g. <i>2026-11-03 | Wingstop | 21.69</i>). Bills: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
     <textarea id="bills-import-text" rows="9" placeholder="Paste here"></textarea>
     <div class="sheet-actions">
       <button type="button" id="bills-import-close">Close</button>
@@ -6784,6 +6822,10 @@ window.createPlanner = function createPlanner(ctx) {
 window.createBills = function createBills(ctx) {
   const { state, save, $, dateKey, uid, fmtTime } = ctx;
   state.bills ||= [];
+  state.billSuggest ||= [];   // things spotted in email notifications, waiting for a yes/no
+  state.billIgnored ||= [];   // names you said no to
+  state.billNotesAt ||= 0;    // newest notification already read
+  state.spend ||= [];         // money going out: { id, date, amount, what, cat, key }
   const today = () => dateKey();
   const dayOf = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (k, n) => { const d = dayOf(k); d.setDate(d.getDate() + n); return dateKey(d); };
@@ -6924,6 +6966,10 @@ window.createBills = function createBills(ctx) {
       if (!line || /^#/.test(line)) continue;
       const p = line.split(/\s*[|;\t]\s*/);
       if (p.length < 2) continue;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(p[0])) { // "2026-11-03 | Wingstop (Uber Eats) | 21.69 | Food & delivery"
+        if (logSpend({ date: p[0], what: p[1], amount: Number(String(p[2] || '').replace(/[^0-9.]/g, '')), cat: p[3] && (CATS.some(([c]) => c === p[3]) || p[3] === 'Other') ? p[3] : catOf(`${p[1]} ${p[3] || ''}`) }, true)) n++;
+        continue;
+      }
       const [name, amount, cycle = 'month', next = '', kind = 'sub', pay = ''] = p;
       const cyc = /week/i.test(cycle) ? 'week' : /year|annual/i.test(cycle) ? 'year' : /quarter|3 ?mo/i.test(cycle) ? 'quarter' : 'month';
       const status = /cancel/i.test(pay) ? 'cancelled' : 'active';
@@ -6945,6 +6991,9 @@ window.createBills = function createBills(ctx) {
     const act = active();
     const total = act.reduce((sum, b) => sum + monthly(b), 0);
     const saving = state.bills.filter((b) => b.status === 'cancelled' && b.cancelledOn).reduce((s, b) => s + monthly(b), 0);
+    renderSuggest();
+    renderSpend();
+    watchStatus();
     $('#bills-month').textContent = money(total);
     $('#bills-year').textContent = `${money(total * 12)} a year · ${act.length} active`;
     const upcoming = act.filter((b) => b.next).sort((a, b) => a.next.localeCompare(b.next))[0];
@@ -6960,7 +7009,8 @@ window.createBills = function createBills(ctx) {
       ['Subscriptions', act.filter((b) => b.kind !== 'bill' && !soon.includes(b))],
       ['Cancelled', state.bills.filter((b) => b.status === 'cancelled')],
     ];
-    if (!state.bills.length) {
+    if (!state.bills.length && !state.billSuggest.length) {
+      if (state.spend.length) return;
       const e = el('div', 'empty-state');
       e.innerHTML = '<div class="empty-ic">💳</div><b>Nothing tracked yet</b><p>Add your rent, phone, streaming and other subscriptions, or paste a list with Import. She shows what\'s due and helps you cancel what you don\'t use.</p>';
       box.append(e);
@@ -7091,15 +7141,268 @@ window.createBills = function createBills(ctx) {
   $('#bills-add').addEventListener('click', () => open(null));
   $('#bills-list').addEventListener('click', (e) => { const r = e.target.closest('[data-bill]'); if (r) open(state.bills.find((b) => b.id === r.dataset.bill)); });
 
+  // ---------- watching email notifications (receipts, renewals, bills) ----------
+  const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const SUB = /subscription|membership|renew|recurring|monthly|per month|\/mo\b|annual|yearly|your bill|bill is|auto-?pay|automatic payment|plan\b|trial|member fee|membership fee/i;
+  const STRONG = /receipt|renew|charged|withdrawn|payment (received|confirmed|processed|successful|date|amount)|automatic payment|auto-?pay|bill is (ready|available)|invoice|trial (ends|will end)|cancel+ed|membership fee|recurring billing/i;
+  const PROMO = /\d+% off|\bdeals?\b|\bsale\b|save up to|\boffer\b|upgrade|unlock|reward|free shipping|get \$?\d+ off|try .* free|limited time/i;
+  const CANCEL = /(will be|has been|was|been) cancel+ed|recurring billing (has been )?(turned off|disabled)|subscription (has )?ended|benefits are ending|will end on/i;
+  const PAID = /receipt|paid|charged|withdrawn|has renewed|renewal order.{0,40}complete|payment (received|confirmed|processed|successful)|thank you for your (purchase|payment)/i;
+  function findDate(text, ts) {
+    const base = new Date(ts || Date.now());
+    const out = [];
+    const re = new RegExp(`\\b(${MONTHS.join('|')})[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?`, 'gi');
+    let m;
+    while ((m = re.exec(text))) {
+      const mo = MONTHS.indexOf(m[1].slice(0, 3).toLowerCase());
+      let y = m[3] ? Number(m[3]) : base.getFullYear();
+      let d = new Date(y, mo, Number(m[2]));
+      if (!m[3] && d < new Date(base.getFullYear(), base.getMonth(), base.getDate() - 45)) d = new Date(y + 1, mo, Number(m[2]));
+      out.push({ at: m.index, k: dateKey(d) });
+    }
+    const re2 = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g;
+    while ((m = re2.exec(text))) out.push({ at: m.index, k: dateKey(new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]))) });
+    const re3 = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
+    while ((m = re3.exec(text))) out.push({ at: m.index, k: `${m[1]}-${m[2]}-${m[3]}` });
+    if (!out.length) return '';
+    // Prefer a date right after "renew / due / on / payment date / end".
+    const key = /(renew\w*|due|payment date|withdrawn|charged|end\w*|on)\b[^.]{0,25}$/i;
+    const best = out.find((o) => key.test(text.slice(Math.max(0, o.at - 40), o.at))) || out[0];
+    return best.k;
+  }
+  function cleanName(t) {
+    return String(t || '').replace(/\b(customer )?(support|receipts?|team|billing|account services|no-?reply|notifications?|inc\.?|llc|pbc|corp\.?|,)\b/gi, '').replace(/[,·|:-]+\s*$/g, '').replace(/\s{2,}/g, ' ').trim();
+  }
+  /** One notification → { name, amount, cycle, next, cancel } or null when it isn't about a bill or subscription. */
+  function parseNote(n) {
+    const title = String(n.title || ''), text = String(n.text || '');
+    const all = `${title} ${text}`;
+    if (!SUB.test(all) || !STRONG.test(all)) return null;
+    if (PROMO.test(all) && !/receipt|charged|withdrawn|renew|cancel+ed|bill is|auto-?pay/i.test(all)) return null;
+    // Who: "Your Hinge subscription…", "subscription from X on Google Play", else the sender (Gmail shows it as the title).
+    let name = '';
+    const m1 = all.match(/(?:subscription|purchase) (?:purchase )?(?:from|to|for) ([A-Z][\w&+.' -]{1,40}?)(?: on | has| will|[.,]|$)/) || all.match(/your ([A-Z][\w&+.' -]{1,40}?) (?:subscription|membership|plan|bill)\b/) || all.match(/(?:membership|subscription) (?:fee )?(?:with|at) ([A-Z][\w&+.' -]{1,40}?)[.,]/);
+    if (m1) name = m1[1];
+    if (!name || /^(google play|app store)$/i.test(name)) name = /gmail|mail|outlook|yahoo/i.test(`${n.pkg} ${n.app}`) ? title : (title || n.app);
+    name = cleanName(name).replace(/^(the|your)\s+/i, '');
+    if (!name || name.length > 40) return null;
+    const am = all.match(/\$\s?(\d{1,5}(?:,\d{3})*(?:\.\d{2})?)/);
+    const amount = am ? Number(am[1].replace(/,/g, '')) : 0;
+    const cycle = /\b(annual|yearly|per year|12-month|1-year)\b|\/\s?(yr|year)\b/i.test(all) ? 'year' : /\b(weekly|per week|1 week|7-day)\b|\/\s?(wk|week)\b/i.test(all) ? 'week' : 'month';
+    const cancel = CANCEL.test(all);
+    let next = findDate(text || all, n.ts);
+    const paidNow = PAID.test(all) && !/will be (charged|withdrawn)|set to renew|will (automatically )?renew|renews on|payment date/i.test(all);
+    if (paidNow) next = addCycle(next || dateKey(new Date(n.ts || Date.now())), cycle); // charged on that date → the next one is a cycle later
+    return { name, amount, cycle, next, cancel, kind: /bill|xfinity|electric|energy|water|internet|phone|rent|insurance/i.test(all) ? 'bill' : 'sub', ts: n.ts };
+  }
+  const sameName = (a, b) => { const x = a.toLowerCase(), y = b.toLowerCase(); const w = (s) => s.split(/\W+/).filter((t) => t.length > 2); return x === y || x.includes(y) || y.includes(x) || w(x).some((t) => w(y).includes(t) && !/^(the|your|plus|premium|pro|online|membership|subscription|app)$/.test(t)); };
+  /** Reads new receipt / renewal notifications: updates what's tracked, suggests what isn't. */
+  function readNotes(list) {
+    const fresh = [], updated = [];
+    let spent = 0;
+    for (const n of list) {
+      state.billNotesAt = Math.max(state.billNotesAt || 0, Number(n.ts) || 0);
+      if (logSpend(parseSpend(n), true)) spent++;
+      const p = parseNote(n);
+      if (!p) continue;
+      const b = state.bills.find((x) => sameName(x.name, p.name));
+      if (b) {
+        if (p.cancel) {
+          if (b.status !== 'cancelled' && !state.billSuggest.some((x) => x.type === 'cancel' && x.billId === b.id)) { state.billSuggest.push({ id: uid(), type: 'cancel', billId: b.id, name: b.name, next: p.next, ts: p.ts }); fresh.push(`${b.name} looks cancelled`); }
+          continue;
+        }
+        const bits = [];
+        if (p.next && p.next >= today() && p.next !== b.next) { b.next = p.next; bits.push(`next ${when(p.next)}`); }
+        if (p.amount && Math.abs(p.amount - (b.amount || 0)) > 0.009) { bits.push(`${money(p.amount)} (was ${money(b.amount)})`); b.amount = p.amount; }
+        if (b.status === 'cancelled' && !p.cancel && PAID.test(`${n.title} ${n.text}`)) { b.status = 'active'; bits.push('charged again, so it\'s back on the list'); }
+        if (bits.length) updated.push(`${b.name}: ${bits.join(', ')}`);
+        continue;
+      }
+      if (p.cancel || state.billIgnored.some((x) => sameName(x, p.name)) || state.billSuggest.some((x) => sameName(x.name, p.name))) continue;
+      state.billSuggest.push({ id: uid(), type: 'add', ...p });
+      fresh.push(`${p.name}${p.amount ? ` (${money(p.amount)}/${p.cycle === 'month' ? 'mo' : p.cycle})` : ''}`);
+    }
+    if (fresh.length || updated.length) {
+      save(); render();
+      const lines = [];
+      if (fresh.length) lines.push(`From your email: ${fresh.join(', ')}. Want ${fresh.length === 1 ? 'it' : 'them'} on your Bills & subscriptions list? (More → Bills & subscriptions)`);
+      if (updated.length) lines.push(`Updated from your email: ${updated.join('; ')}.`);
+      ctx.toast(lines.join('\n'));
+    } else if (list.length) { save(); if (spent) render(); }
+    return { fresh, updated, spent };
+  }
+  function poll() {
+    if (state.settings.billWatch === false) return;
+    const d = window.RiasDevice;
+    if (!d || !d.moneyNotes) return;
+    let list = [];
+    try { list = JSON.parse(d.moneyNotes(state.billNotesAt || 0)); } catch { return; }
+    if (list.length) readNotes(list);
+  }
+  function watchStatus() {
+    const sw = $('#bills-watch'), stat = $('#bills-watch-status'), allow = $('#bills-watch-allow');
+    if (!sw) return;
+    sw.checked = state.settings.billWatch !== false;
+    const d = window.RiasDevice;
+    let ok = false;
+    try { ok = !!(d && d.status && JSON.parse(d.status()).notifications); } catch { /* older app */ }
+    stat.textContent = !d ? 'Works in the Android app (it reads your email notifications as they arrive).' : !sw.checked ? 'Off.' : ok ? '✓ On. New receipts and renewal emails get added or updated here.' : 'One step left: allow notification access.';
+    allow.hidden = !d || ok || !sw.checked;
+  }
+  function renderSuggest() {
+    const box = $('#bills-suggest');
+    if (!box) return;
+    box.textContent = '';
+    const list = state.billSuggest.filter((x) => x.type === 'add' || state.bills.some((b) => b.id === x.billId && b.status !== 'cancelled'));
+    if (!list.length) return;
+    const h = el('div', 'group-title'); h.append(el('span', '', 'Found in your email')); box.append(h);
+    const card = el('div', 'list-card');
+    for (const x of list) {
+      const row = el('div', 'row-item bill-sug');
+      const main = el('div', 'ri-main');
+      main.append(el('div', 'ri-title', x.type === 'cancel' ? `${x.name} looks cancelled` : x.name));
+      main.append(el('div', 'ri-meta', x.type === 'cancel' ? 'An email said it was cancelled or is ending.' : `${x.amount ? `${money(x.amount)}/${x.cycle === 'month' ? 'mo' : x.cycle}` : 'Amount unknown'}${x.next ? ` · next ${when(x.next)}` : ''}`));
+      const acts = el('div', 'sug-acts');
+      const yes = el('button', 'btn-primary sm', x.type === 'cancel' ? 'Mark cancelled' : 'Add');
+      yes.type = 'button'; yes.dataset.sugYes = x.id;
+      const no = el('button', 'btn-primary sm tonal', x.type === 'cancel' ? 'Not yet' : 'Ignore');
+      no.type = 'button'; no.dataset.sugNo = x.id;
+      acts.append(yes, no);
+      main.append(acts);
+      row.append(main);
+      card.append(row);
+    }
+    box.append(card);
+  }
+  function suggestAnswer(id, yes) {
+    const x = state.billSuggest.find((s) => s.id === id);
+    if (!x) return;
+    state.billSuggest = state.billSuggest.filter((s) => s !== x);
+    if (x.type === 'cancel') { const b = state.bills.find((y) => y.id === x.billId); if (yes && b) markCancelled(b, x.next || b.next, true); }
+    else if (yes) add({ name: x.name, amount: x.amount, cycle: x.cycle, next: x.next, kind: x.kind, autopay: true });
+    else state.billIgnored.push(x.name);
+    save(); render(); ctx.refresh && ctx.refresh();
+  }
+  $('#bills-suggest').addEventListener('click', (e) => {
+    const y = e.target.closest('[data-sug-yes]'), n = e.target.closest('[data-sug-no]');
+    if (y) suggestAnswer(y.dataset.sugYes, true); else if (n) suggestAnswer(n.dataset.sugNo, false);
+  });
+  $('#bills-watch').addEventListener('change', (e) => { state.settings.billWatch = e.target.checked; save(); watchStatus(); if (e.target.checked) poll(); });
+  $('#bills-watch-allow').addEventListener('click', () => { const d = window.RiasDevice; if (d && d.openSettings) d.openSettings('notifications'); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { watchStatus(); poll(); } });
+
+  // ---------- spending: everything going out ----------
+  const CATS = [
+    ['Loans & advances', /\b(flex|dave|extracash|brigit|floatme|klarna|afterpay|affirm|sezzle|earnin|cleo|empower|klover|solo ?funds|possible finance|repaid|repay\w*|installment|loan|advance)\b/i],
+    ['Rent & housing', /\brent\b|apartment|landlord|property/i],
+    ['Bills & utilities', /xfinity|comcast|duke energy|electric|energy|water bill|internet|phone bill|t-mobile|verizon|at&t|insurance|utilit/i],
+    ['Betting', /thescore|draftkings|fanduel|betmgm|caesars|kalshi|sportsbook|prizepicks|\bbet\b/i],
+    ['Food & delivery', /uber eats|doordash|grubhub|wingstop|chick-fil-a|mcdonald|wendy|culver|taco bell|burger|pizza|chipotle|restaurant|cafe|coffee|starbucks|gopuff|instacart|subway|kfc|popeyes|panda/i],
+    ['Groceries', /grocer|meijer|kroger|aldi|whole foods|trader joe|costco|sam's club|food lion|publix|safeway/i],
+    ['Rides & gas', /\blyft\b|uber (trip|ride)|your (trip|ride)|parking|\bgas\b|fuel|gas station|speedway|marathon|shell|circle k|car wash/i],
+    ['Subscriptions', /subscription|membership|renew|claude|anthropic|netflix|spotify|iracing|coach dave|switch online|game pass|patreon|prime|hinge|refuseless/i],
+    ['Games', /nintendo|playstation|xbox|steam|epic games|eshop|v-?bucks/i],
+    ['Shopping', /amazon|best buy|micro ?center|walmart|target|ebay|vitamin shoppe|sell\.?app|stripe/i],
+  ];
+  const catOf = (text) => (CATS.find(([, re]) => re.test(text)) || ['Other'])[0];
+  const OUT = /receipt|total|you (spent|paid)|purchase|charged|payment (of|was|has been|received|processed|successful|confirmed)|withdrawn|repaid|repayment|installment|debit|deposit (successful|receipt)|order (confirmation|receipt)|transaction|is paid|has been paid|thanks for (tipping|ordering)/i;
+  const IN = /you (received|got paid|were paid)|deposited (in)?to your|refund|cash ?back|is on the way to your|direct deposit|payday|(advance|extracash).{0,40}(on the way|sent|approved|is here|arriv)|funds to spend|money misses you|you have (cash|funds)/i;
+  const LATER = /will be (charged|withdrawn)|set to renew|upcoming|reminder|payment date|bill is (ready|available)|due on/i;
+  /** One notification → a spend { date, amount, what, cat } or null (not money going out, or no amount). */
+  function parseSpend(n) {
+    const title = String(n.title || ''), text = String(n.text || '');
+    const all = `${title} ${text}`;
+    if (!OUT.test(all) || IN.test(all) || (LATER.test(all) && !/\b(paid|charged|withdrawn|receipt)\b/i.test(all))) return null;
+    if (PROMO.test(all) && !/receipt|total|charged|withdrawn|paid|repaid|deposit successful/i.test(all)) return null;
+    const am = all.match(/(?:total|amount paid|payment total|you (?:spent|paid)|charged|fee of|withdrawn|deposit successful)[^$]{0,30}\$\s?([\d,]+(?:\.\d{2})?)/i) || all.match(/\$\s?([\d,]+(?:\.\d{2})?)/);
+    const amount = am ? Number(am[1].replace(/,/g, '')) : 0;
+    if (!amount || amount > 20000) return null;
+    let what = '';
+    const rf = all.match(/receipt for ([A-Z][^(.\n]{1,30}?)\s*(?:\(|\.|$)/);
+    const bare = all.replace(/\$\s?[\d,]+(?:\.\d{2})?/g, '$');
+    const at = bare.match(/\b(?:spent|paid|purchase|payment)[^.\n]{0,25}\b(?:at|to) ([A-Z][\w&'. -]{2,30}?)(?:\s+(?:on|for|with|using)\b|[.,]|$)/);
+    if (rf) what = rf[1].trim() + (/uber eats/i.test(all) ? ' (Uber Eats)' : /doordash/i.test(all) ? ' (DoorDash)' : '');
+    else if (at && !/gmail|mail/i.test(n.pkg || '')) what = at[1].trim();
+    else what = cleanName(/gmail|mail|outlook|yahoo/i.test(`${n.pkg} ${n.app}`) ? title : (title || n.app));
+    if (!what) what = n.app || 'Something';
+    const tracked = state.bills.find((b) => sameName(b.name, what));
+    const cat = catOf(`${what} ${all}`) === 'Other' && tracked ? (tracked.kind === 'bill' ? 'Bills & utilities' : 'Subscriptions') : catOf(`${what} ${title} ${text.slice(0, 160)}`);
+    return { date: dateKey(new Date(n.ts || Date.now())), amount, what: what.slice(0, 40), cat, key: n.key || '' };
+  }
+  function logSpend(x, quiet) {
+    if (!x || !x.amount) return false;
+    if (x.key && state.spend.some((s) => s.key === x.key)) return false;
+    if (state.spend.some((s) => s.date === x.date && Math.abs(s.amount - x.amount) < 0.005 && s.what.toLowerCase() === x.what.toLowerCase())) return false;
+    state.spend.push({ id: uid(), date: x.date, amount: Math.round(x.amount * 100) / 100, what: x.what, cat: x.cat || catOf(x.what), key: x.key || '' });
+    if (state.spend.length > 3000) state.spend.splice(0, state.spend.length - 3000);
+    if (!quiet) { save(); render(); }
+    return true;
+  }
+  let spendMonth = today().slice(0, 7);
+  const monthName = (m) => { const [y, mo] = m.split('-').map(Number); return new Date(y, mo - 1, 1).toLocaleDateString([], { month: 'long', year: y === new Date().getFullYear() ? undefined : 'numeric' }); };
+  function monthTotals(m) {
+    const list = state.spend.filter((x) => x.date.startsWith(m));
+    const by = {};
+    for (const x of list) by[x.cat] = (by[x.cat] || 0) + x.amount;
+    return { list, total: list.reduce((a, x) => a + x.amount, 0), cats: Object.entries(by).sort((a, b) => b[1] - a[1]) };
+  }
+  function renderSpend() {
+    const box = $('#spend-card');
+    if (!box) return;
+    const { list, total, cats } = monthTotals(spendMonth);
+    $('#spend-month').textContent = monthName(spendMonth);
+    $('#spend-total').textContent = money(total);
+    $('#spend-next').disabled = spendMonth >= today().slice(0, 7);
+    const ul = $('#spend-cats');
+    ul.textContent = '';
+    if (!list.length) ul.append(el('p', 'muted small', 'Nothing logged this month yet. Receipts and payments from your email notifications show up here, or say "I spent 20 on gas".'));
+    const max = cats.length ? cats[0][1] : 1;
+    for (const [c, v] of cats) {
+      const row = el('div', `spend-cat${c === 'Loans & advances' ? ' loan' : ''}`);
+      const top = el('div', 'spend-cat-top');
+      top.append(el('span', '', c), el('b', '', money(v)));
+      const bar = el('div', 'spend-bar'); const fill = el('i'); fill.style.width = `${Math.max(4, (v / max) * 100)}%`; bar.append(fill);
+      row.append(top, bar);
+      ul.append(row);
+    }
+    const rec = $('#spend-recent');
+    rec.textContent = '';
+    for (const x of list.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25)) {
+      const r = el('button', 'row-item spend-row');
+      r.type = 'button'; r.dataset.spend = x.id;
+      const main = el('div', 'ri-main');
+      main.append(el('div', 'ri-title', x.what));
+      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.cat}`));
+      const amt = el('div', 'bill-amt'); amt.append(el('b', '', money(x.amount)));
+      r.append(main, amt);
+      rec.append(r);
+    }
+    $('#spend-recent-wrap').hidden = !list.length;
+  }
+  $('#spend-prev').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m - 2, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
+  $('#spend-next').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
+  $('#spend-recent').addEventListener('click', async (e) => {
+    const r = e.target.closest('[data-spend]');
+    if (!r) return;
+    const x = state.spend.find((y) => y.id === r.dataset.spend);
+    if (x && await ctx.ask(`Remove “${x.what}” (${money(x.amount)}, ${short(x.date)}) from your spending?`)) { state.spend = state.spend.filter((y) => y !== x); save(); renderSpend(); }
+  });
+  function spendSummary(m = today().slice(0, 7)) {
+    const { total, cats } = monthTotals(m);
+    if (!total) return '';
+    return `Spending in ${monthName(m)} so far: ${money(total)} (${cats.map(([c, v]) => `${c} ${money(v)}`).join(', ')}).`;
+  }
+
   // ---------- chat & AI ----------
   function match(q) {
     const s = String(q || '').toLowerCase().trim();
     return state.bills.find((b) => b.name.toLowerCase() === s) || state.bills.find((b) => b.name.toLowerCase().includes(s) || s.includes(b.name.toLowerCase()));
   }
   function summary() {
-    if (!state.bills.length) return '';
+    const sp = spendSummary();
+    if (!state.bills.length) return sp;
     const act = active();
-    return `Bills & subscriptions (${money(act.reduce((s, b) => s + monthly(b), 0))}/month): ${act.map((b) => `${b.name} ${money(b.amount)}/${b.cycle}${b.next ? `, ${b.autopay ? 'renews' : 'due'} ${b.next}` : ''}${b.status === 'cancelling' ? ', wants to cancel' : ''}${b.autopay ? '' : ', paid manually'}`).join('; ')}.${state.bills.some((b) => b.status === 'cancelled') ? ` Cancelled: ${state.bills.filter((b) => b.status === 'cancelled').map((b) => b.name).join(', ')}.` : ''}`;
+    return `Bills & subscriptions (${money(act.reduce((s, b) => s + monthly(b), 0))}/month): ${act.map((b) => `${b.name} ${money(b.amount)}/${b.cycle}${b.next ? `, ${b.autopay ? 'renews' : 'due'} ${b.next}` : ''}${b.status === 'cancelling' ? ', wants to cancel' : ''}${b.autopay ? '' : ', paid manually'}`).join('; ')}.${state.bills.some((b) => b.status === 'cancelled') ? ` Cancelled: ${state.bills.filter((b) => b.status === 'cancelled').map((b) => b.name).join(', ')}.` : ''}${sp ? ` ${sp}` : ''}`;
   }
   /** Local commands (no AI needed): "cancel netflix", "what subscriptions do I have". */
   function handle(text) {
@@ -7109,6 +7412,19 @@ window.createBills = function createBills(ctx) {
       const b = match(m[1]);
       if (b) { cancelHelp(b); return [`Here's how to cancel ${b.name}. Open its page, do the last tap there, then tap "I cancelled it" so I stop counting it.`]; }
     }
+    m = t.match(/^(?:i )?(?:just )?(?:spent|paid) \$?(\d+(?:\.\d{1,2})?)(?: dollars| bucks)? (?:on|for|at|to) (.+?)[.!]*$/i);
+    if (m) {
+      const x = { date: today(), amount: Number(m[1]), what: m[2].replace(/^(some|a|an|the)\s+/i, '').replace(/^\w/, (c) => c.toUpperCase()) };
+      x.cat = catOf(x.what);
+      logSpend(x);
+      return [`Logged ${money(x.amount)} for ${x.what} (${x.cat}). ${spendSummary()}`];
+    }
+    if (/\b(how much (did|have) i (spent|spend)|my (expenses|spending)|where (did|does) my money go|what (did|have) i spen[dt])\b/i.test(t)) {
+      const { total, cats } = monthTotals(today().slice(0, 7));
+      if (!total) return ['Nothing logged this month yet. Turn on "Watch my email notifications" in More → Money, or tell me "I spent 20 on gas".'];
+      const loan = cats.find(([c]) => c === 'Loans & advances');
+      return [`This month you've spent ${money(total)}:\n${cats.map(([c, v]) => `• ${c}: ${money(v)}`).join('\n')}${loan ? `\n\n${money(loan[1])} of that went to loans and advances.` : ''}`];
+    }
     if (/\b(what|which|how much|list)\b.*\b(subscriptions?|bills?)\b/i.test(t) && state.bills.length) {
       const act = active();
       return [`You're paying ${money(act.reduce((s, b) => s + monthly(b), 0))} a month:\n${act.sort((a, b) => (a.next || '9').localeCompare(b.next || '9')).map((b) => `• ${b.name}: ${money(b.amount)}/${b.cycle === 'month' ? 'mo' : b.cycle}${b.next ? ` (${b.autopay ? 'renews' : 'due'} ${when(b.next)})` : ''}`).join('\n')}`];
@@ -7116,7 +7432,7 @@ window.createBills = function createBills(ctx) {
     return null;
   }
   roll();
-  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid };
+  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary };
 };
 </script>
   <script>
@@ -10717,7 +11033,7 @@ window.createTranslator = function createTranslator(ctx) {
     // To-dos and goal sessions fitted into today's free time; the evening check-in.
     if (Planner) {
       if (Planner.autoPlan()) renderToday();
-      if (Bills) Bills.sync();
+      if (Bills) { Bills.sync(); Bills.poll(); }
       for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();

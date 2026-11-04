@@ -32,6 +32,8 @@ final class RiasDevice {
     @JavascriptInterface public String directions(String place) { return DeviceActions.directions(ctx, place); }
     @JavascriptInterface public String email(String to, String subject, String body) { return DeviceActions.email(ctx, to, subject, body); }
     @JavascriptInterface public String notifications(double since) { return RiasNotifications.since((long) since); }
+    /** Receipts / renewals / bills seen in notifications (kept on the phone), newer than `since`. */
+    @JavascriptInterface public String moneyNotes(double since) { return RiasNotifications.money(ctx, (long) since); }
 
     @JavascriptInterface public void playPcm(String base64, int rate) { DeviceActions.playPcm(base64, rate); }
     @JavascriptInterface public void stopPcm() { DeviceActions.stopPcm(); }

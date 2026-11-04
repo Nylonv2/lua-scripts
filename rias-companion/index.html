@@ -400,7 +400,20 @@
       <!-- Tools → Bills & subscriptions (bills.js) -->
       <section class="view pad" id="view-bills" hidden>
         <button type="button" class="day-back" id="bills-back">‹ More</button>
-        <h1 class="page-title">Bills &amp; subscriptions</h1>
+        <h1 class="page-title">Money</h1>
+        <div class="card spend-card" id="spend-card">
+          <div class="spend-head">
+            <button type="button" class="icon-btn" id="spend-prev" aria-label="Previous month">‹</button>
+            <div><p class="eyebrow">Spent in <span id="spend-month"></span></p><b id="spend-total">$0.00</b></div>
+            <button type="button" class="icon-btn" id="spend-next" aria-label="Next month">›</button>
+          </div>
+          <div id="spend-cats"></div>
+        </div>
+        <div id="spend-recent-wrap" hidden>
+          <div class="group-title"><span>Recent spending</span></div>
+          <div class="list-card" id="spend-recent"></div>
+        </div>
+        <div class="group-title"><span>Bills &amp; subscriptions</span></div>
         <div class="card bills-summary">
           <p class="eyebrow">Every month</p>
           <b id="bills-month">$0.00</b>
@@ -412,7 +425,14 @@
           <button type="button" class="btn-primary sm" id="bills-add">＋ Add</button>
           <button type="button" class="btn-primary sm tonal" id="bills-import-btn">Import a list</button>
         </div>
+        <div id="bills-suggest"></div>
         <div id="bills-list"></div>
+        <div class="card bills-watch">
+          <label class="switch"><input type="checkbox" id="bills-watch"> Watch my notifications for receipts, payments and renewals</label>
+          <p class="muted small" id="bills-watch-status"></p>
+          <button type="button" class="btn-primary sm tonal" id="bills-watch-allow" hidden>Allow notification access</button>
+          <p class="muted small">Receipts, payments and loan repayments that come in as notifications (email or your bank's app) are added to your spending. For subscriptions she updates the date or price and asks before adding anything new. She reads only the notification's sender, subject and preview, and it stays on your phone. Older emails: ask Claude Code for a full scan.</p>
+        </div>
         <p class="muted small bills-foot">Bills you pay yourself show up on your plan two days before they're due. Tap any one to edit it, mark it paid, or get help cancelling it.</p>
       </section>
       <!-- More: the tools and settings that aren't needed every day -->
@@ -421,7 +441,7 @@
         <p class="more-label">Tools</p>
         <div class="list-card more-list">
           <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
-          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Bills &amp; subscriptions</b><small>What you pay, what's due, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>Spending, loans, bills and subscriptions, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
         </div>
         <p class="more-label">App</p>
@@ -1470,7 +1490,7 @@
   <div class="stack">
     <div class="sheet-grab" aria-hidden="true"></div>
     <h2>Import a list</h2>
-    <p class="muted small">One per line: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
+    <p class="muted small">Spending: <b>date | what | amount | category</b> (e.g. <i>2026-11-03 | Wingstop | 21.69</i>). Bills: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
     <textarea id="bills-import-text" rows="9" placeholder="Paste here"></textarea>
     <div class="sheet-actions">
       <button type="button" id="bills-import-close">Close</button>

@@ -99,7 +99,20 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
-**Bills & subscriptions (More → Tools):** everything you pay, with the monthly and yearly total and what's coming up
+**Money (More → Tools): spending, loans, bills and subscriptions.** At the top is what you've spent this month, by
+category: food & delivery, groceries, rides & gas, bills, rent, subscriptions, shopping, games, betting, and **loans &
+advances** (Flex, Klarna, Afterpay, Affirm, Dave, Brigit, FloatMe…), which get their own orange "borrowed money" line.
+Use ‹ › for earlier months, and tap an entry to remove it. Say "I spent 20 on gas" to log something, or ask "how much did I
+spend" for the breakdown. Import also takes spending lines (`date | what | amount | category`).
+**Watching notifications:** with *Watch my notifications* on (it needs notification access), receipts and payments
+that arrive as notifications are added to your spending automatically: email receipts (Uber Eats, Flex, Klarna,
+FloatMe…) and your bank app's "you spent $X at Y". Money coming in, upcoming bills and promos are skipped. For
+subscriptions it updates the renewal date or price of ones you track and asks before adding new ones ("Found in your
+email": Add / Ignore, or "looks cancelled": Mark cancelled). Only money-related notifications are kept, only the
+sender, subject and preview, and only on your phone. It sees new notifications from the moment it's turned on; for
+older history, ask Claude Code to scan your inbox and give you an import list.
+
+**Bills & subscriptions:** everything you pay, with the monthly and yearly total and what's coming up
 in the next 7 days. Add one at a time, say "add Netflix 15.49 a month, renews the 12th" (with Claude on), or paste a list
 with **Import** (`Name | amount | month | next date | bill or sub | autopay`). Bills you pay yourself show up on your
 plan two days before they're due ("Pay Rent · due tomorrow"), and ticking it marks it paid and moves it to next month.

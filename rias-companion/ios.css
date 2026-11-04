@@ -349,3 +349,5 @@ html:not([data-scene]) .view-enter { animation: ios-push .32s cubic-bezier(.2, .
 
 /* Bills: rows have no checkbox, so dividers start at the text */
 html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; }
+html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px; }
+.list-card > .spend-row { position: relative; }

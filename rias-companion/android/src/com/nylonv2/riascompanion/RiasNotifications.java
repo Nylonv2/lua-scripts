@@ -64,6 +64,8 @@ public class RiasNotifications extends NotificationListenerService {
             o.put("title", title == null ? "" : title.toString());
             o.put("text", text == null ? "" : text.toString());
             o.put("ts", sbn.getPostTime());
+            o.put("pkg", sbn.getPackageName());
+            keepIfMoney(this, o);
             synchronized (recent) {
                 for (int i = recent.size() - 1; i >= 0; i--) if (recent.get(i).optString("key").equals(sbn.getKey())) recent.remove(i);
                 recent.add(o);
@@ -71,6 +73,49 @@ public class RiasNotifications extends NotificationListenerService {
             }
         } catch (Exception ignored) {
         }
+    }
+
+    // ---------- receipts, renewals and bills (Bills & subscriptions watches these) ----------
+    private static final java.util.regex.Pattern MONEY = java.util.regex.Pattern.compile(
+            "receipt|renew|subscription|membership|charged|payment|auto-?pay|your bill|bill is (ready|available)|invoice|trial (ends|will end)|withdrawn|order confirmation|cancel+ed|recurring billing"
+            + "|total|you (spent|paid)|purchase|transaction|repay|installment|loan|advance|debit|deposit|\\$\\s?\\d",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final String MONEY_PREFS = "rias_money";
+
+    /** Keeps money-related notifications (title + text only) on the phone, last 150, so the app can read them later. */
+    static void keepIfMoney(Context c, JSONObject o) {
+        try {
+            String all = o.optString("title") + " " + o.optString("text");
+            if (!MONEY.matcher(all).find()) return;
+            android.content.SharedPreferences p = c.getSharedPreferences(MONEY_PREFS, Context.MODE_PRIVATE);
+            JSONArray a = new JSONArray(p.getString("list", "[]"));
+            JSONArray out = new JSONArray();
+            for (int i = Math.max(0, a.length() - 149); i < a.length(); i++) {
+                JSONObject x = a.getJSONObject(i);
+                if (!x.optString("key").equals(o.optString("key"))) out.put(x);
+            }
+            JSONObject k = new JSONObject();
+            k.put("key", o.optString("key"));
+            k.put("app", o.optString("app"));
+            k.put("pkg", o.optString("pkg"));
+            k.put("title", o.optString("title"));
+            k.put("text", o.optString("text"));
+            k.put("ts", o.optLong("ts"));
+            out.put(k);
+            p.edit().putString("list", out.toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** Saved money notifications newer than `since` (ms), oldest first. */
+    static String money(Context c, long since) {
+        JSONArray out = new JSONArray();
+        try {
+            JSONArray a = new JSONArray(c.getSharedPreferences(MONEY_PREFS, Context.MODE_PRIVATE).getString("list", "[]"));
+            for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optLong("ts") > since) out.put(a.getJSONObject(i));
+        } catch (Exception ignored) {
+        }
+        return out.toString();
     }
 
     /** Notifications newer than `since` (ms) from the last 12 hours, oldest first. */

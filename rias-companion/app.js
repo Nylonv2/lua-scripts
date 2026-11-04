@@ -751,7 +751,7 @@
     // To-dos and goal sessions fitted into today's free time; the evening check-in.
     if (Planner) {
       if (Planner.autoPlan()) renderToday();
-      if (Bills) Bills.sync();
+      if (Bills) { Bills.sync(); Bills.poll(); }
       for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();
