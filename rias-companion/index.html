@@ -731,6 +731,39 @@
           <label class="switch"><input name="startNudge" type="checkbox"> Nudge me 10 minutes into a block if it isn't done, with its first step</label>
           <label class="switch"><input name="sprints" type="checkbox"> Break long blocks into 25-minute sprints with 5-minute breaks</label>
           <p class="muted small">Every to-do gets a tiny first step. Anything you put off moves to first thing the next day and shrinks to a 25-minute “just start” block; the evening check-in tells you honestly what keeps getting pushed.</p>
+          <p class="field-label">Pause before scrolling</p>
+          <label class="switch"><input name="scrollPause" type="checkbox"> Show a short pause before these apps open</label>
+          <div class="chips" id="pause-apps">
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.zhiliaoapp.musically,com.ss.android.ugc.trill"><span>TikTok</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.instagram.android"><span>Instagram</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.google.android.youtube"><span>YouTube</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.reddit.frontpage"><span>Reddit</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.twitter.android"><span>X</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.facebook.katana"><span>Facebook</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.snapchat.android"><span>Snapchat</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.instagram.barcelona"><span>Threads</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.pinterest"><span>Pinterest</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="tv.twitch.android.app"><span>Twitch</span></label>
+          </div>
+          <div class="row">
+            <label>Pause
+              <select name="pauseSeconds"><option value="5">5 seconds</option><option value="8">8 seconds</option><option value="12">12 seconds</option><option value="20">20 seconds</option></select>
+            </label>
+            <label>“Open anyway” lasts
+              <select name="pauseGrace"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option></select>
+            </label>
+          </div>
+          <p class="muted small" id="pause-status"></p>
+          <button type="button" class="btn-primary sm tonal" id="pause-turn-on" hidden>Turn it on in Android settings</button>
+          <p class="muted small">A big “Close it” button and the next thing on your plan. After the pause you can still open the app; that's fine. It only notices which app is opening, never what's on your screen. On Android, find “Rias: pause before scrolling apps” under Accessibility → Downloaded apps.</p>
+          <p class="field-label">Save something you enjoy for what you put off</p>
+          <div class="pair-grid">
+            <label>Only while doing chores <input name="pairChores" maxlength="60" placeholder="e.g. my true-crime podcast"></label>
+            <label>Only while working out <input name="pairWorkout" maxlength="60" placeholder="e.g. that audiobook"></label>
+            <label>Only during focus / to-do blocks <input name="pairFocus" maxlength="60" placeholder="e.g. lo-fi playlist + iced coffee"></label>
+            <label>Only on errands &amp; weekly jobs <input name="pairErrands" maxlength="60" placeholder="e.g. the new album"></label>
+          </div>
+          <p class="muted small">Those blocks show it (“▶ podcast + Laundry”) and she mentions it when it's time. Keep it for then only; that's what makes it work.</p>
           <label class="switch"><input name="eveningCheckin" type="checkbox"> Evening check-in: go over the day and move unfinished to-dos to tomorrow</label>
           <div class="row">
             <label>Check-in time <input name="checkinTime" type="time" aria-label="Check-in time"></label>
@@ -1197,6 +1230,8 @@
       </div>
       <label class="switch"><input name="priority" type="checkbox"> Important (planned first)</label>
       <label>First tiny step (under 2 minutes) <input name="first" maxlength="140" placeholder="e.g. open the project and drag in the footage"></label>
+      <label>Right after… (optional) <input name="after" maxlength="60" list="cue-list" placeholder="e.g. dinner, I get home from work"></label>
+      <label>Something you enjoy, only while doing this (optional) <input name="pair" maxlength="60" placeholder="e.g. my podcast, iced coffee"></label>
       <label>Notes <textarea name="notes" rows="2" maxlength="500"></textarea></label>
       <p class="muted small" id="todo-plan-info"></p>
       <div class="row">
@@ -1222,6 +1257,8 @@
         </label>
       </div>
       <label>First tiny step <input name="first" maxlength="140" placeholder="e.g. fill the sink with hot soapy water"></label>
+      <label>Right after… (optional) <input name="after" maxlength="60" list="cue-list" placeholder="e.g. dinner"></label>
+      <label>Something you enjoy, only while doing this (optional) <input name="pair" maxlength="60" placeholder="e.g. a podcast"></label>
       <label>Usually around (optional) <input name="time" type="time"></label>
       <label class="switch"><input name="dueNow" type="checkbox"> Haven't done it in a while: put it on today</label>
       <div class="row">
@@ -1330,5 +1367,6 @@
   <script src="biz.js"></script>
   <script src="translate.js"></script>
   <script src="app.js"></script>
+<datalist id="cue-list"><option value="I wake up"><option value="breakfast"><option value="lunch"><option value="work"><option value="I get home from work"><option value="the gym"><option value="dinner"><option value="I shower"></datalist>
 </body>
 </html>

@@ -299,6 +299,7 @@ final class DeviceActions {
             case "dnd": i = new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS); break;
             case "notifications": i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"); break;
             case "assistant": i = new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS); break;
+            case "accessibility": i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS); break;
             default: i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + c.getPackageName()));
         }
         if (!start(c, i)) start(c, new Intent(Settings.ACTION_SETTINGS));

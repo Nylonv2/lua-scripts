@@ -1716,3 +1716,11 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 #view-today .progress-mini > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 #view-today .progress-mini .big { font-size: 1rem; font-weight: 700; }
 #view-today.future-day .progress-mini .ring { display: none; }
+
+/* if-then cue and treat pairing on planned blocks */
+.tag-chip.cue { background: rgba(var(--a2), .14); color: var(--text); }
+.tag-chip.pair { background: rgba(var(--a1), .16); color: var(--text); }
+.pair-grid { display: grid; gap: 10px; margin: 6px 0; }
+.pair-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
+.actions.reshape { align-items: center; }
+.reshape-q { font-size: .85rem; color: var(--muted); width: 100%; }

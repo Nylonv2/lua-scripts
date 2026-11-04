@@ -51,6 +51,10 @@ final class RiasDevice {
     @JavascriptInterface public void wakeName(String name) { WakeService.setWakeName(ctx, name); }
     /** Copies the plan into the phone's calendar: [{key, title, start, end}] ([] removes what's still ahead). */
     @JavascriptInterface public void calendarSync(String json) { CalendarSync.sync(ctx, json); }
+    /** Pause before scrolling apps: {on, apps, seconds, grace, next} (any subset). */
+    @JavascriptInterface public void pauseConfig(String json) { ScrollPause.configure(ctx, json); }
+    /** Whether the pause is switched on in Android's Accessibility settings. */
+    @JavascriptInterface public boolean pauseEnabled() { return ScrollPause.enabled(ctx); }
     @JavascriptInterface public String calendarSyncStatus() { return CalendarSync.status(ctx); }
     @JavascriptInterface public void wakeAction(String action) { } // older pages; "Hey …" always answers by voice
     /** Kokoro voice (Settings → Her voice): "unsupported", "", "downloading:NN", "ready" or "error:…". */

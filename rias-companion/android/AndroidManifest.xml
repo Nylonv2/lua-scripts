@@ -184,6 +184,26 @@
             </intent-filter>
         </service>
 
+        <!-- Pause before scrolling apps: notices which app opens (never reads the screen) -->
+        <service
+            android:name=".ScrollPause"
+            android:exported="true"
+            android:label="@string/pause_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/scroll_pause" />
+        </service>
+        <activity
+            android:name=".PauseActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.nylonv2.riascompanion.pause"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

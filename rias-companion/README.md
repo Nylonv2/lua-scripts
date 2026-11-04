@@ -99,6 +99,23 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**Help with doomscrolling and putting things off (based on research):**
+- **Pause before scrolling** (Android): pick the apps (TikTok, Instagram, YouTube, Reddit, X…) in Settings → Day →
+  *Pause before scrolling*, then allow "Rias: pause before scrolling apps" in Android's Accessibility settings (the
+  button takes you there). Opening one of those apps shows a short pause first: a big **Close it** button and what's on
+  your plan right now (or next). After the pause, **Open anyway** works and leaves that app alone for a while. It only
+  notices which app opens and never reads your screen. (In a 280-person study of this kind of pause, people closed the
+  app about a third of the time and opened it less over the weeks. The easy way out mattered most.)
+- **Right after…** (if-then plans): give a to-do or chore a cue, like "dinner", "I get home from work" or "the gym",
+  and it's planned straight after that happens. You can also just say "fold the laundry after dinner". The block shows
+  "↪ After dinner", and the reminder starts with "After dinner, so now: …".
+- **Save something you enjoy for what you put off**: Settings → Day lists a treat for chores, workouts, focus blocks
+  and errands, and any single task can have its own. Those blocks show "▶ your podcast" and the reminder tells you to
+  put it on. (Saving audiobooks for the gym got people there more often.)
+- **No guilt, just a fix:** when something keeps sliding, the check-in doesn't count it against you. It asks what's in
+  the way: **Too big** shrinks it to the first piece, **Boring** pairs it with a treat, and **Not sure how to start**
+  opens it so you can write the very first step.
+
 **Plan a whole week:** in **Month**, every week row has its own **⏱ Plan** button on the right. Tap it to see that
 week (each day, work or day off, planned or not), then **Plan this week**. She plans every day that's left, in order,
 so workouts, chores, weekly jobs and to-dos are spread across the week instead of piled on one day. With your Claude key

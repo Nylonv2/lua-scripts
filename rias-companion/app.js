@@ -528,7 +528,7 @@
 
   function fireItem(item) {
     // Planned blocks lead with the tiny first step: starting is the hard part.
-    const line = say(pick(R.due[item.category] || R.due.custom), item) + (item.first ? `\nStart with: ${item.first}.` : '') + (item.frog ? '\n⭐ This is the first thing today. Do it before anything else.' : '');
+    const line = (item.cue ? `${item.cue}, so now: ${item.title}.\n` : '') + say(pick(R.due[item.category] || R.due.custom), item) + (item.first ? `\nStart with: ${item.first}.` : '') + (item.pair ? `\n▶ Put on ${item.pair.replace(/^my /i, 'your ')}. It's saved for this.` : '') + (item.frog ? '\n⭐ This is the first thing today. Do it before anything else.' : '');
     riasSays(line, { itemId: item.id, title: item.title, time: item.time });
     showAlarm(item, line);
   }
@@ -661,6 +661,7 @@
 
   // ---------- actions on a task ----------
   function resolve(itemId, status) {
+    setTimeout(pushPause, 50); // the pause screen shows what is next
     const today = dateKey();
     const item = findItem(itemId);
     if (!item || statusOf(itemId)) return;
@@ -731,7 +732,7 @@
       for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();
-        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos, chores: c.chores });
+        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos, chores: c.chores, stuck: c.stuck || [] });
         renderToday();
       }
     }
@@ -1164,6 +1165,25 @@
         acts.dataset.day = m.day;
         el.append(acts);
       }
+      // "What's in the way?" for what keeps sliding: each answer changes the task.
+      if (m.action === 'checkin' && m.stuck && m.stuck.length && !m.reshaped) {
+        for (const sx of m.stuck) {
+          const acts = document.createElement('div');
+          acts.className = 'actions reshape';
+          const lab = document.createElement('span');
+          lab.className = 'reshape-q';
+          lab.textContent = `“${sx.title}”:`;
+          acts.append(lab);
+          for (const [why, text] of [['big', 'Too big'], ['boring', 'Boring'], ['unclear', 'Not sure how to start']]) {
+            const b = document.createElement('button');
+            b.dataset.reshape = `${sx.kind}|${sx.id}|${why}`;
+            b.dataset.msg = m.id || '';
+            b.textContent = text;
+            acts.append(b);
+          }
+          el.append(acts);
+        }
+      }
       if (m.action === 'checkin' && ((m.todos && m.todos.length) || (m.chores && m.chores.length))) {
         const left = (m.todos || []).map((id) => state.todos.find((t) => t.id === id)).filter((t) => t && !t.done);
         const chores = (m.chores || []).map((id) => (state.chores || []).find((c) => c.id === id)).filter((c) => c && c.last !== dateKey(new Date(m.ts)) && c.last !== dateKey());
@@ -1377,6 +1397,8 @@
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
         else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : it.choreId ? '🧽 Chore' : '✦ Daily essential', 'tag-chip plan');
         if (it.choreId && it.overdue > 0 && !st) add(`${it.overdue} day${it.overdue === 1 ? '' : 's'} overdue`, 'tag-chip flag warn');
+        if (it.cue && !st) add(`↪ ${it.cue}`, 'tag-chip cue');
+        if (it.pair && !st) add(`▶ ${it.pair}`, 'tag-chip pair');
         if (it.frog && !st) add('⭐ First thing', 'tag-chip flag warn');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
@@ -1700,6 +1722,19 @@
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
+    const rb = e.target.closest('[data-reshape]');
+    if (rb) {
+      const [kind, id, why] = rb.dataset.reshape.split('|');
+      const msg = state.messages.find((x) => x.id && x.id === rb.dataset.msg);
+      if (msg) msg.stuck = (msg.stuck || []).filter((sx) => sx.id !== id);
+      const r = Planner.reshape(kind, id, why);
+      addMessage('me', rb.textContent + '.');
+      setTimeout(() => addMessage('rias', say(r.line)), 500);
+      if (r.open) setTimeout(() => (kind === 'todo' ? Planner.openTodo(id, r.open) : Planner.openChore(id, r.open)), 900);
+      save();
+      renderFeed();
+      return;
+    }
     const nb = e.target.closest('[data-chore-none]');
     if (nb) {
       const c = (state.chores || []).find((x) => x.id === nb.dataset.choreNone);
@@ -2134,8 +2169,8 @@
       getWeather: weatherTool,
       remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
       forget({ fact }) { return { ok: true, removed: forget(fact) }; },
-      addTodo({ title, due, minutes, important, first_step }) {
-        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal', first: first_step || '' });
+      addTodo({ title, due, minutes, important, first_step, after }) {
+        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal', first: first_step || '', after: after || '' });
         return r.ok ? { ok: true, added: r.todo.title, due: r.todo.due, planned: r.planned || 'not yet: no free time soon, it waits on the list' } : r;
       },
       completeTodo({ title }) { return Planner.completeTodo(title); },
@@ -2152,7 +2187,7 @@
       addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
       logGoal({ title, amount }) { return Planner.logGoal(title, amount); },
       deleteGoal({ title }) { return Planner.deleteGoal(title); },
-      addChore({ title, every_days, minutes, first_step }) { return Planner.addChore({ title, every: every_days, mins: minutes, first: first_step || '' }); },
+      addChore({ title, every_days, minutes, first_step, after }) { return Planner.addChore({ title, every: every_days, mins: minutes, first: first_step || '', after: after || '' }); },
       choreDone({ title }) { return Planner.choreDone(title); },
       completeTask({ title }) {
         const q = title.toLowerCase();
@@ -3097,7 +3132,7 @@
         const withBrief = brief && !briefed && it.category === 'wake';
         if (withBrief) briefed = true;
         events.push({
-          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${it.first ? `\nStart with: ${it.first}.` : ''}${withBrief ? `\n${brief}` : ''}`,
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${it.first ? `\nStart with: ${it.first}.` : ''}${it.pair ? `\n▶ ${it.pair.replace(/^my /i, 'your ')}: saved for this.` : ''}${withBrief ? `\n${brief}` : ''}`,
           itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}),
           icon: CATEGORY_ICON[it.category] || '⏰',
         });
@@ -3276,6 +3311,13 @@
       for (const i of sf.querySelectorAll(`input[name=${name}]`)) i.checked = on.includes(i.value);
     }
     sf.elements.sprints.checked = state.settings.sprints !== false;
+    sf.elements.scrollPause.checked = !!state.settings.scrollPause;
+    { const on = Array.isArray(state.settings.pauseApps) ? state.settings.pauseApps : ['com.zhiliaoapp.musically,com.ss.android.ugc.trill', 'com.instagram.android', 'com.google.android.youtube', 'com.reddit.frontpage', 'com.twitter.android'];
+      for (const i of sf.querySelectorAll('input[name=pauseApp]')) i.checked = on.includes(i.value); }
+    sf.elements.pauseSeconds.value = String(state.settings.pauseSeconds || 5);
+    sf.elements.pauseGrace.value = String(state.settings.pauseGrace || 10);
+    for (const [n, k] of [['pairChores', 'chores'], ['pairWorkout', 'workout'], ['pairFocus', 'focus'], ['pairErrands', 'errands']]) sf.elements[n].value = (state.settings.pairings || {})[k] || '';
+    pauseStatus();
     { const on = Array.isArray(state.settings.essentials) ? state.settings.essentials : Planner.DEFAULT_ESSENTIALS;
       for (const i of sf.querySelectorAll('input[name=essential]')) i.checked = on.includes(i.value); }
     calWriteHint();
@@ -3550,6 +3592,11 @@
       weeklyJobs: [...sf.querySelectorAll('input[name=weeklyJob]:checked')].map((i) => i.value),
       extras: [...sf.querySelectorAll('input[name=extra]:checked')].map((i) => i.value),
       sprints: sf.elements.sprints.checked,
+      scrollPause: sf.elements.scrollPause.checked,
+      pauseApps: [...sf.querySelectorAll('input[name=pauseApp]:checked')].map((i) => i.value),
+      pauseSeconds: Number(sf.elements.pauseSeconds.value) || 5,
+      pauseGrace: Number(sf.elements.pauseGrace.value) || 10,
+      pairings: { chores: sf.elements.pairChores.value.trim(), workout: sf.elements.pairWorkout.value.trim(), focus: sf.elements.pairFocus.value.trim(), errands: sf.elements.pairErrands.value.trim() },
       essentialsV2: true,
       essentials: [...sf.querySelectorAll('input[name=essential]:checked')].map((i) => i.value),
       wakeName: sf.elements.wakeName.value.trim(),
@@ -3559,6 +3606,7 @@
       state.settings.checkinTime = sf.elements.checkinTime.value && sf.elements.checkinTime.value !== auto ? sf.elements.checkinTime.value : '';
     }
     lastCalSync = '';
+    setTimeout(pushPause, 0); // after the new settings are saved below
     pushWakeWord();
     pushVoiceChoice();
     applyWake();
@@ -3707,6 +3755,43 @@
     if (N && N.openUrl) N.openUrl(url); else window.open(url, '_blank', 'noopener');
   });
   const Dev = () => window.RiasDevice || null;
+  // ---------- pause before scrolling apps (Android) ----------
+  /** What's on the plan from an hour ago through tomorrow morning, not done yet: the pause screen shows the current/next one. */
+  function pausePlan() {
+    const out = [];
+    const now = new Date();
+    for (const off of [0, 1]) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
+      const log = state.log[dateKey(d)] || {};
+      for (const it of itemsOn(d)) {
+        if (log[it.id] || !it.time) continue;
+        const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), ...it.time.split(':').map(Number)).getTime();
+        if (at < Date.now() - 3600000 || (off && out.length >= 40)) continue;
+        out.push({ at, text: `${fmtTime(it.time)} · ${it.title}${it.first ? `\nStart with: ${it.first}` : ''}` });
+      }
+    }
+    return out.sort((a, b) => a.at - b.at).slice(0, 40);
+  }
+  let lastPause = '';
+  function pushPause() {
+    const d = Dev();
+    if (!d || !d.pauseConfig) return;
+    const apps = (Array.isArray(state.settings.pauseApps) ? state.settings.pauseApps : ['com.zhiliaoapp.musically,com.ss.android.ugc.trill', 'com.instagram.android', 'com.google.android.youtube', 'com.reddit.frontpage', 'com.twitter.android']).join(',').split(',').filter(Boolean);
+    const cfg = JSON.stringify({ on: !!state.settings.scrollPause, apps, seconds: state.settings.pauseSeconds || 5, grace: state.settings.pauseGrace || 10, plan: JSON.stringify(pausePlan()) });
+    if (cfg === lastPause) return;
+    lastPause = cfg;
+    try { d.pauseConfig(cfg); } catch { /* older app */ }
+  }
+  function pauseStatus() {
+    const el = $('#pause-status'), btn = $('#pause-turn-on');
+    if (!el) return;
+    const d = Dev();
+    if (!d || !d.pauseEnabled) { el.textContent = 'This works in the Android app.'; btn.hidden = true; return; }
+    let on = false;
+    try { on = d.pauseEnabled(); } catch { /* older app */ }
+    el.textContent = on ? '✓ Allowed in Android settings.' : 'One step left: allow it in Android settings (Accessibility → Rias: pause before scrolling apps).';
+    btn.hidden = on;
+  }
   function devStatus() {
     const d = Dev();
     if (!d || !d.status) return null;
@@ -4117,6 +4202,10 @@
   renderStatus();
   renderHome();
   setInterval(tick, 20000);
+  setInterval(pushPause, 60000);
+  pushPause();
+  $('#pause-turn-on').addEventListener('click', () => { const d = Dev(); if (d && d.openSettings) d.openSettings('accessibility'); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { pauseStatus(); lastPause = ''; pushPause(); } });
   setInterval(syncCalendar, 15 * 60000);
   const housekeeping = () => { maybeAutoBackup(); maybeCheckUpdate(); refreshWeather().then(() => { if (currentView === 'home') renderHome(); }); };
   setTimeout(housekeeping, 1500);

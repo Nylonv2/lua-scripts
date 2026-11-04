@@ -7,4 +7,6 @@
     <string name="chat_widget_desc">Talk to Rias from your home screen; she answers in a notification</string>
     <string name="chat_widget_label">Rias · Chat</string>
     <string name="plain_name">Assistant</string>
+    <string name="pause_label">Rias: pause before scrolling apps</string>
+    <string name="pause_desc">Shows a short pause, with a Close it button and the next thing on your plan, when you open one of the apps you picked in Rias (Settings, Pause before scrolling). It only notices which app is opening; it never reads what\'s on your screen.</string>
 </resources>

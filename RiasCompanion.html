@@ -1728,6 +1728,14 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 #view-today .progress-mini > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 #view-today .progress-mini .big { font-size: 1rem; font-weight: 700; }
 #view-today.future-day .progress-mini .ring { display: none; }
+
+/* if-then cue and treat pairing on planned blocks */
+.tag-chip.cue { background: rgba(var(--a2), .14); color: var(--text); }
+.tag-chip.pair { background: rgba(var(--a1), .16); color: var(--text); }
+.pair-grid { display: grid; gap: 10px; margin: 6px 0; }
+.pair-grid label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
+.actions.reshape { align-items: center; }
+.reshape-q { font-size: .85rem; color: var(--muted); width: 100%; }
 </style>
 </head>
 <body>
@@ -2448,6 +2456,39 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
           <label class="switch"><input name="startNudge" type="checkbox"> Nudge me 10 minutes into a block if it isn't done, with its first step</label>
           <label class="switch"><input name="sprints" type="checkbox"> Break long blocks into 25-minute sprints with 5-minute breaks</label>
           <p class="muted small">Every to-do gets a tiny first step. Anything you put off moves to first thing the next day and shrinks to a 25-minute “just start” block; the evening check-in tells you honestly what keeps getting pushed.</p>
+          <p class="field-label">Pause before scrolling</p>
+          <label class="switch"><input name="scrollPause" type="checkbox"> Show a short pause before these apps open</label>
+          <div class="chips" id="pause-apps">
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.zhiliaoapp.musically,com.ss.android.ugc.trill"><span>TikTok</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.instagram.android"><span>Instagram</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.google.android.youtube"><span>YouTube</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.reddit.frontpage"><span>Reddit</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.twitter.android"><span>X</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.facebook.katana"><span>Facebook</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.snapchat.android"><span>Snapchat</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.instagram.barcelona"><span>Threads</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="com.pinterest"><span>Pinterest</span></label>
+              <label class="chip"><input type="checkbox" name="pauseApp" value="tv.twitch.android.app"><span>Twitch</span></label>
+          </div>
+          <div class="row">
+            <label>Pause
+              <select name="pauseSeconds"><option value="5">5 seconds</option><option value="8">8 seconds</option><option value="12">12 seconds</option><option value="20">20 seconds</option></select>
+            </label>
+            <label>“Open anyway” lasts
+              <select name="pauseGrace"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option></select>
+            </label>
+          </div>
+          <p class="muted small" id="pause-status"></p>
+          <button type="button" class="btn-primary sm tonal" id="pause-turn-on" hidden>Turn it on in Android settings</button>
+          <p class="muted small">A big “Close it” button and the next thing on your plan. After the pause you can still open the app; that's fine. It only notices which app is opening, never what's on your screen. On Android, find “Rias: pause before scrolling apps” under Accessibility → Downloaded apps.</p>
+          <p class="field-label">Save something you enjoy for what you put off</p>
+          <div class="pair-grid">
+            <label>Only while doing chores <input name="pairChores" maxlength="60" placeholder="e.g. my true-crime podcast"></label>
+            <label>Only while working out <input name="pairWorkout" maxlength="60" placeholder="e.g. that audiobook"></label>
+            <label>Only during focus / to-do blocks <input name="pairFocus" maxlength="60" placeholder="e.g. lo-fi playlist + iced coffee"></label>
+            <label>Only on errands &amp; weekly jobs <input name="pairErrands" maxlength="60" placeholder="e.g. the new album"></label>
+          </div>
+          <p class="muted small">Those blocks show it (“▶ podcast + Laundry”) and she mentions it when it's time. Keep it for then only; that's what makes it work.</p>
           <label class="switch"><input name="eveningCheckin" type="checkbox"> Evening check-in: go over the day and move unfinished to-dos to tomorrow</label>
           <div class="row">
             <label>Check-in time <input name="checkinTime" type="time" aria-label="Check-in time"></label>
@@ -2914,6 +2955,8 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
       </div>
       <label class="switch"><input name="priority" type="checkbox"> Important (planned first)</label>
       <label>First tiny step (under 2 minutes) <input name="first" maxlength="140" placeholder="e.g. open the project and drag in the footage"></label>
+      <label>Right after… (optional) <input name="after" maxlength="60" list="cue-list" placeholder="e.g. dinner, I get home from work"></label>
+      <label>Something you enjoy, only while doing this (optional) <input name="pair" maxlength="60" placeholder="e.g. my podcast, iced coffee"></label>
       <label>Notes <textarea name="notes" rows="2" maxlength="500"></textarea></label>
       <p class="muted small" id="todo-plan-info"></p>
       <div class="row">
@@ -2939,6 +2982,8 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
         </label>
       </div>
       <label>First tiny step <input name="first" maxlength="140" placeholder="e.g. fill the sink with hot soapy water"></label>
+      <label>Right after… (optional) <input name="after" maxlength="60" list="cue-list" placeholder="e.g. dinner"></label>
+      <label>Something you enjoy, only while doing this (optional) <input name="pair" maxlength="60" placeholder="e.g. a podcast"></label>
       <label>Usually around (optional) <input name="time" type="time"></label>
       <label class="switch"><input name="dueNow" type="checkbox"> Haven't done it in a while: put it on today</label>
       <div class="row">
@@ -4716,7 +4761,7 @@ window.createPlanner = function createPlanner(ctx) {
       if (t.plan && t.plan.date === k && (!t.done || t.doneVia === 'plan')) {
         const shrunk = (t.pushed || 0) >= 2 && !t.done;
         todoItems.push({ id: `t:${t.id}`, time: t.plan.time, title: shrunk ? `Just start: ${t.title}` : t.title, category: 'todo', source: 'plan', todoId: t.id,
-          mins: t.plan.mins || t.mins, first: t.first || '', pushed: t.pushed || 0, rank: rankOf(t) });
+          mins: t.plan.mins || t.mins, first: t.first || '', pushed: t.pushed || 0, rank: rankOf(t), cue: t.plan.cue ? cueLabel(t.after) : '', pair: pairFor('focus', t.pair) });
       }
     }
     // The one to do first: the most avoided / most urgent to-do of the day.
@@ -4725,17 +4770,18 @@ window.createPlanner = function createPlanner(ctx) {
     out.push(...todoItems);
     for (const g of state.goals) {
       const tm = g.plans && g.plans[k];
-      if (tm) out.push({ id: `g:${g.id}`, time: tm, title: g.title, category: 'goal', source: 'plan', goalId: g.id, mins: g.mins });
+      if (tm) out.push({ id: `g:${g.id}`, time: tm, title: g.title, category: 'goal', source: 'plan', goalId: g.id, mins: g.mins, pair: pairFor(/gym|workout|run|lift|train|exercise|yoga|swim|walk/i.test(g.title) ? 'workout' : 'focus', g.pair) });
     }
     for (const c of state.chores) {
       const tm = c.plans && c.plans[k];
       if (!tm) continue;
       const shrunk = (c.pushed || 0) >= 2 && (c.mins || 15) > 25;
       out.push({ id: `c:${c.id}`, time: tm, title: shrunk ? `Just start: ${choreTitle(c)}` : choreTitle(c), category: 'chores', source: 'plan', choreId: c.id,
-        mins: shrunk ? 25 : c.mins || 15, first: c.first || '', overdue: overdueOn(c, k) });
+        mins: shrunk ? 25 : c.mins || 15, first: c.first || '', overdue: overdueOn(c, k), cue: (c.cueOn || {})[k] ? cueLabel(c.after) : '', pair: pairFor('chores', c.pair) });
     }
     const dp = state.dayPlans[k];
-    if (dp) for (const x of dp.items) out.push({ id: `e:${k}:${x.key}`, time: x.time, title: x.title, category: x.cat, source: 'plan', essential: x.key, mins: x.mins, first: x.first || '' });
+    const pairKind = (x) => (x.key === 'gym' || x.key === 'move' || x.cat === 'exercise' ? 'workout' : x.key.startsWith('wk-') ? 'errands' : /^focus|^ai/.test(x.key) && x.cat === 'work' ? 'focus' : x.key === 'tidy' || x.cat === 'chores' ? 'chores' : '');
+    if (dp) for (const x of dp.items) out.push({ id: `e:${k}:${x.key}`, time: x.time, title: x.title, category: x.cat, source: 'plan', essential: x.key, mins: x.mins, first: x.first || '', pair: pairKind(x) ? pairFor(pairKind(x)) : '' });
     return out;
   }
 
@@ -5059,6 +5105,46 @@ window.createPlanner = function createPlanner(ctx) {
   }
   const choreRank = (c, k) => overdueOn(c, k) * 20 + (c.pushed || 0) * 30 + (Number(c.every) <= 1 ? 5 : 0);
 
+  // ---------- if-then cues: "after dinner → laundry" ----------
+  /** "After I eat dinner" → "I eat dinner"; "when I get home" → "I get home". */
+  const cleanCue = (s) => String(s || '').trim().replace(/[.]+$/, '').replace(/^(?:right after|straight after|as soon as|after|when|once)\s+/i, '').trim();
+  const cueLabel = (s) => (s ? `After ${cleanCue(s).replace(/^I\b/, 'I')}` : '');
+  /** When the cue happens on day k (minutes), or null if it doesn't happen that day. */
+  function cueTime(after, k) {
+    const a = cleanCue(after).toLowerCase();
+    if (!a) return null;
+    const d = dayOf(k);
+    const all = ctx.allItems(d).filter((it) => it.time);
+    const endOf = (it) => toMin(it.time) + (it.mins || 20);
+    const last = (re) => { const m = all.filter((it) => re.test(it.title) || re.test(String(it.essential || ''))); return m.length ? Math.max(...m.map(endOf)) : null; };
+    if (/\b(work|shift|job|get home|get back home|come home)\b/.test(a)) {
+      const sh = ctx.shiftsOn(d);
+      if (!sh.length) return /home/.test(a) ? null : null;
+      const end = Math.max(...sh.map((x) => (toMin(x.end) > toMin(x.start) ? toMin(x.end) : toMin(x.end) + 1440)));
+      return end >= 1440 ? null : end + (state.settings.workReminders ? Number(state.settings.commute) || 0 : 0);
+    }
+    if (/\b(wake|get up|morning)\b/.test(a)) return last(/^morning$|morning routine/i) ?? toMin(state.profile.wake) + 10;
+    for (const meal of ['breakfast', 'lunch', 'dinner', 'supper']) {
+      if (!a.includes(meal)) continue;
+      const m = last(new RegExp(meal === 'supper' ? 'dinner|supper' : meal, 'i'));
+      if (m != null) return m;
+      // No meal on the plan yet: when it usually is.
+      const e = ESSENTIALS.find((x) => x.key === (meal === 'supper' ? 'dinner' : meal));
+      return e.pref(toMin(state.profile.wake), bedMin()) + e.mins;
+    }
+    if (/\b(gym|workout|work out|lift|run|training)\b/.test(a)) return last(/^gym$|gym|workout|run\b/i);
+    if (/\b(shower)\b/.test(a)) return last(/shower|morning routine/i);
+    // Anything else: the last thing on the day whose title shares a word with the cue.
+    const words = a.split(/\W+/).filter((w) => w.length > 3);
+    return words.length ? last(new RegExp(`\\b(${words.join('|')})`, 'i')) : null;
+  }
+  /** Something you enjoy, saved for this kind of block (Settings → Save something you enjoy…). */
+  function pairFor(kind, own) {
+    if (own) return own;
+    const p = state.settings.pairings || {};
+    return p[kind] || '';
+  }
+
   // ---------- fitting things into free time ----------
   function windowFor(k) {
     const w = toMin(state.profile.wake), s = toMin(state.profile.sleep);
@@ -5142,15 +5228,20 @@ window.createPlanner = function createPlanner(ctx) {
     let used = openTodos().filter((t) => t.plan && t.plan.date === k).reduce((n, t) => n + (t.mins || 30), 0);
     // Most-avoided first (they get the earliest slot of the day), then by deadline and importance.
     const waiting = openTodos().filter((t) => (!t.plan || t.plan.date < dateKey()) && t.notOn !== k)
-      .sort((a, b) => rankOf(b) - rankOf(a) || a.created - b.created);
+      .sort((a, b) => !!b.after - !!a.after || rankOf(b) - rankOf(a) || a.created - b.created); // ones tied to a cue first, so the cue's slot is still free
     for (const t of waiting) {
       const shrink = (t.pushed || 0) >= 2;
       const mins = shrink ? Math.min(25, t.mins || 30) : t.mins || 30;
       const urgent = t.due && t.due <= addDays(k, 1);
       if (!urgent && used + mins > dailyBudget()) continue;
-      const a = slot(busyOn(k), from, to, mins);
+      // "After dinner": right after the cue when it happens that day.
+      const cue = t.after ? cueTime(t.after, k) : null;
+      let a = cue != null && cue >= from ? slot(busyOn(k), cue, to, mins, cue, 0) : null;
+      const onCue = a != null && a - cue <= 90;
+      if (!onCue) a = slot(busyOn(k), from, to, mins);
       if (a == null) continue;
       t.plan = shrink ? { date: k, time: minToTime(a), mins } : { date: k, time: minToTime(a) };
+      if (onCue) t.plan.cue = true;
       used += mins;
     }
     // Then the flexible essentials (focus, movement, daylight, people) into what's left.
@@ -5195,11 +5286,18 @@ window.createPlanner = function createPlanner(ctx) {
       const evening = !stuck && (c.when === 'evening' || c.need === 'meals'); // put off twice: it moves to the morning
       const near = c.time ? toMin(c.time) : evening ? afterDinner : stuck ? from + 60 : (c.mins || 15) >= 45 || c.when === 'offday' ? (free ? 10 * 60 + 30 : 18 * 60) : 19 * 60;
       const busy = busyOn(k).concat(held), start = evening ? Math.max(from, 17 * 60) : from;
+      // "After dinner" (its own cue) beats the usual time.
+      const cue = c.after ? cueTime(c.after, k) : null;
+      if (cue != null && cue >= from) {
+        const ca = slot(busy, cue, to, mins, cue, 0);
+        if (ca != null && ca - cue <= 90) { (c.plans ||= {})[k] = minToTime(ca); (c.cueOn ||= {})[k] = true; used += mins; continue; }
+      }
       let a = slot(busy, start, to, mins, Math.max(from, near));
       // A packed evening: dishes can go straight after something, no breather needed.
       if (a == null && evening) a = slot(busy, start, to, mins, Math.max(from, near), 0);
       if (a == null) continue;
       (c.plans ||= {})[k] = minToTime(a);
+      if (c.cueOn) delete c.cueOn[k];
       used += mins;
     }
   }
@@ -5273,18 +5371,18 @@ window.createPlanner = function createPlanner(ctx) {
   }
 
   // ---------- actions (UI, chat and her AI all use these) ----------
-  function addTodo({ title, due = null, mins = null, priority = 'normal', notes = '', first = '' }) {
+  function addTodo({ title, due = null, mins = null, priority = 'normal', notes = '', first = '', after = '' }) {
     title = String(title || '').trim().replace(/^to ?do:?\s*/i, '');
     if (!title) return { error: 'empty to-do' };
     const t = { id: uid(), title: title[0].toUpperCase() + title.slice(1), due: due || null, mins: Number(mins) || 30, priority: priority === 'high' ? 'high' : 'normal', notes, done: false, created: Date.now(), plan: null,
-      first: String(first || '').trim().replace(/[.]+$/, ''), pushed: 0 };
+      first: String(first || '').trim().replace(/[.]+$/, ''), pushed: 0, after: cleanCue(after) };
     state.todos.push(t);
     ctx.noteAdded && ctx.noteAdded({ kind: 'todo', id: t.id });
     planDay(dateKey());
     if (!t.plan) planDay(addDays(dateKey(), 1));
     if (!t.plan && t.due) for (let i = 2; i < 7 && !t.plan && addDays(dateKey(), i) <= t.due; i++) planDay(addDays(dateKey(), i));
     changed();
-    return { ok: true, todo: t, planned: t.plan ? `${dayWord(t.plan.date)} at ${fmtTime(t.plan.time)}` : null };
+    return { ok: true, todo: t, planned: t.plan ? `${dayWord(t.plan.date)} at ${fmtTime(t.plan.time)}${t.plan.cue ? ` (${cueLabel(t.after).toLowerCase()})` : ''}` : null };
   }
   function completeTodo(query) {
     const found = typeof query === 'object' ? [query] : match(openTodos(), query);
@@ -5336,11 +5434,11 @@ window.createPlanner = function createPlanner(ctx) {
     changed();
     return { ok: true, deleted: found[0].title };
   }
-  function addChore({ title, every = 7, mins = 15, first = '', time = '', zones = null }) {
+  function addChore({ title, every = 7, mins = 15, first = '', time = '', zones = null, after = '' }) {
     title = String(title || '').trim();
     if (!title) return { error: 'empty chore' };
     const c = { id: uid(), title: title[0].toUpperCase() + title.slice(1), every: Math.max(1, Math.round(Number(every) || 7)), mins: Math.max(5, Math.round(Number(mins) || 15)),
-      first: String(first || '').trim().replace(/[.]+$/, ''), time: /^\d{2}:\d{2}$/.test(time || '') ? time : '', last: null, pushed: 0, plans: {}, ...(zones ? { zones, zone: 0 } : {}) };
+      first: String(first || '').trim().replace(/[.]+$/, ''), time: /^\d{2}:\d{2}$/.test(time || '') ? time : '', after: cleanCue(after), last: null, pushed: 0, plans: {}, ...(zones ? { zones, zone: 0 } : {}) };
     state.chores.push(c);
     planDay(dateKey());
     changed();
@@ -5400,7 +5498,7 @@ window.createPlanner = function createPlanner(ctx) {
     }
     const log = state.log[k] || {};
     const reminders = ctx.baseItems(d).filter((it) => !it.source).map((it) => `${it.time} ${it.title}${log[it.id] ? ` (${log[it.id]})` : ''}`);
-    const todos = openTodos().slice(0, 20).sort((a, c) => rankOf(c) - rankOf(a)).map((t) => `id ${t.id}: "${t.title}", about ${t.mins || 30} min${t.due ? `, ${dueLabel(t.due)} (${t.due})` : ''}${t.priority === 'high' ? ', IMPORTANT' : ''}${t.pushed ? `, PUT OFF ${t.pushed} TIME${t.pushed === 1 ? '' : 'S'} already` : ''}${t.first ? `, first step so far: "${t.first}"` : ''}`);
+    const todos = openTodos().slice(0, 20).sort((a, c) => rankOf(c) - rankOf(a)).map((t) => `id ${t.id}: "${t.title}", about ${t.mins || 30} min${t.due ? `, ${dueLabel(t.due)} (${t.due})` : ''}${t.priority === 'high' ? ', IMPORTANT' : ''}${t.pushed ? `, PUT OFF ${t.pushed} TIME${t.pushed === 1 ? '' : 'S'} already` : ''}${t.first ? `, first step so far: "${t.first}"` : ''}${t.after ? `, do it RIGHT AFTER ${cleanCue(t.after)} (if that happens today)` : ''}`);
     const goals = state.goals.filter((g) => g.kind !== 'amount' && g.sessions !== false && !(amountOn(g, k) > 0)).map((g) => {
       const p = progress(g, k);
       return `id ${g.id}: "${g.title}", ${p.n} of ${p.need} done ${g.per === 'day' ? 'today' : `this ${g.per}`}, sessions ${g.mins || 45} min${g.time ? `, usually around ${g.time}` : ''}`;
@@ -5417,13 +5515,14 @@ window.createPlanner = function createPlanner(ctx) {
       `My to-do list (schedule what fits, deadline-first and important first; at most ${(Number(state.settings.planHours) || 3)} hours of to-dos unless something is due today or tomorrow; split nothing): ${todos.length ? todos.join('; ') : 'empty'}.`,
       `Goals that could use a session today (plan one only if it makes sense for the rhythm, e.g. leave rest days): ${goals.length ? goals.join('; ') : 'none'}.`,
       amountGoals.length ? `Other goals (no time block needed, but you can mention them): ${amountGoals.join('; ')}.` : '',
-      `My chores (kind "chore" with ref = its id; overdue ones must get time today, most overdue first; a chore put off twice gets an early 25-minute "just start" block): ${state.chores.filter((c) => choreDue(c, k)).map((c) => `id ${c.id}: "${choreTitle(c)}", about ${c.mins || 15} min, ${choreStatus(c)}${c.pushed ? `, PUT OFF ${c.pushed}×` : ''}${c.first ? `, first step "${c.first}"` : ''}${c.need === 'meals' ? ', only because they ate at home; put it after dinner' : c.when === 'evening' ? ', in the evening' : c.when === 'offday' ? ', a bigger job' : ''}`).join('; ') || 'none due'}. Chores not listed aren't needed today: don't add them.`,
+      `My chores (kind "chore" with ref = its id; overdue ones must get time today, most overdue first; a chore put off twice gets an early 25-minute "just start" block): ${state.chores.filter((c) => choreDue(c, k)).map((c) => `id ${c.id}: "${choreTitle(c)}", about ${c.mins || 15} min, ${choreStatus(c)}${c.pushed ? `, PUT OFF ${c.pushed}×` : ''}${c.first ? `, first step "${c.first}"` : ''}${c.after ? `, right after ${cleanCue(c.after)}` : ''}${c.need === 'meals' ? ', only because they ate at home; put it after dinner' : c.when === 'evening' ? ', in the evening' : c.when === 'offday' ? ', a bigger job' : ''}`).join('; ') || 'none due'}. Chores not listed aren't needed today: don't add them.`,
       `Daily essentials I want in every day, when I'm free for them: ${essentials.join(', ')}.`,
       `This is a ${dayType(k)}.${(() => { const wx = ctx.weatherFor && ctx.weatherFor(d); return wx ? ` Weather: high ${wx.max}°, ${wx.rain}% chance of rain${rainy(k) ? ' (plan movement indoors)' : ''}.` : ''; })()}`,
       workoutBrief(k),
       weeklyBrief(k),
       `Extras I like, pick a few that fit (more on days off, fewer on long work days, and not the same ones every day): ${EXTRAS.filter((e) => chosen('extras', DEFAULT_EXTRAS).includes(e.key)).map((e) => e.title).join('; ')}${chosen('extras', DEFAULT_EXTRAS).includes('prep') && ctx.shiftsOn(dayOf(addDays(k, 1))).length ? '; tomorrow is a work day, so a 10-minute "get tomorrow ready" in the evening' : ''}${chosen('extras', DEFAULT_EXTRAS).includes('lunch') && ctx.shiftsOn(d).length ? '; pack lunch before work' : ''}.`,
       'Why I use this: I procrastinate, and nobody else holds me to anything (no one comes over, no boss checking), so this plan is my structure and accountability. Plan to beat procrastination: put the hardest or most put-off task in the first good focus window of the day; keep task blocks 25 to 50 minutes (a task put off twice or more gets a short 25-minute "just start" block); give every to-do, goal and chore block a tiny, concrete first step that takes under two minutes (first_step, e.g. "open the project and drag in today\'s footage"); include a short daily tidy-up; leave some breathing room so the day is doable, not overpacked. Never add blocks about texting, calling or checking in with people.',
+      (() => { const p = state.settings.pairings || {}; const l = [['chores', 'chores'], ['workout', 'workouts'], ['focus', 'focus/to-do blocks'], ['errands', 'errands and weekly jobs']].filter(([key]) => p[key]).map(([key, w]) => `${p[key]} only during ${w}`); return l.length ? `Treats I save for things I put off (mention them in the first_step where they fit): ${l.join('; ')}.` : ''; })(),
       memory.length ? `Things you know about me (use them to make the plan fit me): ${memory.join('; ')}.` : '',
       '',
       'Make a realistic, kind schedule as blocks: essentials (kind "essential"), to-dos (kind "todo" with ref = its id), goal sessions (kind "goal" with ref = its id), and anything else that would genuinely help (kind "other", sparingly). Rules: blocks never overlap each other or the fixed times; leave about 10 minutes between blocks; meals at normal times; nothing heavy right before bed; a wind-down block before bed; do not repeat my reminders as blocks. Use 24-hour HH:MM times on this date only. Then a short message to me.',
@@ -5582,6 +5681,29 @@ window.createPlanner = function createPlanner(ctx) {
     return [`To-do list: ${todos.length ? todos.join('; ') : 'empty'}.`, goals.length ? `Goals: ${goals.join('; ')}.` : '', chores.length ? `Chores: ${chores.join('; ')}.` : ''].filter(Boolean).join('\n');
   }
 
+  // ---------- "what's in the way?": reshape what keeps sliding ----------
+  /** why: 'big' (too big), 'boring', 'unclear' (not sure how to start). → { line, open: field to edit or '' } */
+  function reshape(kind, id, why) {
+    const x = kind === 'todo' ? state.todos.find((t) => t.id === id) : state.chores.find((c) => c.id === id);
+    if (!x) return { line: 'That one is already gone.', open: '' };
+    const name = kind === 'todo' ? x.title : choreTitle(x);
+    if (why === 'big') {
+      const was = x.mins || 30;
+      x.mins = Math.max(10, Math.round(was / 2 / 5) * 5);
+      if (!x.first) x.first = 'do the first ten minutes, then decide whether to keep going';
+      if (kind === 'todo' && x.plan && x.plan.date >= dateKey()) x.plan.mins = Math.min(x.plan.mins || was, x.mins);
+      if (kind === 'todo' && !(x.notes || '').includes('Only the first part')) x.notes = `${x.notes ? x.notes + '\n' : ''}Only the first part counts as done for now.`;
+      changed();
+      return { line: `Okay, “${name}” is ${x.mins} minutes now: just the first piece. Doing the rest is a bonus, not the plan.`, open: '' };
+    }
+    if (why === 'boring') {
+      const p = pairFor(kind === 'todo' ? 'focus' : 'chores', x.pair);
+      if (p) return { line: `Then it gets something good: ${p.replace(/^my /i, 'your ')} goes with it, and only with it. I'll mention it when it's time.`, open: '' };
+      return { line: `Pick something you enjoy and save it for while you do “${name}”: a podcast, a show in the background, a good drink. Fill it in here.`, open: 'pair' };
+    }
+    return { line: `Let's make the start obvious. What's the very first thing you'd physically do? Something under two minutes, like “open the file” or “put the hamper by the door”.`, open: 'first' };
+  }
+
   // ---------- evening check-in ----------
   function checkinMin() {
     if (state.settings.checkinTime) return toMin(state.settings.checkinTime);
@@ -5615,7 +5737,7 @@ window.createPlanner = function createPlanner(ctx) {
     // Honest about what keeps getting put off, and make it small.
     stuck.sort((a, c) => rankOf(c) - rankOf(a)).forEach((t, i) => {
       const when = i === 0 ? "Tomorrow it's the first thing you do" : 'It comes right after';
-      parts.push(`“${t.title}” has been pushed ${t.pushed} times now. ${when}, and only 25 minutes. All you have to do is start: ${t.first || 'open it and work on it for five minutes'}.`);
+      parts.push(`“${t.title}” keeps sliding. That usually means it feels bad to start, not that you're lazy. ${when}, and only 25 minutes. All you have to do is start: ${t.first || 'open it and work on it for five minutes'}.${i === 0 ? ' What\'s in the way? Tap below and I\'ll change it.' : ''}`);
     });
     if (choresDone.length) parts.push(`Chores done: ${choresDone.map((c) => c.title).join(', ')} ✓`);
     // Chores don't get to slide quietly.
@@ -5635,7 +5757,9 @@ window.createPlanner = function createPlanner(ctx) {
     const firsts = planList(tomorrow).slice(0, 4);
     if (firsts.length) parts.push(`Tomorrow starts with: ${firsts.join(', ')}.`);
     save();
-    return { text: parts.join('\n\n'), todos: left.map((t) => t.id), chores: choresLeft.map((c) => c.id) };
+    // "What's in the way?" for what keeps sliding (to-dos put off twice, chores put off twice).
+    const stuckOnes = stuck.map((t) => ({ kind: 'todo', id: t.id, title: t.title })).concat(choresLeft.filter((c) => c.pushed >= 2 && c.need !== 'meals').map((c) => ({ kind: 'chore', id: c.id, title: choreTitle(c) }))).slice(0, 2);
+    return { text: parts.join('\n\n'), todos: left.map((t) => t.id), chores: choresLeft.map((c) => c.id), stuck: stuckOnes };
   }
   // ---------- getting started: nudges and sprint pings ----------
   const startLine = (it) => `${it.first ? `Just ${it.first.replace(/^just /i, '')}` : 'Just do the first five minutes'}.`;
@@ -5789,7 +5913,10 @@ window.createPlanner = function createPlanner(ctx) {
     rest = mm.rest.replace(/\b(?:by|before|due)\s*$/i, '').trim();
     const high = /\b(important|urgent|asap|!)\b/i.test(rest) || /!$/.test(raw);
     rest = rest.replace(/\b(?:it's |its )?(important|urgent|asap)\b/gi, '').replace(/!+/g, '').trim();
-    const r = addTodo({ title: rest, due, mins: mm.mins, priority: high ? 'high' : 'normal' });
+    // "laundry after dinner", "call the bank when I get home from work"
+    let after = '';
+    rest = rest.replace(/\s*,?\s*\b(?:right |straight )?(?:after|when|once|as soon as)\s+((?:i |my )?(?:eat |have |finish )?(?:breakfast|lunch|dinner|supper|work|my shift|the gym|my workout|i get home(?: from work)?|i get up|i wake up|i shower|my shower))\b/i, (m, c) => { after = c; return ''; }).trim();
+    const r = addTodo({ title: rest, due, mins: mm.mins, priority: high ? 'high' : 'normal', after });
     if (!r.ok) return ['What should I put on your list?'];
     return [ctx.say(`Added to your to-do list: ${r.todo.title}${due ? ` (${dueLabel(due)})` : ''}. ${r.planned ? `I set time aside ${r.planned}.` : 'No free time for it soon, so it waits on your list for now.'}`)];
   }
@@ -5902,7 +6029,7 @@ window.createPlanner = function createPlanner(ctx) {
   // To-do dialog
   const tdlg = $('#todo-dlg'), tf = $('#todo-form');
   let editing = null;
-  function openTodo(t) {
+  function openTodo(t, focusField) {
     editing = t || null;
     tf.reset();
     $('#todo-dlg-title').textContent = t ? 'Edit to-do' : 'New to-do';
@@ -5913,16 +6040,19 @@ window.createPlanner = function createPlanner(ctx) {
     tf.elements.priority.checked = !!(t && t.priority === 'high');
     tf.elements.notes.value = t ? t.notes || '' : '';
     tf.elements.first.value = t ? t.first || '' : '';
+    tf.elements.after.value = t ? t.after || '' : '';
+    tf.elements.pair.value = t ? t.pair || '' : '';
     $('#todo-delete').hidden = !t;
     $('#todo-plan-info').textContent = t && t.plan && !t.done ? `Planned ${dayWord(t.plan.date)} at ${fmtTime(t.plan.time)}.` : '';
     tdlg.showModal();
+    if (focusField && tf.elements[focusField]) setTimeout(() => tf.elements[focusField].focus(), 50);
   }
   tf.addEventListener('submit', (e) => {
     e.preventDefault();
-    const data = { title: tf.elements.title.value.trim(), due: tf.elements.due.value || null, mins: Number(tf.elements.mins.value) || 30, priority: tf.elements.priority.checked ? 'high' : 'normal', notes: tf.elements.notes.value.trim(), first: tf.elements.first.value.trim().replace(/[.]+$/, '') };
+    const data = { title: tf.elements.title.value.trim(), due: tf.elements.due.value || null, mins: Number(tf.elements.mins.value) || 30, priority: tf.elements.priority.checked ? 'high' : 'normal', notes: tf.elements.notes.value.trim(), first: tf.elements.first.value.trim().replace(/[.]+$/, ''), after: cleanCue(tf.elements.after.value), pair: tf.elements.pair.value.trim() };
     if (!data.title) return;
     if (editing) {
-      const replanNeeded = editing.mins !== data.mins || editing.due !== data.due;
+      const replanNeeded = editing.mins !== data.mins || editing.due !== data.due || (editing.after || '') !== data.after;
       Object.assign(editing, data);
       if (replanNeeded && !editing.done && editing.plan && editing.plan.date >= dateKey()) { editing.plan = null; planDay(dateKey()); if (!editing.plan) planDay(addDays(dateKey(), 1)); }
       changed();
@@ -6004,7 +6134,7 @@ window.createPlanner = function createPlanner(ctx) {
   }
   const cdlg = $('#chore-dlg'), cf = $('#chore-form');
   let editingChore = null;
-  function openChore(c) {
+  function openChore(c, focusField) {
     editingChore = c || null;
     cf.reset();
     $('#chore-dlg-title').textContent = c ? 'Edit chore' : 'New chore';
@@ -6015,12 +6145,15 @@ window.createPlanner = function createPlanner(ctx) {
     if (!cf.elements.mins.value) cf.elements.mins.value = '15';
     cf.elements.first.value = c ? c.first || '' : '';
     cf.elements.time.value = c && c.time ? c.time : '';
+    cf.elements.after.value = c ? c.after || '' : '';
+    cf.elements.pair.value = c ? c.pair || '' : '';
     $('#chore-delete').hidden = !c;
     cdlg.showModal();
+    if (focusField && cf.elements[focusField]) setTimeout(() => cf.elements[focusField].focus(), 50);
   }
   cf.addEventListener('submit', (e) => {
     e.preventDefault();
-    const data = { title: cf.elements.title.value.trim(), every: Number(cf.elements.every.value) || 7, mins: Number(cf.elements.mins.value) || 15, first: cf.elements.first.value.trim().replace(/[.]+$/, ''), time: cf.elements.time.value || '' };
+    const data = { title: cf.elements.title.value.trim(), every: Number(cf.elements.every.value) || 7, mins: Number(cf.elements.mins.value) || 15, first: cf.elements.first.value.trim().replace(/[.]+$/, ''), time: cf.elements.time.value || '', after: cleanCue(cf.elements.after.value), pair: cf.elements.pair.value.trim() };
     if (!data.title) return;
     const dueNow = cf.elements.dueNow.checked;
     if (editingChore && dueNow) { editingChore.last = null; editingChore.firstDue = dateKey(); } // overdue in real life: on today's plan
@@ -6136,12 +6269,12 @@ window.createPlanner = function createPlanner(ctx) {
   });
 
   return {
-    openTodo: (id) => openTodo(state.todos.find((t) => t.id === id) || null),
+    openTodo: (id, field) => openTodo(state.todos.find((t) => t.id === id) || null, field),
     openGoal: (id) => openGoal(state.goals.find((g) => g.id === id) || null),
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
     planReply, planDayAI, planWeek, weekReply, weekDays, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
     nudgeEvents, dueNudges, notePushed, rankOf, dayType, SPLITS,
-    addChore, choreDone, deleteChore, choreNothing, mealsSince, renderChores, openChore: (id) => openChore(state.chores.find((c) => c.id === id) || null), choreTitle, overdueOn,
+    addChore, choreDone, deleteChore, choreNothing, mealsSince, renderChores, openChore: (id, field) => openChore(state.chores.find((c) => c.id === id) || null, field), reshape, choreTitle, overdueOn,
     parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
     restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },
   };
@@ -6198,7 +6331,7 @@ Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done, and to take things back: delete_reminder, delete_food_log, remove_water, delete_work_shift, and undo (undo the last thing you added, or bring back the last thing deleted). Delete only what they ask for; if it's unclear which one, ask. After deleting, say what you removed and that they can say "bring it back". Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
 - They also keep chores in the app (dishes, cleaning…; listed in the app context with how overdue each is). Hold them to these: when one is overdue, bring it up, make the first step tiny, and suggest doing it now. chore_done when they say they did one, or when there's nothing to do (they ate out, the sink is empty); add_chore for new recurring chores. Dishes and counters only come up after they've eaten at home, so don't nag about them otherwise.
-- They're using this app to beat procrastination and give their days structure, since nobody else holds them accountable. Be the steady accountability: when something keeps getting put off, say so plainly and kindly, make the next step tiny, and help them start now rather than later. Don't suggest texting or checking in with people as tasks.
+- They're using this app to beat procrastination and give their days structure, since nobody else holds them accountable. Be the steady accountability: when something keeps getting put off, say so plainly and kindly, make the next step tiny, and help them start now rather than later. Don't suggest texting or checking in with people as tasks. Putting things off is about escaping a bad feeling, not laziness: never guilt-trip or keep score. When something keeps sliding, ask what's in the way (too big, boring, unclear start) and change the task to fit: shrink it, pair it with something they enjoy, or make the first step obvious. When they mention when something should happen ("after dinner", "when I get home"), pass it as the to-do's after cue.
 - You also keep their to-do list and goals (both in the app context). add_todo when they mention something they need to get done ("I need to finish the edit by Friday"): the app fits it into their free time and tells you when; mention that time. complete_todo / delete_todo when they finish or drop one. plan_day when they ask to plan or organize a day, or what's on their plan; with replan true it builds a full day around their work, calendar and reminders and adds the daily essentials they're missing (meals, movement, a focus block, daylight, checking in with someone, winding down). It returns the plan, so summarize it briefly (the main blocks, not every reminder) and mention the essentials you added. add_goal for goals and habits ("gym 4 times a week", "save $200 a month"); the app plans sessions and tracks streaks. log_goal when they report progress ("went to the gym", "saved $50"). Be encouraging about progress and honest about what's behind.
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
@@ -6454,13 +6587,14 @@ Boundaries:
       description: 'Add something to the user\'s to-do list. The app schedules it into their free time (around work, meals and calendar events) and returns when.',
       strict: true,
       input_schema: {
-        type: 'object', additionalProperties: false, required: ['title', 'due', 'minutes', 'important', 'first_step'],
+        type: 'object', additionalProperties: false, required: ['title', 'due', 'minutes', 'important', 'first_step', 'after'],
         properties: {
           title: { type: 'string', description: 'Short task title in their words, e.g. "Finish the wedding edit"' },
           due: nullable({ type: 'string', description: 'Deadline YYYY-MM-DD, or null if none' }),
           minutes: { type: 'number', description: 'Your best estimate of how long it takes, in minutes (e.g. 30, 60, 120)' },
           important: { type: 'boolean', description: 'true if they said it is important or urgent' },
           first_step: { type: 'string', description: 'A tiny, concrete first action for it that takes under two minutes (they procrastinate; this is what gets them started)' },
+          after: { type: 'string', description: 'If-then cue: what it happens right after, in their words ("dinner", "I get home from work", "the gym"). The app plans it right after that. Empty string if they gave none.' },
         },
       },
     },
@@ -6535,6 +6669,7 @@ Boundaries:
           every_days: { type: 'integer', description: 'How often in days (1 = daily, 7 = weekly)' },
           minutes: { type: 'integer', description: 'How long it usually takes' },
           first_step: { type: 'string', description: 'A tiny first action under two minutes, e.g. "fill the sink with hot soapy water"' },
+          after: { type: 'string', description: 'Optional if-then cue it happens right after, e.g. "dinner"' },
         },
       },
     },
@@ -9496,7 +9631,7 @@ window.createTranslator = function createTranslator(ctx) {
 
   function fireItem(item) {
     // Planned blocks lead with the tiny first step: starting is the hard part.
-    const line = say(pick(R.due[item.category] || R.due.custom), item) + (item.first ? `\nStart with: ${item.first}.` : '') + (item.frog ? '\n⭐ This is the first thing today. Do it before anything else.' : '');
+    const line = (item.cue ? `${item.cue}, so now: ${item.title}.\n` : '') + say(pick(R.due[item.category] || R.due.custom), item) + (item.first ? `\nStart with: ${item.first}.` : '') + (item.pair ? `\n▶ Put on ${item.pair.replace(/^my /i, 'your ')}. It's saved for this.` : '') + (item.frog ? '\n⭐ This is the first thing today. Do it before anything else.' : '');
     riasSays(line, { itemId: item.id, title: item.title, time: item.time });
     showAlarm(item, line);
   }
@@ -9629,6 +9764,7 @@ window.createTranslator = function createTranslator(ctx) {
 
   // ---------- actions on a task ----------
   function resolve(itemId, status) {
+    setTimeout(pushPause, 50); // the pause screen shows what is next
     const today = dateKey();
     const item = findItem(itemId);
     if (!item || statusOf(itemId)) return;
@@ -9699,7 +9835,7 @@ window.createTranslator = function createTranslator(ctx) {
       for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();
-        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos, chores: c.chores });
+        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos, chores: c.chores, stuck: c.stuck || [] });
         renderToday();
       }
     }
@@ -10132,6 +10268,25 @@ window.createTranslator = function createTranslator(ctx) {
         acts.dataset.day = m.day;
         el.append(acts);
       }
+      // "What's in the way?" for what keeps sliding: each answer changes the task.
+      if (m.action === 'checkin' && m.stuck && m.stuck.length && !m.reshaped) {
+        for (const sx of m.stuck) {
+          const acts = document.createElement('div');
+          acts.className = 'actions reshape';
+          const lab = document.createElement('span');
+          lab.className = 'reshape-q';
+          lab.textContent = `“${sx.title}”:`;
+          acts.append(lab);
+          for (const [why, text] of [['big', 'Too big'], ['boring', 'Boring'], ['unclear', 'Not sure how to start']]) {
+            const b = document.createElement('button');
+            b.dataset.reshape = `${sx.kind}|${sx.id}|${why}`;
+            b.dataset.msg = m.id || '';
+            b.textContent = text;
+            acts.append(b);
+          }
+          el.append(acts);
+        }
+      }
       if (m.action === 'checkin' && ((m.todos && m.todos.length) || (m.chores && m.chores.length))) {
         const left = (m.todos || []).map((id) => state.todos.find((t) => t.id === id)).filter((t) => t && !t.done);
         const chores = (m.chores || []).map((id) => (state.chores || []).find((c) => c.id === id)).filter((c) => c && c.last !== dateKey(new Date(m.ts)) && c.last !== dateKey());
@@ -10345,6 +10500,8 @@ window.createTranslator = function createTranslator(ctx) {
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
         else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : it.choreId ? '🧽 Chore' : '✦ Daily essential', 'tag-chip plan');
         if (it.choreId && it.overdue > 0 && !st) add(`${it.overdue} day${it.overdue === 1 ? '' : 's'} overdue`, 'tag-chip flag warn');
+        if (it.cue && !st) add(`↪ ${it.cue}`, 'tag-chip cue');
+        if (it.pair && !st) add(`▶ ${it.pair}`, 'tag-chip pair');
         if (it.frog && !st) add('⭐ First thing', 'tag-chip flag warn');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
@@ -10668,6 +10825,19 @@ window.createTranslator = function createTranslator(ctx) {
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
+    const rb = e.target.closest('[data-reshape]');
+    if (rb) {
+      const [kind, id, why] = rb.dataset.reshape.split('|');
+      const msg = state.messages.find((x) => x.id && x.id === rb.dataset.msg);
+      if (msg) msg.stuck = (msg.stuck || []).filter((sx) => sx.id !== id);
+      const r = Planner.reshape(kind, id, why);
+      addMessage('me', rb.textContent + '.');
+      setTimeout(() => addMessage('rias', say(r.line)), 500);
+      if (r.open) setTimeout(() => (kind === 'todo' ? Planner.openTodo(id, r.open) : Planner.openChore(id, r.open)), 900);
+      save();
+      renderFeed();
+      return;
+    }
     const nb = e.target.closest('[data-chore-none]');
     if (nb) {
       const c = (state.chores || []).find((x) => x.id === nb.dataset.choreNone);
@@ -11102,8 +11272,8 @@ window.createTranslator = function createTranslator(ctx) {
       getWeather: weatherTool,
       remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
       forget({ fact }) { return { ok: true, removed: forget(fact) }; },
-      addTodo({ title, due, minutes, important, first_step }) {
-        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal', first: first_step || '' });
+      addTodo({ title, due, minutes, important, first_step, after }) {
+        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal', first: first_step || '', after: after || '' });
         return r.ok ? { ok: true, added: r.todo.title, due: r.todo.due, planned: r.planned || 'not yet: no free time soon, it waits on the list' } : r;
       },
       completeTodo({ title }) { return Planner.completeTodo(title); },
@@ -11120,7 +11290,7 @@ window.createTranslator = function createTranslator(ctx) {
       addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
       logGoal({ title, amount }) { return Planner.logGoal(title, amount); },
       deleteGoal({ title }) { return Planner.deleteGoal(title); },
-      addChore({ title, every_days, minutes, first_step }) { return Planner.addChore({ title, every: every_days, mins: minutes, first: first_step || '' }); },
+      addChore({ title, every_days, minutes, first_step, after }) { return Planner.addChore({ title, every: every_days, mins: minutes, first: first_step || '', after: after || '' }); },
       choreDone({ title }) { return Planner.choreDone(title); },
       completeTask({ title }) {
         const q = title.toLowerCase();
@@ -12065,7 +12235,7 @@ window.createTranslator = function createTranslator(ctx) {
         const withBrief = brief && !briefed && it.category === 'wake';
         if (withBrief) briefed = true;
         events.push({
-          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${it.first ? `\nStart with: ${it.first}.` : ''}${withBrief ? `\n${brief}` : ''}`,
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${it.first ? `\nStart with: ${it.first}.` : ''}${it.pair ? `\n▶ ${it.pair.replace(/^my /i, 'your ')}: saved for this.` : ''}${withBrief ? `\n${brief}` : ''}`,
           itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}),
           icon: CATEGORY_ICON[it.category] || '⏰',
         });
@@ -12244,6 +12414,13 @@ window.createTranslator = function createTranslator(ctx) {
       for (const i of sf.querySelectorAll(`input[name=${name}]`)) i.checked = on.includes(i.value);
     }
     sf.elements.sprints.checked = state.settings.sprints !== false;
+    sf.elements.scrollPause.checked = !!state.settings.scrollPause;
+    { const on = Array.isArray(state.settings.pauseApps) ? state.settings.pauseApps : ['com.zhiliaoapp.musically,com.ss.android.ugc.trill', 'com.instagram.android', 'com.google.android.youtube', 'com.reddit.frontpage', 'com.twitter.android'];
+      for (const i of sf.querySelectorAll('input[name=pauseApp]')) i.checked = on.includes(i.value); }
+    sf.elements.pauseSeconds.value = String(state.settings.pauseSeconds || 5);
+    sf.elements.pauseGrace.value = String(state.settings.pauseGrace || 10);
+    for (const [n, k] of [['pairChores', 'chores'], ['pairWorkout', 'workout'], ['pairFocus', 'focus'], ['pairErrands', 'errands']]) sf.elements[n].value = (state.settings.pairings || {})[k] || '';
+    pauseStatus();
     { const on = Array.isArray(state.settings.essentials) ? state.settings.essentials : Planner.DEFAULT_ESSENTIALS;
       for (const i of sf.querySelectorAll('input[name=essential]')) i.checked = on.includes(i.value); }
     calWriteHint();
@@ -12518,6 +12695,11 @@ window.createTranslator = function createTranslator(ctx) {
       weeklyJobs: [...sf.querySelectorAll('input[name=weeklyJob]:checked')].map((i) => i.value),
       extras: [...sf.querySelectorAll('input[name=extra]:checked')].map((i) => i.value),
       sprints: sf.elements.sprints.checked,
+      scrollPause: sf.elements.scrollPause.checked,
+      pauseApps: [...sf.querySelectorAll('input[name=pauseApp]:checked')].map((i) => i.value),
+      pauseSeconds: Number(sf.elements.pauseSeconds.value) || 5,
+      pauseGrace: Number(sf.elements.pauseGrace.value) || 10,
+      pairings: { chores: sf.elements.pairChores.value.trim(), workout: sf.elements.pairWorkout.value.trim(), focus: sf.elements.pairFocus.value.trim(), errands: sf.elements.pairErrands.value.trim() },
       essentialsV2: true,
       essentials: [...sf.querySelectorAll('input[name=essential]:checked')].map((i) => i.value),
       wakeName: sf.elements.wakeName.value.trim(),
@@ -12527,6 +12709,7 @@ window.createTranslator = function createTranslator(ctx) {
       state.settings.checkinTime = sf.elements.checkinTime.value && sf.elements.checkinTime.value !== auto ? sf.elements.checkinTime.value : '';
     }
     lastCalSync = '';
+    setTimeout(pushPause, 0); // after the new settings are saved below
     pushWakeWord();
     pushVoiceChoice();
     applyWake();
@@ -12675,6 +12858,43 @@ window.createTranslator = function createTranslator(ctx) {
     if (N && N.openUrl) N.openUrl(url); else window.open(url, '_blank', 'noopener');
   });
   const Dev = () => window.RiasDevice || null;
+  // ---------- pause before scrolling apps (Android) ----------
+  /** What's on the plan from an hour ago through tomorrow morning, not done yet: the pause screen shows the current/next one. */
+  function pausePlan() {
+    const out = [];
+    const now = new Date();
+    for (const off of [0, 1]) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
+      const log = state.log[dateKey(d)] || {};
+      for (const it of itemsOn(d)) {
+        if (log[it.id] || !it.time) continue;
+        const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), ...it.time.split(':').map(Number)).getTime();
+        if (at < Date.now() - 3600000 || (off && out.length >= 40)) continue;
+        out.push({ at, text: `${fmtTime(it.time)} · ${it.title}${it.first ? `\nStart with: ${it.first}` : ''}` });
+      }
+    }
+    return out.sort((a, b) => a.at - b.at).slice(0, 40);
+  }
+  let lastPause = '';
+  function pushPause() {
+    const d = Dev();
+    if (!d || !d.pauseConfig) return;
+    const apps = (Array.isArray(state.settings.pauseApps) ? state.settings.pauseApps : ['com.zhiliaoapp.musically,com.ss.android.ugc.trill', 'com.instagram.android', 'com.google.android.youtube', 'com.reddit.frontpage', 'com.twitter.android']).join(',').split(',').filter(Boolean);
+    const cfg = JSON.stringify({ on: !!state.settings.scrollPause, apps, seconds: state.settings.pauseSeconds || 5, grace: state.settings.pauseGrace || 10, plan: JSON.stringify(pausePlan()) });
+    if (cfg === lastPause) return;
+    lastPause = cfg;
+    try { d.pauseConfig(cfg); } catch { /* older app */ }
+  }
+  function pauseStatus() {
+    const el = $('#pause-status'), btn = $('#pause-turn-on');
+    if (!el) return;
+    const d = Dev();
+    if (!d || !d.pauseEnabled) { el.textContent = 'This works in the Android app.'; btn.hidden = true; return; }
+    let on = false;
+    try { on = d.pauseEnabled(); } catch { /* older app */ }
+    el.textContent = on ? '✓ Allowed in Android settings.' : 'One step left: allow it in Android settings (Accessibility → Rias: pause before scrolling apps).';
+    btn.hidden = on;
+  }
   function devStatus() {
     const d = Dev();
     if (!d || !d.status) return null;
@@ -13085,6 +13305,10 @@ window.createTranslator = function createTranslator(ctx) {
   renderStatus();
   renderHome();
   setInterval(tick, 20000);
+  setInterval(pushPause, 60000);
+  pushPause();
+  $('#pause-turn-on').addEventListener('click', () => { const d = Dev(); if (d && d.openSettings) d.openSettings('accessibility'); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { pauseStatus(); lastPause = ''; pushPause(); } });
   setInterval(syncCalendar, 15 * 60000);
   const housekeeping = () => { maybeAutoBackup(); maybeCheckUpdate(); refreshWeather().then(() => { if (currentView === 'home') renderHome(); }); };
   setTimeout(housekeeping, 1500);
@@ -13105,5 +13329,6 @@ window.createTranslator = function createTranslator(ctx) {
   });
 })();
 </script>
+<datalist id="cue-list"><option value="I wake up"><option value="breakfast"><option value="lunch"><option value="work"><option value="I get home from work"><option value="the gym"><option value="dinner"><option value="I shower"></datalist>
 </body>
 </html>
