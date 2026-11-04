@@ -1179,6 +1179,12 @@
             b.dataset.choreDone = c.id;
             b.textContent = `✓ I did “${Planner.choreTitle(c)}”`;
             acts.append(b);
+            if (c.need === 'meals') {
+              const n = document.createElement('button');
+              n.dataset.choreNone = c.id;
+              n.textContent = /dish|sink/i.test(c.title) ? 'Nothing to wash' : 'Nothing to clean';
+              acts.append(n);
+            }
           }
           el.append(acts);
         }
@@ -1682,6 +1688,13 @@
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
+    const nb = e.target.closest('[data-chore-none]');
+    if (nb) {
+      const c = (state.chores || []).find((x) => x.id === nb.dataset.choreNone);
+      if (c) { Planner.choreNothing(c); addMessage('me', nb.textContent + '.'); setTimeout(() => addMessage('rias', say('Okay, nothing to do there. I took it off.')), 500); }
+      renderFeed();
+      return;
+    }
     const cb = e.target.closest('[data-chore-done]');
     if (cb) {
       const c = (state.chores || []).find((x) => x.id === cb.dataset.choreDone);

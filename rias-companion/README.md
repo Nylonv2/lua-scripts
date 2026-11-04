@@ -99,6 +99,15 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**Chores that make sense (not the same list every day):** dishes and counters only come up when there's something to
+clean. If you log food, she counts meals eaten at home since you last did them; takeout, delivery, "from Chipotle" or
+"ate out" don't count. So doing the dishes last night and eating out today means no dishes. A dinner you cooked puts
+them on tonight, right after dinner, never the next morning. If you don't log food, she does a quick sink check every
+couple of days. Dishes, counters and trash go in the **evening**. Bigger jobs (laundry, vacuuming, bathroom, sheets,
+fridge, deep clean) **wait for your next day off** when one is coming up soon, as long as that doesn't let them slide
+more than a day. At the check-in you can tap **Nothing to wash**, or say "no dishes" or "I ate out", to clear it without
+it counting as putting it off. Dishes left two nights in a row move to the morning, so they get done before your day starts.
+
 **Goals:** habits and targets, like "gym 4 times a week" (she plans the sessions into free days, with rest days when
 there's room) or "save $200 a month" (tell her as you go: "I saved $50"). Each goal shows this week's progress and your
 streak 🔥.

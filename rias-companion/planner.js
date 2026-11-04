@@ -404,23 +404,65 @@ window.createPlanner = function createPlanner(ctx) {
 
   // ---------- chores: on a schedule, overdue until done ----------
   const CHORE_PRESETS = [
-    { title: 'Dishes', every: 1, mins: 15, first: 'fill the sink with hot soapy water', time: '19:30' },
-    { title: 'Wipe the kitchen counters and stove', every: 1, mins: 5, first: 'grab a cloth and spray' },
-    { title: 'Take out the trash', every: 3, mins: 5, first: 'tie up the bag' },
-    { title: 'Vacuum or sweep the floors', every: 4, mins: 20, first: 'plug in the vacuum' },
-    { title: 'Laundry', every: 7, mins: 30, first: 'carry the hamper to the machine' },
-    { title: 'Clean the bathroom', every: 7, mins: 30, first: 'spray the sink and toilet, then let it sit' },
-    { title: 'Change the bed sheets', every: 14, mins: 15, first: 'pull the old sheets off' },
-    { title: 'Deep clean', every: 7, mins: 60, first: 'put on music and clear every surface in the room', zones: ['kitchen', 'bathroom', 'bedroom', 'living room'] },
-    { title: 'Clean out the fridge', every: 14, mins: 20, first: 'throw out anything expired' },
+    // need 'meals': only after eating at home; when: 'evening' (after dinner) or 'offday' (waits for a day off)
+    { title: 'Dishes', every: 1, mins: 15, first: 'fill the sink with hot soapy water', need: 'meals', when: 'evening' },
+    { title: 'Wipe the kitchen counters and stove', every: 1, mins: 5, first: 'grab a cloth and spray', need: 'meals', when: 'evening' },
+    { title: 'Take out the trash', every: 3, mins: 5, first: 'tie up the bag', when: 'evening' },
+    { title: 'Vacuum or sweep the floors', every: 4, mins: 20, first: 'plug in the vacuum', when: 'offday' },
+    { title: 'Laundry', every: 7, mins: 30, first: 'carry the hamper to the machine', when: 'offday' },
+    { title: 'Clean the bathroom', every: 7, mins: 30, first: 'spray the sink and toilet, then let it sit', when: 'offday' },
+    { title: 'Change the bed sheets', every: 14, mins: 15, first: 'pull the old sheets off', when: 'offday' },
+    { title: 'Deep clean', every: 7, mins: 60, first: 'put on music and clear every surface in the room', zones: ['kitchen', 'bathroom', 'bedroom', 'living room'], when: 'offday' },
+    { title: 'Clean out the fridge', every: 14, mins: 20, first: 'throw out anything expired', when: 'offday' },
   ];
   const daysBetween = (a, b) => Math.round((dayOf(b) - dayOf(a)) / 86400000);
   const choreTitle = (c) => (c.zones && c.zones.length ? `${c.title}: ${c.zones[(c.zone || 0) % c.zones.length]}` : c.title);
   /** Days overdue on day k (0 = due that day, negative = not due yet). Never done counts as due. */
-  const overdueOn = (c, k = dateKey()) => (c.last ? daysBetween(c.last, k) - (Number(c.every) || 1) : c.firstDue ? daysBetween(c.firstDue, k) : 0);
-  const choreDue = (c, k = dateKey()) => overdueOn(c, k) >= 0;
+  // Chores made before this existed: dishes/counters depend on meals, big ones wait for a day off.
+  for (const c of state.chores) {
+    if (c.need !== undefined) continue;
+    c.need = /dish|counter|stove|kitchen sink/i.test(c.title) ? 'meals' : '';
+    c.when = c.need || /trash|garbage/i.test(c.title) ? 'evening' : (Number(c.every) >= 4 || (c.mins || 0) >= 20) ? 'offday' : '';
+  }
+  // ---- meals at home (from the food diary) decide when dishes are needed ----
+  const AWAY_NAMED = /\b(at|from) [A-Z][a-z]/; // "at Chipotle", "from Wendy's" (capitalized: a place)
+  const AWAY = /takeout|take-out|take out food|ordered|delivery|doordash|uber ?eats|grubhub|restaurant|drive[- ]?thr(u|ough)|fast food|ate out|eating out|mcdonald|chipotle|subway|starbucks|wendy|taco bell|burger king|kfc|popeyes|chick-fil-a|pizza hut|domino|panera|five guys|in-n-out|cafeteria|work lunch/i;
+  const homeMeal = (e) => e && e.meal !== 'drink' && !AWAY.test(e.text || '') && !AWAY_NAMED.test(e.text || '');
+  const logsFood = () => { for (let i = 0; i < 14; i++) if ((state.food[addDays(dateKey(), -i)] || []).length) return true; return false; };
+  /** Home meals eaten since the chore was last done: [{ date, ts }] oldest first. */
+  function mealsSince(c) {
+    const out = [];
+    const since = c.lastTs || (c.last ? dayOf(c.last).getTime() + 12 * 3600000 : 0);
+    for (let i = 13; i >= 0; i--) {
+      const k = addDays(dateKey(), -i);
+      for (const e of state.food[k] || []) if ((e.ts || 0) > since && homeMeal(e)) out.push({ date: k, ts: e.ts });
+    }
+    return out;
+  }
+  /** Days overdue on day k (0 = due that day, negative = not due yet). Never done counts as due. */
+  function overdueOn(c, k = dateKey()) {
+    if (c.need === 'meals') {
+      if (logsFood()) {
+        const m = mealsSince(c);
+        return m.length ? daysBetween(m[0].date, k) : -1; // nothing eaten at home since: nothing to wash
+      }
+      if (!c.last) return 0;
+      return daysBetween(c.last, k) - 2; // no food diary: check the sink every few days
+    }
+    return c.last ? daysBetween(c.last, k) - (Number(c.every) || 1) : c.firstDue ? daysBetween(c.firstDue, k) : 0;
+  }
+  const choreDue = (c, k = dateKey()) => {
+    // Meal-based chores only for today (tomorrow's meals haven't happened yet).
+    if (c.need === 'meals' && k > dateKey()) return (c.pushed || 0) >= 2 && mealsSince(c).length > 0; // only a sink that's been left more than once gets planned ahead
+    return overdueOn(c, k) >= 0;
+  };
   function choreStatus(c) {
     const o = overdueOn(c);
+    if (c.need === 'meals' && logsFood()) {
+      const m = mealsSince(c).length;
+      if (!m) return c.last === dateKey() ? 'done today' : 'nothing to wash';
+      return o > 0 ? `${m} meal${m === 1 ? '' : 's'} waiting, ${o} day${o === 1 ? '' : 's'}` : `after ${m} meal${m === 1 ? '' : 's'} at home today`;
+    }
     if (o > 0) return `${o} day${o === 1 ? '' : 's'} overdue`;
     if (o === 0) return c.last || c.firstDue ? 'due today' : 'not done yet';
     return `${c.last ? 'next' : 'first one'} in ${-o} day${o === -1 ? '' : 's'}`;
@@ -460,8 +502,8 @@ window.createPlanner = function createPlanner(ctx) {
     return busy.sort((x, y) => x[0] - y[0]);
   }
   /** Earliest free start ≥ from that fits `mins` (plus a 10-minute breather), or null. */
-  function slot(busy, from, to, mins, near) {
-    const free = (a) => a + mins <= to && !busy.some(([s, e]) => a < e + 10 && a + mins + 10 > s);
+  function slot(busy, from, to, mins, near, gap = 10) {
+    const free = (a) => a + mins <= to && !busy.some(([s, e]) => a < e + gap && a + mins + gap > s);
     if (near != null) {
       // Closest free time to the preferred one (goals like "gym at 6 PM")
       for (let off = 0; off <= 600; off += 15) {
@@ -545,13 +587,27 @@ window.createPlanner = function createPlanner(ctx) {
     let used = 0;
     const due = state.chores.filter((c) => choreDue(c, k) && !(c.plans && c.plans[k]) && !(state.log[k] || {})[`c:${c.id}`] && c.notOn !== k)
       .sort((a, b) => choreRank(b, k) - choreRank(a, k));
+    const free = !ctx.shiftsOn(dayOf(k)).length;
+    // After dinner: the planned dinner (or a dinner reminder), else 7 PM
+    const dinner = ctx.allItems(dayOf(k)).filter((it) => (it.category === 'meal' || /dinner/i.test(it.title)) && toMin(it.time) >= 17 * 60).map((it) => toMin(it.time) + (it.mins || 30));
+    const afterDinner = dinner.length ? Math.max(...dinner) + 10 : 19 * 60;
     for (const c of due) {
       const stuck = (c.pushed || 0) >= 2;
       const mins = stuck && (c.mins || 15) > 25 ? 25 : c.mins || 15;
-      if (used + mins > 90 && overdueOn(c, k) <= 0 && !stuck) continue; // spread big chore days out, but never skip overdue ones
-      const free = !ctx.shiftsOn(dayOf(k)).length;
-      const near = stuck ? from + 60 : c.time ? toMin(c.time) : (c.mins || 15) >= 45 ? (free ? 10 * 60 + 30 : 18 * 60) : 19 * 60;
-      const a = slot(busyOn(k).concat(held), from, to, mins, Math.max(from, near));
+      const o = overdueOn(c, k);
+      if (used + mins > 90 && o <= 0 && !stuck) continue; // spread big chore days out, but never skip overdue ones
+      // Big chores wait for a day off coming up soon, as long as that doesn't let them slide more than a day.
+      if (c.when === 'offday' && !free && o <= 1 && !stuck) {
+        let offSoon = false;
+        for (let i = 1; i <= 3; i++) if (!ctx.shiftsOn(dayOf(addDays(k, i))).length && overdueOn(c, addDays(k, i)) <= 2) offSoon = true;
+        if (offSoon) continue;
+      }
+      const evening = !stuck && (c.when === 'evening' || c.need === 'meals'); // put off twice: it moves to the morning
+      const near = c.time ? toMin(c.time) : evening ? afterDinner : stuck ? from + 60 : (c.mins || 15) >= 45 || c.when === 'offday' ? (free ? 10 * 60 + 30 : 18 * 60) : 19 * 60;
+      const busy = busyOn(k).concat(held), start = evening ? Math.max(from, 17 * 60) : from;
+      let a = slot(busy, start, to, mins, Math.max(from, near));
+      // A packed evening: dishes can go straight after something, no breather needed.
+      if (a == null && evening) a = slot(busy, start, to, mins, Math.max(from, near), 0);
       if (a == null) continue;
       (c.plans ||= {})[k] = minToTime(a);
       used += mins;
@@ -607,7 +663,11 @@ window.createPlanner = function createPlanner(ctx) {
       for (const [k] of Object.entries(c.plans || {})) {
         const st = (state.log[k] || {})[`c:${c.id}`];
         if (st === 'done' && (!c.last || c.last < k)) finishChore(c, k);
-        else if (st === 'skipped' && !c.skipSeen?.includes(k)) { (c.skipSeen ||= []).push(k); c.pushed = (c.pushed || 0) + 1; c.notOn = k; }
+        else if (st === 'skipped' && !c.skipSeen?.includes(k)) {
+          (c.skipSeen ||= []).push(k);
+          if (c.need === 'meals') finishChore(c, k); // skipping dishes = nothing to wash
+          else { c.pushed = (c.pushed || 0) + 1; c.notOn = k; }
+        }
       }
       for (const k of Object.keys(c.plans || {})) if (k < addDays(dateKey(), -7)) delete c.plans[k];
       if (c.skipSeen) c.skipSeen = c.skipSeen.filter((k) => k >= addDays(dateKey(), -7));
@@ -615,6 +675,7 @@ window.createPlanner = function createPlanner(ctx) {
   }
   function finishChore(c, k = dateKey()) {
     c.last = k;
+    c.lastTs = k === dateKey() ? Date.now() : dayOf(k).getTime() + 12 * 3600000;
     delete c.firstDue;
     c.pushed = 0;
     c.notOn = '';
@@ -706,6 +767,14 @@ window.createPlanner = function createPlanner(ctx) {
     changed();
     return { ok: true, done: was, was_overdue_days: Math.max(0, late), next: `in ${c.every} day${c.every === 1 ? '' : 's'}` };
   }
+  /** "No dishes today" / "I ate out": nothing to do, and that's not putting it off. */
+  function choreNothing(c) {
+    const k = dateKey();
+    if (c.plans && c.plans[k]) (state.log[k] ||= {})[`c:${c.id}`] = 'done';
+    finishChore(c, k);
+    changed();
+    return { ok: true, cleared: choreTitle(c) };
+  }
   function deleteChore(query) {
     const found = typeof query === 'object' ? [query] : match(state.chores, query);
     if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map((c) => c.title) };
@@ -758,7 +827,7 @@ window.createPlanner = function createPlanner(ctx) {
       `My to-do list (schedule what fits, deadline-first and important first; at most ${(Number(state.settings.planHours) || 3)} hours of to-dos unless something is due today or tomorrow; split nothing): ${todos.length ? todos.join('; ') : 'empty'}.`,
       `Goals that could use a session today (plan one only if it makes sense for the rhythm, e.g. leave rest days): ${goals.length ? goals.join('; ') : 'none'}.`,
       amountGoals.length ? `Other goals (no time block needed, but you can mention them): ${amountGoals.join('; ')}.` : '',
-      `My chores (kind "chore" with ref = its id; overdue ones must get time today, most overdue first; a chore put off twice gets an early 25-minute "just start" block): ${state.chores.filter((c) => choreDue(c, k)).map((c) => `id ${c.id}: "${choreTitle(c)}", about ${c.mins || 15} min, ${choreStatus(c)}${c.pushed ? `, PUT OFF ${c.pushed}×` : ''}${c.first ? `, first step "${c.first}"` : ''}`).join('; ') || 'none due'}.`,
+      `My chores (kind "chore" with ref = its id; overdue ones must get time today, most overdue first; a chore put off twice gets an early 25-minute "just start" block): ${state.chores.filter((c) => choreDue(c, k)).map((c) => `id ${c.id}: "${choreTitle(c)}", about ${c.mins || 15} min, ${choreStatus(c)}${c.pushed ? `, PUT OFF ${c.pushed}×` : ''}${c.first ? `, first step "${c.first}"` : ''}${c.need === 'meals' ? ', only because they ate at home; put it after dinner' : c.when === 'evening' ? ', in the evening' : c.when === 'offday' ? ', a bigger job' : ''}`).join('; ') || 'none due'}. Chores not listed aren't needed today: don't add them.`,
       `Daily essentials I want in every day, when I'm free for them: ${essentials.join(', ')}.`,
       `This is a ${dayType(k)}.${(() => { const wx = ctx.weatherFor && ctx.weatherFor(d); return wx ? ` Weather: high ${wx.max}°, ${wx.rain}% chance of rain${rainy(k) ? ' (plan movement indoors)' : ''}.` : ''; })()}`,
       workoutBrief(k),
@@ -930,6 +999,13 @@ window.createPlanner = function createPlanner(ctx) {
     for (const c of choresLeft) {
       const o = overdueOn(c, tomorrow);
       const when = c.plans && c.plans[tomorrow] ? `tomorrow at ${fmtTime(c.plans[tomorrow])}` : 'tomorrow';
+      if (c.need === 'meals' && c.pushed < 2) {
+        const sink = /dish|sink/i.test(c.title);
+        parts.push(sink
+          ? `${choreTitle(c)}: there's ${mealsSince(c).length > 1 ? 'a few meals\' worth' : 'stuff'} in the sink from today. Ten minutes before bed and you wake up to a clean kitchen. Start with: ${c.first || 'fill the sink'}. (If there's nothing to wash, tap “Nothing to wash”.)`
+          : `${choreTitle(c)}: you cooked today, so it's a quick one before bed. Start with: ${c.first || 'grab a cloth'}. (If it's already clean, tap “Nothing to clean”.)`);
+        continue;
+      }
       parts.push(`${choreTitle(c)} didn't happen${o > 0 ? `; by tomorrow it's ${o} day${o === 1 ? '' : 's'} overdue` : ''}. It's back on ${when}${c.pushed >= 2 ? `, early, and only ${Math.min(25, c.mins || 15)} minutes` : ''}. Start with: ${c.first || 'set a timer for five minutes and begin'}.`);
     }
     if (goalBits.length) parts.push(`Goals: ${goalBits.join(' · ')}`);
@@ -1047,6 +1123,12 @@ window.createPlanner = function createPlanner(ctx) {
       const unit = /\$/.test(s) ? '$' : m[3] || '';
       const r = addGoal({ title: `${m[1]} ${unit === '$' ? '$' : ''}${m[2]}${unit && unit !== '$' ? ` ${unit}` : ''} a ${m[4]}`, kind: 'amount', target: Number(m[2]), unit, per: m[4].toLowerCase() });
       return [`New goal: ${r.goal}. Tell me as you go (“I saved $50”) and I'll keep track.`];
+    }
+    // Nothing to wash: "no dishes", "I ate out", "didn't cook"
+    if (state.chores.length && /\b(no dishes|nothing to wash|sink'?s? (is )?empty|didn'?t cook|ate out|eating out|got takeout|ordered (food|in|out))\b/i.test(s)) {
+      const meal = state.chores.filter((c) => c.need === 'meals' && (choreDue(c) || (c.plans && c.plans[dateKey()])));
+      for (const c of meal) choreNothing(c);
+      return [meal.length ? `Got it, nothing to wash. I took ${meal.map((c) => c.title.toLowerCase()).join(' and ')} off today.` : 'Nothing on the chore list needs that today anyway.'];
     }
     // Chores: "I did the dishes", "washed the dishes", "cleaned the bathroom", "took out the trash"
     if (state.chores.length && /\b(did|done|washed|cleaned|finished|took out|vacuumed|swept|changed|wiped|folded|deep cleaned)\b/i.test(s)) {
@@ -1436,7 +1518,7 @@ window.createPlanner = function createPlanner(ctx) {
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
     planReply, planDayAI, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
     nudgeEvents, dueNudges, notePushed, rankOf, dayType, SPLITS,
-    addChore, choreDone, deleteChore, renderChores, openChore: (id) => openChore(state.chores.find((c) => c.id === id) || null), choreTitle, overdueOn,
+    addChore, choreDone, deleteChore, choreNothing, mealsSince, renderChores, openChore: (id) => openChore(state.chores.find((c) => c.id === id) || null), choreTitle, overdueOn,
     parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
     restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },
   };
