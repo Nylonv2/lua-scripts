@@ -293,7 +293,7 @@
     if (top) top.textContent = name;
     const chatWho = document.querySelector('.chat-who b');
     if (chatWho) chatWho.lastChild.textContent = name;
-    for (const img of document.querySelectorAll('.top .avatar, .chat-av')) img.src = on ? 'icons/plain.svg' : (loadPictureSafe() || 'icons/icon.svg');
+    for (const img of document.querySelectorAll('.top .avatar, .chat-av, .toast-pic')) img.src = on ? 'icons/plain.svg' : (loadPictureSafe() || 'icons/icon.svg');
     const gn = document.getElementById('home-goodnight');
     if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
     document.title = on ? plainName() : 'Rias';
@@ -1328,7 +1328,7 @@
         else if (it.id === nextId) { row.classList.add('next'); flag = 'Up next'; }
         row.innerHTML = `<button type="button" class="check" aria-label="Mark done">${ICON('check')}</button>`
           + '<div class="ri-main"><div class="ri-title"></div><div class="ri-meta"></div></div>'
-          + (it.source === 'calendar' ? '' : `<span class="ri-chev">${ICON('chevron')}</span>`);
+          + (it.source === 'calendar' || it.essential ? '' : `<span class="ri-chev">${ICON('chevron')}</span>`);
         row.querySelector('.check').setAttribute('aria-label', st === 'done' ? `Undo ${it.title}` : `Mark ${it.title} done`);
         row.querySelector('.ri-title').textContent = it.title;
         const meta = row.querySelector('.ri-meta');
@@ -1336,7 +1336,7 @@
         add(fmtTime(it.time), 'ri-time');
         if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
-        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : '🎯 Goal', 'tag-chip plan');
+        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : '✦ Daily essential', 'tag-chip plan');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
         if (flag) add(flag, `tag-chip flag ${flag === 'Missed' ? 'warn' : ''}`);
@@ -2068,7 +2068,7 @@
         save(); refresh();
         const d = new Date(`${k}T12:00`);
         const list = itemsOn(d).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
-        return { date: k, plan: list.map((it) => `${it.time} ${it.title}${it.source === 'plan' ? (it.todoId ? ' [to-do]' : ' [goal]') : it.source === 'work' ? ' [work]' : ''}`),
+        return { date: k, plan: list.map((it) => `${it.time} ${it.title}${it.source === 'plan' ? (it.todoId ? ' [to-do]' : it.goalId ? ' [goal]' : ' [essential, added by the plan]') : it.source === 'work' ? ' [work]' : ''}`),
           not_planned: Planner.openTodos().filter((t) => !t.plan).map((t) => t.title) };
       },
       addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
@@ -2214,6 +2214,7 @@
   $('#stage').addEventListener('click', onRiasTap);
   $('#stage-pic').addEventListener('click', onRiasTap);
 
+  const minutesToBedtimeStart = () => { const w = toMin(state.profile.wake), b = toMin(state.profile.sleep); return (b > w ? b : 1440) - 180; };
   function renderHome() {
     if (!state.profile) return;
     const animated = state.settings.homeChar !== 'picture' || !loadPicture();
@@ -2256,6 +2257,7 @@
       card.append(info);
     }
 
+    $('#home-plan').hidden = Planner.dayPlanned() || nm > minutesToBedtimeStart();
     // Coming up: the next few things after it
     const later = todaysItems().filter((it) => it !== next && it.id !== (next && next.id) && toMin(it.time) > nm && !statusOf(it.id)).slice(0, 3);
     $('#home-coming').hidden = !later.length;
@@ -2298,6 +2300,15 @@
     }
   }
   $('#home-coming').addEventListener('click', (e) => { if (e.target.closest('[data-go]')) show('today'); });
+  // "Plan my day": a full schedule around work, calendar and reminders, with the daily essentials.
+  function planMyDay() {
+    const lines = Planner.planReply(dateKey(), true);
+    show('today');
+    setRemMode('today');
+    lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
+    showToast({ text: lines[1] || 'Your day is planned.' });
+  }
+  for (const id of ['#home-plan-day', '#today-plan-day']) $(id).addEventListener('click', planMyDay);
   $('#next-card').addEventListener('click', (e) => {
     const b = e.target.closest('[data-next]');
     if (!b) { show('today'); return; }
@@ -2653,7 +2664,7 @@
     const item = findItem(id);
     if (item && item.source === 'work') { show('work'); return; }
     if (item && item.source === 'calendar') return; // edit it in your phone's calendar
-    if (item && item.source === 'plan') { setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
+    if (item && item.source === 'plan') { if (item.essential) return; setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
     openEditor(item && item.baseId ? state.items.find((it) => it.id === item.baseId) : item);
   });
 
@@ -2680,7 +2691,7 @@
   const DEFAULT_PIC = 'icons/icon.svg';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar') || img.classList.contains('chat-av')) ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar') || img.classList.contains('chat-av') || img.classList.contains('toast-pic')) ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -2808,8 +2819,8 @@
         if (it.source === 'calendar') continue;
         const start = at(k, it.time);
         if (it.source === 'plan') {
-          const key = it.todoId ? `t:${it.todoId}` : `g:${it.goalId}:${k}`;
-          out.push({ key, title: it.todoId ? `📋 ${it.title}` : `🎯 ${it.title}`, start, end: start + (it.mins || 30) * 60000 });
+          const key = it.todoId ? `t:${it.todoId}` : it.goalId ? `g:${it.goalId}:${k}` : it.id;
+          out.push({ key, title: it.todoId ? `📋 ${it.title}` : it.goalId ? `🎯 ${it.title}` : it.title, start, end: start + (it.mins || 30) * 60000 });
         } else if (!it.source && it.repeat === 'once') {
           out.push({ key: `r:${it.id}`, title: it.title, start, end: start + 15 * 60000 });
         }
@@ -3038,6 +3049,9 @@
     sf.elements.eveningCheckin.checked = state.settings.eveningCheckin !== false;
     sf.elements.checkinTime.value = state.settings.checkinTime || (state.profile ? minToTime(Planner.checkinMin()) : '21:30');
     sf.elements.planHours.value = String(state.settings.planHours || 3);
+    sf.elements.autoDay.checked = !!state.settings.autoDay;
+    { const on = Array.isArray(state.settings.essentials) ? state.settings.essentials : Planner.DEFAULT_ESSENTIALS;
+      for (const i of sf.querySelectorAll('input[name=essential]')) i.checked = on.includes(i.value); }
     calWriteHint();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.wakeName.value = state.settings.wakeName || '';
@@ -3301,6 +3315,8 @@
       classicLook: sf.elements.classicLook.checked,
       eveningCheckin: sf.elements.eveningCheckin.checked,
       planHours: Number(sf.elements.planHours.value) || 3,
+      autoDay: sf.elements.autoDay.checked,
+      essentials: [...sf.querySelectorAll('input[name=essential]:checked')].map((i) => i.value),
       wakeName: sf.elements.wakeName.value.trim(),
     });
     { // Only keep a custom check-in time if it was changed from the suggestion.

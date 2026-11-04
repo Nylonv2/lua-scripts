@@ -1689,6 +1689,12 @@ html:not([data-scene]) #set-menu .set-tile:first-child { border-top: 0; }
 html:not([data-scene]) #settings .btn-text, html:not([data-scene]) .stack button.btn-text:not(.primary):not(.danger):not(.btn-primary):not(.mem-del) { background: none; border: 0; backdrop-filter: none; }
 html:not([data-scene]) .biz-title { font-family: inherit; font-weight: 700; font-size: 1.4rem; letter-spacing: -.01em; text-shadow: none; }
 html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.active):not(.check) { border-color: var(--line); }
+.plan-day-btn { width: 100%; margin: 0 0 14px; }
+.plan-cta { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 18px; }
+.plan-cta > div { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plan-cta b { font-size: 1rem; }
+.plan-cta span { font-size: .875rem; color: var(--muted); }
+#view-today.month-mode .plan-day-btn { display: none; }
 </style>
 </head>
 <body>
@@ -1762,6 +1768,10 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
           <button type="button" class="btn-primary sm" id="update-get">Update</button>
         </div>
         <div class="card next-card holo" id="next-card"></div>
+        <div class="card plan-cta" id="home-plan" hidden>
+          <div><b>Want me to plan your day?</b><span>A schedule around your work and reminders, with meals, movement, focus time and winding down.</span></div>
+          <button type="button" class="btn-primary sm tonal" id="home-plan-day">⏱ Plan my day</button>
+        </div>
         <div class="coming" id="home-coming" hidden>
           <div class="coming-head"><span>Coming up</span><button type="button" class="btn-text" data-go="today">See all</button></div>
           <div class="list-card" id="home-coming-list"></div>
@@ -1874,6 +1884,7 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
             </div>
           </div>
         </div>
+        <button type="button" class="btn-primary plan-day-btn" id="today-plan-day">⏱ Plan my day</button>
         <div class="segmented" id="today-filter" role="tablist" aria-label="Show">
           <button type="button" data-f="all" class="active" role="tab">All</button>
           <button type="button" data-f="todo" role="tab">To do</button>
@@ -2328,6 +2339,22 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
           <label class="switch"><input name="calendarWrite" type="checkbox"> Add my plans to my phone's calendar (Google Calendar)</label>
           <p class="small voice-hint" id="calwrite-hint"></p>
           <p class="muted small">Planned to-dos, goal sessions, work shifts and one-time reminders appear in your calendar (and on your computer and watch). Only events she adds are ever changed.</p>
+          <div class="field"><span class="field-label">Daily essentials “Plan my day” makes room for</span>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" name="essential" value="morning"><span>🪥 Morning routine</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="breakfast"><span>🍳 Breakfast</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="lunch"><span>🥪 Lunch</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="dinner"><span>🍽️ Dinner</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="focus"><span>🎯 Focus block</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="move"><span>🏃 Movement</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="outside"><span>☀️ Daylight</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="connect"><span>💬 Check in with someone</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="tidy"><span>🧹 Tidy up</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="winddown"><span>🌙 Wind down</span></label>
+            </div>
+          </div>
+          <p class="muted small">She skips any you already have a reminder for at a time you're free, and works around your shifts and calendar.</p>
+          <label class="switch"><input name="autoDay" type="checkbox"> Plan my day automatically every morning</label>
           <label class="switch"><input name="eveningCheckin" type="checkbox"> Evening check-in: go over the day and move unfinished to-dos to tomorrow</label>
           <div class="row">
             <label>Check-in time <input name="checkinTime" type="time" aria-label="Check-in time"></label>
@@ -4447,6 +4474,7 @@ window.createPlanner = function createPlanner(ctx) {
   state.todos ||= [];   // [{ id, title, due: 'YYYY-MM-DD'|null, mins, priority: 'high'|'normal', notes, done, doneAt, created, plan: { date, time }|null, notOn }]
   state.goals ||= [];   // [{ id, title, kind: 'times'|'amount', times, target, unit, per: 'day'|'week'|'month', time: 'HH:MM'|'', mins, sessions, log: { date: n }, plans: { date: 'HH:MM' }, created }]
   state.checkedIn ||= {};
+  state.dayPlans ||= {}; // { date: { made, items: [{ key, title, time, mins, cat }] } }: daily essentials placed by "Plan my day"
   const pad = (n) => String(n).padStart(2, '0');
   const minToTime = (m) => `${pad(Math.floor(((m % 1440) + 1440) % 1440 / 60))}:${pad(((m % 60) + 60) % 60)}`;
   const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
@@ -4570,7 +4598,76 @@ window.createPlanner = function createPlanner(ctx) {
       const tm = g.plans && g.plans[k];
       if (tm) out.push({ id: `g:${g.id}`, time: tm, title: g.title, category: 'goal', source: 'plan', goalId: g.id, mins: g.mins });
     }
+    const dp = state.dayPlans[k];
+    if (dp) for (const x of dp.items) out.push({ id: `e:${k}:${x.key}`, time: x.time, title: x.title, category: x.cat, source: 'plan', essential: x.key, mins: x.mins });
     return out;
+  }
+
+  // ---------- daily essentials: the basics every day should have ----------
+  // win: [earliest, latest] start in minutes (functions get wake / bed); pref: preferred start.
+  const ESSENTIALS = [
+    { key: 'morning', title: 'Morning routine: water, wash up, get dressed', mins: 20, cat: 'hygiene', win: (w) => [w, w + 60], pref: (w) => w + 5, anchored: true, covers: /shower|brush|wash|get ready|dress/i },
+    { key: 'breakfast', title: 'Breakfast', mins: 20, cat: 'meal', win: (w) => [w + 15, Math.max(w + 90, 10 * 60 + 30)], pref: (w) => w + 40, anchored: true, covers: /breakfast/i },
+    { key: 'lunch', title: 'Lunch', mins: 30, cat: 'meal', win: () => [11 * 60 + 30, 14 * 60 + 30], pref: () => 12 * 60 + 30, anchored: true, covers: /lunch/i },
+    { key: 'dinner', title: 'Dinner', mins: 40, cat: 'meal', win: (w, b) => [17 * 60 + 30, Math.min(20 * 60 + 30, b - 90)], pref: () => 18 * 60 + 45, anchored: true, covers: /dinner|supper/i },
+    { key: 'winddown', title: 'Wind down: screens off, plan tomorrow', mins: 30, cat: 'wind', win: (w, b) => [b - 75, b - 30], pref: (w, b) => b - 45, anchored: true, covers: /wind ?down|screens off/i },
+    { key: 'focus', title: 'Focus block: your most important task', mins: 90, cat: 'work', win: (w) => [w + 60, 17 * 60], pref: () => 9 * 60 + 30, covers: /focus|deep work|study/i },
+    { key: 'move', title: 'Move: workout or a brisk walk', mins: 30, cat: 'exercise', win: (w, b) => [w + 45, b - 150], pref: () => 17 * 60 + 30, covers: /walk|workout|work out|gym|run|exercise|yoga|lift|train/i },
+    { key: 'outside', title: 'Get outside for some daylight', mins: 15, cat: 'break', win: (w) => [w + 30, 16 * 60 + 30], pref: () => 13 * 60 + 15, covers: /outside|daylight|sunlight|walk/i },
+    { key: 'connect', title: 'Check in with someone you care about', mins: 10, cat: 'social', win: (w, b) => [12 * 60, b - 60], pref: () => 19 * 60 + 45, covers: /message|call (mom|dad|someone)|text (mom|dad|someone)|someone you care/i },
+    { key: 'tidy', title: 'Tidy up for 10 minutes', mins: 10, cat: 'chores', win: (w, b) => [16 * 60, b - 50], pref: () => 20 * 60 + 15, covers: /tidy|clean|chores|laundry|dishes/i },
+  ];
+  const DEFAULT_ESSENTIALS = ['morning', 'breakfast', 'lunch', 'dinner', 'winddown', 'focus', 'move', 'outside', 'connect'];
+  const chosenEssentials = () => (Array.isArray(state.settings.essentials) ? state.settings.essentials : DEFAULT_ESSENTIALS);
+  const bedMin = () => { const w = toMin(state.profile.wake), b = toMin(state.profile.sleep); return b > w ? b : 24 * 60 - 1; };
+  /** Fixed time on day k: work (with commute) and calendar events. Reminders aren't fixed; they're pings. */
+  function fixedOn(k) {
+    const d = dayOf(k), out = [];
+    const commute = state.settings.workReminders ? Number(state.settings.commute) || 0 : 0;
+    for (const sh of ctx.shiftsOn(d)) { const a = toMin(sh.start), b = toMin(sh.end); out.push([a - commute, (b <= a ? 1440 : b) + commute]); }
+    if (state.settings.phoneCalendar) {
+      for (const ev of state.phoneEvents || []) {
+        if (ev.allDay || dateKey(new Date(ev.begin)) !== k) continue;
+        const a = new Date(ev.begin), b = new Date(ev.end || ev.begin + 3600000);
+        out.push([a.getHours() * 60 + a.getMinutes(), dateKey(b) === k ? b.getHours() * 60 + b.getMinutes() : 1440]);
+      }
+    }
+    return out;
+  }
+  /** Is essential e already covered on day k by one of their reminders (at a time they're actually free) or a goal session? */
+  function covered(e, k) {
+    const [lo, hi] = e.win(toMin(state.profile.wake), bedMin());
+    const fixed = fixedOn(k);
+    const free = (t) => !fixed.some(([a, b]) => t >= a && t < b);
+    const match = (it) => (it.category === e.cat && e.cat !== 'work' && e.cat !== 'break') || e.covers.test(it.title);
+    if (ctx.baseItems(dayOf(k)).some((it) => !it.source && match(it) && toMin(it.time) >= lo - 30 && toMin(it.time) <= hi + 30 && free(toMin(it.time)))) return true;
+    if (e.key === 'move') return state.goals.some((g) => g.plans && g.plans[k] && e.covers.test(g.title));
+    return false;
+  }
+  /** Places the chosen essentials on day k (keeping ones already done). `which`: 'anchored' (meals, mornings, evenings) or 'flex'. */
+  function placeEssentials(k, which) {
+    if (!state.profile) return;
+    const w = toMin(state.profile.wake), b = bedMin();
+    const [from, to] = windowFor(k);
+    const plan = (state.dayPlans[k] ||= { made: Date.now(), items: [] });
+    for (const e of ESSENTIALS) {
+      if (!chosenEssentials().includes(e.key) || !!e.anchored !== (which === 'anchored')) continue;
+      if (plan.items.some((x) => x.key === e.key) || covered(e, k)) continue;
+      if (e.key === 'focus') {
+        // A day that already has a long to-do block doesn't need a separate focus block.
+        const todoMins = items(dayOf(k)).filter((it) => it.todoId).reduce((n, it) => n + (it.mins || 30), 0);
+        if (todoMins >= 90) continue;
+      }
+      const [lo, hi] = e.win(w, b);
+      const a = slot(busyOn(k), Math.max(from, lo), Math.min(to + 45, hi + e.mins), e.mins, Math.max(from, Math.min(hi, e.pref(w, b))));
+      if (a != null && a <= hi) plan.items.push({ key: e.key, title: e.title, time: minToTime(a), mins: e.mins, cat: e.cat });
+    }
+  }
+  /** "Plan my day" clears essentials that haven't happened yet so they can be placed again. */
+  function clearEssentials(k, from) {
+    const plan = state.dayPlans[k];
+    if (!plan) return;
+    plan.items = plan.items.filter((x) => (state.log[k] || {})[`e:${k}:${x.key}`] || toMin(x.time) < from);
   }
 
   // ---------- fitting things into free time ----------
@@ -4628,11 +4725,15 @@ window.createPlanner = function createPlanner(ctx) {
     if (!state.profile) return [];
     const [from, to] = windowFor(k);
     const before = new Map();
+    const fullDay = replan || (state.settings.autoDay && !state.dayPlans[k]);
     if (replan) {
+      clearEssentials(k, from);
       for (const t of openTodos()) if (t.plan && t.plan.date === k && toMin(t.plan.time) >= from) { before.set(t, t.plan); t.plan = null; }
       for (const g of state.goals) if (g.plans && g.plans[k] && toMin(g.plans[k]) >= from && !(state.log[k] || {})[`g:${g.id}`]) delete g.plans[k];
     }
-    // Goal sessions first: they happen at a set rhythm.
+    // A full day: meals, mornings and evenings first, at their natural times.
+    if (fullDay) placeEssentials(k, 'anchored');
+    // Goal sessions next: they happen at a set rhythm.
     for (const g of state.goals) {
       if (g.kind === 'amount' || g.sessions === false) continue;
       g.plans ||= {};
@@ -4658,6 +4759,8 @@ window.createPlanner = function createPlanner(ctx) {
       t.plan = { date: k, time: minToTime(a) };
       used += mins;
     }
+    // Then the flexible essentials (focus, movement, daylight, people) into what's left.
+    if (fullDay) { placeEssentials(k, 'flex'); state.dayPlans[k].made = Date.now(); }
     // Replanning never loses a to-do: one that found no new spot keeps its old one if that's still free.
     for (const [t, old] of before) {
       if (t.plan) continue;
@@ -4690,6 +4793,8 @@ window.createPlanner = function createPlanner(ctx) {
     lastAuto = sig;
     planDay(today);
     if (nowMin() >= checkinMin() - 60) planDay(addDays(today, 1));
+    // Old day plans aren't needed after a few days.
+    for (const k of Object.keys(state.dayPlans)) if (k < addDays(today, -7)) delete state.dayPlans[k];
     return true;
   }
   /** Ticking a planned item done (or skipping it) updates the to-do. */
@@ -4775,13 +4880,15 @@ window.createPlanner = function createPlanner(ctx) {
   // ---------- what she says ----------
   function planList(k) {
     const list = ctx.allItems(dayOf(k)).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
-    return list.map((it) => `${fmtTime(it.time)} ${it.title}${it.source === 'plan' ? (it.todoId ? ' (to-do)' : ' (goal)') : ''}`);
+    return list.map((it) => `${fmtTime(it.time)} ${it.title}${it.source === 'plan' ? (it.todoId ? ' (to-do)' : it.goalId ? ' (goal)' : '') : it.source === 'work' ? ' (work)' : ''}`);
   }
   function planReply(k = dateKey(), replan = false) {
     planDay(k, replan);
     changed();
     const list = planList(k);
-    const lines = [list.length ? `Here's your plan for ${dayWord(k)}:\n${list.map((l) => `• ${l}`).join('\n')}` : `Nothing left to plan for ${dayWord(k)}.`];
+    const added = replan ? items(dayOf(k)).filter((it) => it.essential && !(state.log[k] || {})[it.id]).length : 0;
+    const lines = [list.length ? `Here's your ${dayWord(k)}${replan ? ', planned around your schedule' : ''}:\n${list.map((l) => `• ${l}`).join('\n')}` : `Nothing left to plan for ${dayWord(k)}.`];
+    if (added) lines.push(`I added ${added} daily essential${added === 1 ? '' : 's'} where you had room (meals, movement, focus, daylight, winding down). I'll remind you at each one; swipe any you don't want.`);
     const unplanned = openTodos().filter((t) => !t.plan);
     if (unplanned.length) lines.push(`Still on your list for later: ${unplanned.slice(0, 4).map((t) => t.title).join(', ')}${unplanned.length > 4 ? '…' : ''}.`);
     return lines;
@@ -5159,7 +5266,7 @@ window.createPlanner = function createPlanner(ctx) {
     openGoal: (id) => openGoal(state.goals.find((g) => g.id === id) || null),
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
     planReply, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
-    parseDue, progress, streak, openTodos, match, dayWord,
+    parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
     restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },
   };
 };
@@ -5214,7 +5321,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done, and to take things back: delete_reminder, delete_food_log, remove_water, delete_work_shift, and undo (undo the last thing you added, or bring back the last thing deleted). Delete only what they ask for; if it's unclear which one, ask. After deleting, say what you removed and that they can say "bring it back". Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
-- You also keep their to-do list and goals (both in the app context). add_todo when they mention something they need to get done ("I need to finish the edit by Friday"): the app fits it into their free time and tells you when; mention that time. complete_todo / delete_todo when they finish or drop one. plan_day when they ask to plan or organize a day, or what's on their plan; it returns the plan, so summarize it briefly (the main blocks, not every reminder). add_goal for goals and habits ("gym 4 times a week", "save $200 a month"); the app plans sessions and tracks streaks. log_goal when they report progress ("went to the gym", "saved $50"). Be encouraging about progress and honest about what's behind.
+- You also keep their to-do list and goals (both in the app context). add_todo when they mention something they need to get done ("I need to finish the edit by Friday"): the app fits it into their free time and tells you when; mention that time. complete_todo / delete_todo when they finish or drop one. plan_day when they ask to plan or organize a day, or what's on their plan; with replan true it builds a full day around their work, calendar and reminders and adds the daily essentials they're missing (meals, movement, a focus block, daylight, checking in with someone, winding down). It returns the plan, so summarize it briefly (the main blocks, not every reminder) and mention the essentials you added. add_goal for goals and habits ("gym 4 times a week", "save $200 a month"); the app plans sessions and tracks streaks. log_goal when they report progress ("went to the gym", "saved $50"). Be encouraging about progress and honest about what's behind.
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
 - Times are the user's local time. Use 24-hour HH:MM and YYYY-MM-DD dates in tool calls, based on the current date in the app context.
@@ -8185,7 +8292,7 @@ window.createTranslator = function createTranslator(ctx) {
     if (top) top.textContent = name;
     const chatWho = document.querySelector('.chat-who b');
     if (chatWho) chatWho.lastChild.textContent = name;
-    for (const img of document.querySelectorAll('.top .avatar, .chat-av')) img.src = on ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : (loadPictureSafe() || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K');
+    for (const img of document.querySelectorAll('.top .avatar, .chat-av, .toast-pic')) img.src = on ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : (loadPictureSafe() || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K');
     const gn = document.getElementById('home-goodnight');
     if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
     document.title = on ? plainName() : 'Rias';
@@ -9220,7 +9327,7 @@ window.createTranslator = function createTranslator(ctx) {
         else if (it.id === nextId) { row.classList.add('next'); flag = 'Up next'; }
         row.innerHTML = `<button type="button" class="check" aria-label="Mark done">${ICON('check')}</button>`
           + '<div class="ri-main"><div class="ri-title"></div><div class="ri-meta"></div></div>'
-          + (it.source === 'calendar' ? '' : `<span class="ri-chev">${ICON('chevron')}</span>`);
+          + (it.source === 'calendar' || it.essential ? '' : `<span class="ri-chev">${ICON('chevron')}</span>`);
         row.querySelector('.check').setAttribute('aria-label', st === 'done' ? `Undo ${it.title}` : `Mark ${it.title} done`);
         row.querySelector('.ri-title').textContent = it.title;
         const meta = row.querySelector('.ri-meta');
@@ -9228,7 +9335,7 @@ window.createTranslator = function createTranslator(ctx) {
         add(fmtTime(it.time), 'ri-time');
         if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
-        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : '🎯 Goal', 'tag-chip plan');
+        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : '✦ Daily essential', 'tag-chip plan');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
         if (flag) add(flag, `tag-chip flag ${flag === 'Missed' ? 'warn' : ''}`);
@@ -9960,7 +10067,7 @@ window.createTranslator = function createTranslator(ctx) {
         save(); refresh();
         const d = new Date(`${k}T12:00`);
         const list = itemsOn(d).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
-        return { date: k, plan: list.map((it) => `${it.time} ${it.title}${it.source === 'plan' ? (it.todoId ? ' [to-do]' : ' [goal]') : it.source === 'work' ? ' [work]' : ''}`),
+        return { date: k, plan: list.map((it) => `${it.time} ${it.title}${it.source === 'plan' ? (it.todoId ? ' [to-do]' : it.goalId ? ' [goal]' : ' [essential, added by the plan]') : it.source === 'work' ? ' [work]' : ''}`),
           not_planned: Planner.openTodos().filter((t) => !t.plan).map((t) => t.title) };
       },
       addGoal(input) { return Planner.addGoal({ ...input, times: input.times, mins: input.minutes, time: input.time || '' }); },
@@ -10106,6 +10213,7 @@ window.createTranslator = function createTranslator(ctx) {
   $('#stage').addEventListener('click', onRiasTap);
   $('#stage-pic').addEventListener('click', onRiasTap);
 
+  const minutesToBedtimeStart = () => { const w = toMin(state.profile.wake), b = toMin(state.profile.sleep); return (b > w ? b : 1440) - 180; };
   function renderHome() {
     if (!state.profile) return;
     const animated = state.settings.homeChar !== 'picture' || !loadPicture();
@@ -10148,6 +10256,7 @@ window.createTranslator = function createTranslator(ctx) {
       card.append(info);
     }
 
+    $('#home-plan').hidden = Planner.dayPlanned() || nm > minutesToBedtimeStart();
     // Coming up: the next few things after it
     const later = todaysItems().filter((it) => it !== next && it.id !== (next && next.id) && toMin(it.time) > nm && !statusOf(it.id)).slice(0, 3);
     $('#home-coming').hidden = !later.length;
@@ -10190,6 +10299,15 @@ window.createTranslator = function createTranslator(ctx) {
     }
   }
   $('#home-coming').addEventListener('click', (e) => { if (e.target.closest('[data-go]')) show('today'); });
+  // "Plan my day": a full schedule around work, calendar and reminders, with the daily essentials.
+  function planMyDay() {
+    const lines = Planner.planReply(dateKey(), true);
+    show('today');
+    setRemMode('today');
+    lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
+    showToast({ text: lines[1] || 'Your day is planned.' });
+  }
+  for (const id of ['#home-plan-day', '#today-plan-day']) $(id).addEventListener('click', planMyDay);
   $('#next-card').addEventListener('click', (e) => {
     const b = e.target.closest('[data-next]');
     if (!b) { show('today'); return; }
@@ -10545,7 +10663,7 @@ window.createTranslator = function createTranslator(ctx) {
     const item = findItem(id);
     if (item && item.source === 'work') { show('work'); return; }
     if (item && item.source === 'calendar') return; // edit it in your phone's calendar
-    if (item && item.source === 'plan') { setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
+    if (item && item.source === 'plan') { if (item.essential) return; setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
     openEditor(item && item.baseId ? state.items.find((it) => it.id === item.baseId) : item);
   });
 
@@ -10572,7 +10690,7 @@ window.createTranslator = function createTranslator(ctx) {
   const DEFAULT_PIC = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8ZGVmcz4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmciIGN4PSI1MCUiIGN5PSI0MCUiIHI9IjcwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzVhMGYyNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNjA5MGUiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4Mzk1YSIgc3Ryb2tlLXdpZHRoPSI2IiBvcGFjaXR5PSIuOSI+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE5NiIvPgogICAgPGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTYsODQgNDA1LDM0MiAxMDcsMzQyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMjU2LDQyOCAxMDcsMTcwIDQwNSwxNzAiIHN0cm9rZS13aWR0aD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZTgzOTVhIj4KICAgIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjYwIiByPSI4Ii8+PGNpcmNsZSBjeD0iNDUyIiBjeT0iMjU2IiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSI0NTIiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjI1NiIgcj0iOCIvPgogIDwvZz4KICA8dGV4dCB4PSIyNTYiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIKICAgICAgICBmb250LXNpemU9IjE1MCIgZm9udC1zdHlsZT0iaXRhbGljIiBmaWxsPSIjZjZlOWVlIj5SPC90ZXh0Pgo8L3N2Zz4K';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar') || img.classList.contains('chat-av')) ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar') || img.classList.contains('chat-av') || img.classList.contains('toast-pic')) ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWI4ZGVmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzc1NmM0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InVybCgjZykiLz48cGF0aCBkPSJNMzIgMTMuNWw0LjYgMTIuOSAxMi45IDQuNi0xMi45IDQuNkwzMiA0OC41bC00LjYtMTIuOS0xMi45LTQuNiAxMi45LTQuNnoiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjE3IiByPSIzLjIiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii44NSIvPjwvc3ZnPgo=' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -10700,8 +10818,8 @@ window.createTranslator = function createTranslator(ctx) {
         if (it.source === 'calendar') continue;
         const start = at(k, it.time);
         if (it.source === 'plan') {
-          const key = it.todoId ? `t:${it.todoId}` : `g:${it.goalId}:${k}`;
-          out.push({ key, title: it.todoId ? `📋 ${it.title}` : `🎯 ${it.title}`, start, end: start + (it.mins || 30) * 60000 });
+          const key = it.todoId ? `t:${it.todoId}` : it.goalId ? `g:${it.goalId}:${k}` : it.id;
+          out.push({ key, title: it.todoId ? `📋 ${it.title}` : it.goalId ? `🎯 ${it.title}` : it.title, start, end: start + (it.mins || 30) * 60000 });
         } else if (!it.source && it.repeat === 'once') {
           out.push({ key: `r:${it.id}`, title: it.title, start, end: start + 15 * 60000 });
         }
@@ -10930,6 +11048,9 @@ window.createTranslator = function createTranslator(ctx) {
     sf.elements.eveningCheckin.checked = state.settings.eveningCheckin !== false;
     sf.elements.checkinTime.value = state.settings.checkinTime || (state.profile ? minToTime(Planner.checkinMin()) : '21:30');
     sf.elements.planHours.value = String(state.settings.planHours || 3);
+    sf.elements.autoDay.checked = !!state.settings.autoDay;
+    { const on = Array.isArray(state.settings.essentials) ? state.settings.essentials : Planner.DEFAULT_ESSENTIALS;
+      for (const i of sf.querySelectorAll('input[name=essential]')) i.checked = on.includes(i.value); }
     calWriteHint();
     sf.elements.wakeMode.value = state.settings.wakeMode || 'off';
     sf.elements.wakeName.value = state.settings.wakeName || '';
@@ -11193,6 +11314,8 @@ window.createTranslator = function createTranslator(ctx) {
       classicLook: sf.elements.classicLook.checked,
       eveningCheckin: sf.elements.eveningCheckin.checked,
       planHours: Number(sf.elements.planHours.value) || 3,
+      autoDay: sf.elements.autoDay.checked,
+      essentials: [...sf.querySelectorAll('input[name=essential]:checked')].map((i) => i.value),
       wakeName: sf.elements.wakeName.value.trim(),
     });
     { // Only keep a custom check-in time if it was changed from the suggestion.

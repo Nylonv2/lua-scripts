@@ -61,7 +61,13 @@ how each day went; tap a day to see it, add a reminder for that date, or edit on
 **To-do:** your to-do list. Add things with a deadline, how long they take and whether they're important ("Finish the
 edit by Friday (2h)", or just tell her in the chat). She **fits each to-do into your free time** around work, meals,
 calendar events and your goals, puts it in Today like a reminder, and pings you when it's time. **⏱ Plan my day**
-rearranges the day. To-dos due soon always get time; the rest are spread out (up to 3 hours a day, changeable).
+builds your whole day: around your work (including the commute), calendar and reminders she adds the
+**daily essentials** you're missing (morning routine, breakfast, lunch, dinner, a focus block, movement, daylight,
+checking in with someone, winding down; tidying up is optional), fits in your to-dos and goal sessions, and reminds you
+at each one. Anything you already have a reminder for at a time you're free isn't added twice, and nothing lands during a
+shift. Find it on Today ("Want me to plan your day?"), at the top of Plan → Today, or just say "plan my day". Choose
+the essentials, or have it done automatically every morning, in Settings → Your day → Planning. To-dos due soon
+always get time; the rest are spread out (up to 3 hours a day, changeable).
 
 **Goals:** habits and targets, like "gym 4 times a week" (she plans the sessions into free days, with rest days when
 there's room) or "save $200 a month" (tell her as you go: "I saved $50"). Each goal shows this week's progress and your

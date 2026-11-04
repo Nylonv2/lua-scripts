@@ -1677,3 +1677,9 @@ html:not([data-scene]) #set-menu .set-tile:first-child { border-top: 0; }
 html:not([data-scene]) #settings .btn-text, html:not([data-scene]) .stack button.btn-text:not(.primary):not(.danger):not(.btn-primary):not(.mem-del) { background: none; border: 0; backdrop-filter: none; }
 html:not([data-scene]) .biz-title { font-family: inherit; font-weight: 700; font-size: 1.4rem; letter-spacing: -.01em; text-shadow: none; }
 html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.active):not(.check) { border-color: var(--line); }
+.plan-day-btn { width: 100%; margin: 0 0 14px; }
+.plan-cta { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 18px; }
+.plan-cta > div { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plan-cta b { font-size: 1rem; }
+.plan-cta span { font-size: .875rem; color: var(--muted); }
+#view-today.month-mode .plan-day-btn { display: none; }

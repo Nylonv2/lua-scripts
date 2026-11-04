@@ -84,6 +84,10 @@
           <button type="button" class="btn-primary sm" id="update-get">Update</button>
         </div>
         <div class="card next-card holo" id="next-card"></div>
+        <div class="card plan-cta" id="home-plan" hidden>
+          <div><b>Want me to plan your day?</b><span>A schedule around your work and reminders, with meals, movement, focus time and winding down.</span></div>
+          <button type="button" class="btn-primary sm tonal" id="home-plan-day">⏱ Plan my day</button>
+        </div>
         <div class="coming" id="home-coming" hidden>
           <div class="coming-head"><span>Coming up</span><button type="button" class="btn-text" data-go="today">See all</button></div>
           <div class="list-card" id="home-coming-list"></div>
@@ -196,6 +200,7 @@
             </div>
           </div>
         </div>
+        <button type="button" class="btn-primary plan-day-btn" id="today-plan-day">⏱ Plan my day</button>
         <div class="segmented" id="today-filter" role="tablist" aria-label="Show">
           <button type="button" data-f="all" class="active" role="tab">All</button>
           <button type="button" data-f="todo" role="tab">To do</button>
@@ -650,6 +655,22 @@
           <label class="switch"><input name="calendarWrite" type="checkbox"> Add my plans to my phone's calendar (Google Calendar)</label>
           <p class="small voice-hint" id="calwrite-hint"></p>
           <p class="muted small">Planned to-dos, goal sessions, work shifts and one-time reminders appear in your calendar (and on your computer and watch). Only events she adds are ever changed.</p>
+          <div class="field"><span class="field-label">Daily essentials “Plan my day” makes room for</span>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" name="essential" value="morning"><span>🪥 Morning routine</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="breakfast"><span>🍳 Breakfast</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="lunch"><span>🥪 Lunch</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="dinner"><span>🍽️ Dinner</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="focus"><span>🎯 Focus block</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="move"><span>🏃 Movement</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="outside"><span>☀️ Daylight</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="connect"><span>💬 Check in with someone</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="tidy"><span>🧹 Tidy up</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="winddown"><span>🌙 Wind down</span></label>
+            </div>
+          </div>
+          <p class="muted small">She skips any you already have a reminder for at a time you're free, and works around your shifts and calendar.</p>
+          <label class="switch"><input name="autoDay" type="checkbox"> Plan my day automatically every morning</label>
           <label class="switch"><input name="eveningCheckin" type="checkbox"> Evening check-in: go over the day and move unfinished to-dos to tomorrow</label>
           <div class="row">
             <label>Check-in time <input name="checkinTime" type="time" aria-label="Check-in time"></label>
