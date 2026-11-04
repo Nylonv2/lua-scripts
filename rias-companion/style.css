@@ -1692,3 +1692,14 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 #view-today.future-day .row-item .check { opacity: .35; }
 .dd-plan-row { display: flex; gap: 10px; margin: 12px 0 4px; }
 .dd-plan-row button { flex: 1; min-height: 44px; }
+/* Plan → Today header: the day switcher gets the full width, progress sits underneath (no overlap on narrow phones) */
+#view-today > .page-head { flex-direction: column; align-items: stretch; gap: 10px; }
+#view-today .day-pick { width: 100%; justify-content: space-between; }
+#view-today .day-pick > div { flex: 1; min-width: 0; text-align: center; }
+#view-today .day-pick .page-title { font-size: 1.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#view-today .day-pick .eyebrow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#view-today .progress-mini { align-self: center; display: flex; align-items: center; gap: 10px; }
+#view-today .progress-mini .ring { width: 30px; height: 30px; flex: none; }
+#view-today .progress-mini > div { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+#view-today .progress-mini .big { font-size: 1rem; font-weight: 700; }
+#view-today.future-day .progress-mini .ring { display: none; }
