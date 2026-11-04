@@ -1155,7 +1155,20 @@ button:active, .chip:active span { transform: scale(.97); }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .month-nav .page-title { font-size: 1.45rem; margin: 0; text-align: center; flex: 1; }
 .month-nav .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: rgba(var(--glass), .5); font-size: 1.3rem; }
-.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 38px; gap: 5px; padding: 12px; }
+/* Plan-a-week button at the end of each week row */
+.m-week { position: relative; z-index: 1; min-height: 44px; padding: 0; border-radius: 10px; border: 1px solid rgba(var(--a2), .5);
+  background: rgba(var(--a2), .12); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: inherit; cursor: pointer; }
+.m-week b { font-size: .85rem; line-height: 1; }
+.m-week small { font-size: .6rem; letter-spacing: .02em; color: var(--muted); }
+.m-week.done { border-style: dashed; background: transparent; }
+.m-week.sel { outline: 2px solid currentColor; outline-offset: 1px; background: rgba(var(--a2), .28); }
+.m-week.past { border: 0; background: none; }
+.m-wk-h { font-size: .6rem; }
+.m-day.wsel { outline: 2px solid rgba(var(--a2), .9); outline-offset: 0; }
+.wk-list .dd-time { min-width: 4.2em; }
+.wk-list li[data-wday] { cursor: pointer; }
+.wk-hint { font-size: .82rem; margin: 8px 2px 0; }
 .m-wd { text-align: center; font-family: Georgia, serif; font-style: italic; font-size: .72rem; color: #e8c477; letter-spacing: .1em; padding-bottom: 2px; position: relative; z-index: 1; }
 .m-day { position: relative; z-index: 1; aspect-ratio: 1; padding: 0; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .06); background: rgba(255, 255, 255, .03);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--text); font-size: .86rem; }

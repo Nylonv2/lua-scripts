@@ -99,6 +99,12 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**Plan a whole week:** in **Month**, every week row has its own **⏱ Plan** button on the right. Tap it to see that
+week (each day, work or day off, planned or not), then **Plan this week**. She plans every day that's left, in order,
+so workouts, chores, weekly jobs and to-dos are spread across the week instead of piled on one day. With your Claude key
+on, Claude plans each day. Afterwards the button shows ✓, she sends a day-by-day summary, and tapping a day opens it.
+You can also just say "plan my week" or "plan next week".
+
 **Chores that make sense (not the same list every day):** dishes and counters only come up when there's something to
 clean. If you log food, she counts meals eaten at home since you last did them; takeout, delivery, "from Chipotle" or
 "ate out" don't count. So doing the dishes last night and eating out today means no dishes. A dinner you cooked puts

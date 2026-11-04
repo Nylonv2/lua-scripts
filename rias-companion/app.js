@@ -23,6 +23,8 @@
   const uid = () => Math.random().toString(36).slice(2, 10);
   const pad = (n) => String(n).padStart(2, '0');
   const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const dateFromKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (k, n) => { const d = dateFromKey(k); d.setDate(d.getDate() + n); return dateKey(d); };
   const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const minToTime = (m) => { m = ((m % 1440) + 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
   const nowMin = (d = new Date()) => d.getHours() * 60 + d.getMinutes();
@@ -1572,6 +1574,16 @@
         return;
       }
     }
+    // "Plan my week" / "plan next week": every day left in that week.
+    const weekAsk = !photo && text.match(/^(?:can you |could you |please |hey,? )?(?:plan|organi[sz]e|schedule|map out)(?: out)? (?:my |the )?(this |next )?week\b/i);
+    if (weekAsk) {
+      const typing = showTyping();
+      const lines = await planWeekRun(addDays(mondayOf(new Date()), /next/i.test(weekAsk[1] || '') ? 7 : 0));
+      typing.remove();
+      lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 200 + i * 700));
+      renderToday();
+      return;
+    }
     // "Plan my day" with her AI on: she builds the day directly.
     const planAsk = !photo && text.match(/^(?:can you |could you |please |hey,? )?(?:plan|organi[sz]e|schedule|map out|make (?:me )?a (?:plan|schedule) for)(?: out)? (?:my |the |this |next )?(day|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
     if (planAsk && AI.enabled()) {
@@ -2390,6 +2402,36 @@
     lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
     showToast({ text: lines[0] });
   }
+  /** Monday (date key) of the week that `d` is in. */
+  function mondayOf(d) { const m = new Date(d); m.setDate(m.getDate() - ((m.getDay() + 6) % 7)); return dateKey(m); }
+  /** Plans every day left in the week starting Monday `mon`: with her AI one day at a time (in order), else the planner. */
+  async function planWeekRun(mon, progress) {
+    if (!AI.enabled()) return Planner.planWeek(mon);
+    const days = Planner.weekDays(mon);
+    for (let i = 0; i < days.length; i++) {
+      if (progress) progress(days[i], i, days.length);
+      if (!(await Planner.planDayAI(days[i]))) Planner.planDay(days[i], true);
+    }
+    save();
+    return Planner.weekReply(mon);
+  }
+  async function planMyWeek(mon, btn) {
+    if (planning) return;
+    planning = true;
+    const label = btn ? btn.textContent : '';
+    if (btn) btn.disabled = true;
+    let lines;
+    try {
+      lines = await planWeekRun(mon, (k, i, n) => { if (btn) btn.textContent = `⏳ Planning ${dateFromKey(k).toLocaleDateString([], { weekday: 'short' })} (${i + 1}/${n})…`; });
+    } finally {
+      planning = false;
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+    renderMonth();
+    renderToday();
+    lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
+    showToast({ text: 'Your week is planned. Tap a day to see it.' });
+  }
   $('#home-plan-day').addEventListener('click', () => planMyDay(dateKey()));
   $('#today-plan-day').addEventListener('click', () => planMyDay(viewKey()));
   $('#next-card').addEventListener('click', (e) => {
@@ -2531,7 +2573,7 @@
   $('#add').addEventListener('click', () => openEditor(null, viewDay || undefined));
 
   // ---------- month calendar (Reminders → Month) ----------
-  let monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1), monthSel = dateKey();
+  let monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1), monthSel = dateKey(), weekSel = null;
   // Plan tab: Today · To-do · Goals · Month
   function setRemMode(m) {
     for (const x of $('#rem-mode').children) x.classList.toggle('active', x.dataset.m === m);
@@ -2555,9 +2597,12 @@
   $('#m-prev').addEventListener('click', () => { monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1); renderMonth(); });
   $('#m-next').addEventListener('click', () => { monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1); renderMonth(); });
   $('#m-grid').addEventListener('click', (e) => {
+    const w = e.target.closest('[data-week]');
+    if (w) { weekSel = w.dataset.week; renderMonth(); $('#m-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
     const c = e.target.closest('[data-day]');
     if (!c) return;
     monthSel = c.dataset.day;
+    weekSel = null;
     renderMonth();
   });
   function dayStats(d) {
@@ -2580,6 +2625,7 @@
     for (const w of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
       const h = document.createElement('span'); h.className = 'm-wd'; h.textContent = w[0]; grid.append(h);
     }
+    const wh = document.createElement('span'); wh.className = 'm-wd m-wk-h'; wh.textContent = 'Wk'; grid.append(wh);
     const first = new Date(monthStart);
     first.setDate(first.getDate() - ((first.getDay() + 6) % 7));
     for (let i = 0; i < 42; i++) {
@@ -2590,7 +2636,8 @@
       c.type = 'button';
       c.dataset.day = st.k;
       const heat = st.ratio == null ? 0 : st.ratio >= 0.9 ? 4 : st.ratio >= 0.6 ? 3 : st.ratio >= 0.3 ? 2 : st.ratio > 0 ? 1 : 0;
-      c.className = `m-day h${st.past ? heat : 0}${d.getMonth() !== monthStart.getMonth() ? ' out' : ''}${st.k === dateKey() ? ' today' : ''}${st.k === monthSel ? ' sel' : ''}${st.past ? '' : ' future'}`;
+      const inWeek = weekSel && st.k >= weekSel && st.k <= addDays(weekSel, 6);
+      c.className = `m-day h${st.past ? heat : 0}${d.getMonth() !== monthStart.getMonth() ? ' out' : ''}${st.k === dateKey() ? ' today' : ''}${!weekSel && st.k === monthSel ? ' sel' : ''}${inWeek ? ' wsel' : ''}${st.past ? '' : ' future'}${Planner.dayPlanned(st.k) && st.k >= dateKey() ? ' planned' : ''}`;
       const special = st.oneOffs + st.events;
       if (special) c.classList.add('has-rem');
       const dots = '<i class="m-dot"></i>'.repeat(Math.min(st.oneOffs, 3)) + '<i class="m-dot ev"></i>'.repeat(Math.min(st.events, Math.max(0, 3 - st.oneOffs)));
@@ -2599,8 +2646,69 @@
       c.setAttribute('aria-label', d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
         + (special ? `, ${special} reminder${special === 1 ? '' : 's'}` : ''));
       grid.append(c);
+      if (i % 7 === 6) grid.append(weekButton(addDays(st.k, -6)));
     }
-    renderDayDetail();
+    if (weekSel) renderWeekDetail(); else renderDayDetail();
+  }
+  /** The button at the end of each week row: plan that week (weeks that are over get none). */
+  function weekButton(mon) {
+    const sun = addDays(mon, 6);
+    if (sun < dateKey()) { const s = document.createElement('span'); s.className = 'm-week past'; return s; }
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.week = mon;
+    const left = Planner.weekDays(mon);
+    const done = left.length && left.every((k) => Planner.dayPlanned(k));
+    b.className = `m-week${weekSel === mon ? ' sel' : ''}${done ? ' done' : ''}`;
+    b.innerHTML = done ? '<b>✓</b><small>Week</small>' : '<b>⏱</b><small>Plan</small>';
+    b.setAttribute('aria-label', `${done ? 'Planned: ' : 'Plan '}the week of ${dateFromKey(mon).toLocaleDateString([], { month: 'long', day: 'numeric' })}`);
+    return b;
+  }
+  function renderWeekDetail() {
+    const mon = weekSel, sun = addDays(mon, 6);
+    const box = $('#m-detail');
+    box.textContent = '';
+    const fmt = (k, o) => dateFromKey(k).toLocaleDateString([], o);
+    const head = document.createElement('div');
+    head.className = 'dd-head';
+    head.innerHTML = '<div><p class="eyebrow"></p><h3></h3></div>';
+    const thisWeek = mon === mondayOf(new Date()), nextWeek = mon === addDays(mondayOf(new Date()), 7);
+    head.querySelector('.eyebrow').textContent = thisWeek ? 'This week' : nextWeek ? 'Next week' : 'Week';
+    head.querySelector('h3').textContent = `${fmt(mon, { month: 'short', day: 'numeric' })} – ${fmt(sun, { month: 'short', day: 'numeric' })}`;
+    box.append(head);
+    const ul = document.createElement('ul');
+    ul.className = 'dd-list wk-list';
+    for (let i = 0; i < 7; i++) {
+      const k = addDays(mon, i), d = dateFromKey(k);
+      const li = document.createElement('li');
+      const past = k < dateKey();
+      li.className = past ? 'missed' : '';
+      li.dataset.wday = k;
+      const shifts = shiftsOn(d);
+      const n = past ? 0 : itemsOn(d).length;
+      li.innerHTML = '<span class="dd-dot"></span><span class="dd-time"></span><span class="dd-title"></span><span class="dd-tag"></span>';
+      li.querySelector('.dd-time').textContent = `${fmt(k, { weekday: 'short' })} ${d.getDate()}`;
+      li.querySelector('.dd-title').textContent = past ? 'Over' : (shifts.length ? '💼 Work' : 'Day off') + (Planner.dayPlanned(k) ? ` · ${n} things planned` : ' · not planned yet');
+      li.querySelector('.dd-tag').textContent = past ? '' : '›';
+      ul.append(li);
+    }
+    box.append(ul);
+    const left = Planner.weekDays(mon);
+    const row = document.createElement('div');
+    row.className = 'dd-plan-row';
+    const plan = document.createElement('button');
+    plan.type = 'button';
+    plan.className = 'btn-primary sm';
+    plan.id = 'm-plan-week';
+    const again = left.length && left.every((k) => Planner.dayPlanned(k));
+    plan.textContent = again ? '⏱ Plan this week again' : `⏱ Plan this week${left.length < 7 ? ` (${left.length} day${left.length === 1 ? '' : 's'} left)` : ''}`;
+    plan.addEventListener('click', () => planMyWeek(mon, plan));
+    row.append(plan);
+    box.append(row);
+    const hint = document.createElement('p');
+    hint.className = 'muted wk-hint';
+    hint.textContent = 'She spreads workouts, chores, weekly jobs and to-dos across the days, around your work. Tap a day to see or change it.';
+    box.append(hint);
   }
   function renderDayDetail() {
     const [y, m, dd] = monthSel.split('-').map(Number);
@@ -2678,6 +2786,8 @@
   }
   // Tap a reminder in the day: edit it (repeating ones change every day they repeat); shifts open Work.
   $('#m-detail').addEventListener('click', (e) => {
+    const wd = e.target.closest('.wk-list li[data-wday]');
+    if (wd) { if (wd.dataset.wday >= dateKey()) { setRemMode('today'); setViewDay(wd.dataset.wday); } return; }
     const li = e.target.closest('.dd-list li[data-id]');
     if (!li) return;
     if (li.dataset.src === 'work') { show('work'); return; }

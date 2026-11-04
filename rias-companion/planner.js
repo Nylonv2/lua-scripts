@@ -454,6 +454,11 @@ window.createPlanner = function createPlanner(ctx) {
   const choreDue = (c, k = dateKey()) => {
     // Meal-based chores only for today (tomorrow's meals haven't happened yet).
     if (c.need === 'meals' && k > dateKey()) return (c.pushed || 0) >= 2 && mealsSince(c).length > 0; // only a sink that's been left more than once gets planned ahead
+    // Planning ahead: a session already planned earlier (and not missed yet) counts as done then.
+    if (k > dateKey()) {
+      const ahead = Object.keys(c.plans || {}).filter((d) => d >= dateKey() && d < k && !(state.log[d] || {})[`c:${c.id}`]).sort().pop();
+      if (ahead && (!c.last || ahead > c.last)) return overdueOn(Object.assign({}, c, { last: ahead, lastTs: 0 }), k) >= 0;
+    }
     return overdueOn(c, k) >= 0;
   };
   function choreStatus(c) {
@@ -937,6 +942,39 @@ window.createPlanner = function createPlanner(ctx) {
     if (added) lines.push(`I added ${added} daily essential${added === 1 ? '' : 's'} where you had room (meals, movement, focus, daylight, winding down). I'll remind you at each one; swipe any you don't want.`);
     const unplanned = openTodos().filter((t) => !t.plan);
     if (unplanned.length) lines.push(`Still on your list for later: ${unplanned.slice(0, 4).map((t) => t.title).join(', ')}${unplanned.length > 4 ? '…' : ''}.`);
+    return lines;
+  }
+  /** The days of the week starting Monday `mon` that can still be planned (today onward). */
+  function weekDays(mon) {
+    const out = [];
+    for (let i = 0; i < 7; i++) { const k = addDays(mon, i); if (k >= dateKey()) out.push(k); }
+    return out;
+  }
+  /** "Mon 9: Gym: push day · Laundry · Wedding edit": the parts of a day that aren't routine. */
+  function weekLine(k) {
+    const d = dayOf(k);
+    const key = (it) => String(it.essential || '');
+    const big = items(d).filter((it) => it.todoId || it.goalId || it.choreId || key(it) === 'gym' || key(it).startsWith('wk-') || key(it).startsWith('ai'))
+      .sort((a, b) => toMin(a.time) - toMin(b.time))
+      .map((it) => it.title.replace(/\s*\(.*$/, '').trim());
+    const work = ctx.shiftsOn(d).length ? 'work' : 'day off';
+    return `${d.toLocaleDateString([], { weekday: 'short' })} ${d.getDate()} (${work}): ${big.length ? big.join(' · ') : 'routine + essentials'}`;
+  }
+  /** Plans every day left in the week starting Monday `mon`, in order (so workouts, chores and to-dos spread out). */
+  function planWeek(mon) {
+    const days = weekDays(mon);
+    for (const k of days) planDay(k, true);
+    changed();
+    return weekReply(mon);
+  }
+  function weekReply(mon) {
+    const days = weekDays(mon);
+    if (!days.length) return ['That week is already over.'];
+    const range = `${dayOf(days[0]).toLocaleDateString([], { month: 'short', day: 'numeric' })}–${dayOf(addDays(mon, 6)).toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    const lines = [`Your week is planned (${range}):\n${days.map((k) => `• ${weekLine(k)}`).join('\n')}`,
+      'Each day also has its meals, movement and wind-down. Open any day to see the times or change it.'];
+    const unplanned = openTodos().filter((t) => !t.plan);
+    if (unplanned.length) lines.push(`Didn't fit this week: ${unplanned.slice(0, 4).map((t) => t.title).join(', ')}${unplanned.length > 4 ? '…' : ''}.`);
     return lines;
   }
   /** One paragraph for the morning briefing. */
@@ -1516,7 +1554,7 @@ window.createPlanner = function createPlanner(ctx) {
     openTodo: (id) => openTodo(state.todos.find((t) => t.id === id) || null),
     openGoal: (id) => openGoal(state.goals.find((g) => g.id === id) || null),
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
-    planReply, planDayAI, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
+    planReply, planDayAI, planWeek, weekReply, weekDays, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
     nudgeEvents, dueNudges, notePushed, rankOf, dayType, SPLITS,
     addChore, choreDone, deleteChore, choreNothing, mealsSince, renderChores, openChore: (id) => openChore(state.chores.find((c) => c.id === id) || null), choreTitle, overdueOn,
     parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
