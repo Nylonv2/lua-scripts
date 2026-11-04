@@ -123,17 +123,24 @@ window.createPlanner = function createPlanner(ctx) {
   function items(d) {
     const k = dateKey(d);
     const out = [];
+    const todoItems = [];
     for (const t of state.todos) {
       if (t.plan && t.plan.date === k && (!t.done || t.doneVia === 'plan')) {
-        out.push({ id: `t:${t.id}`, time: t.plan.time, title: t.title, category: 'todo', source: 'plan', todoId: t.id, mins: t.mins });
+        const shrunk = (t.pushed || 0) >= 2 && !t.done;
+        todoItems.push({ id: `t:${t.id}`, time: t.plan.time, title: shrunk ? `Just start: ${t.title}` : t.title, category: 'todo', source: 'plan', todoId: t.id,
+          mins: t.plan.mins || t.mins, first: t.first || '', pushed: t.pushed || 0, rank: rankOf(t) });
       }
     }
+    // The one to do first: the most avoided / most urgent to-do of the day.
+    const open = todoItems.filter((it) => !(state.log[k] || {})[it.id]);
+    if (open.length) open.reduce((a, c) => (c.rank > a.rank ? c : a)).frog = true;
+    out.push(...todoItems);
     for (const g of state.goals) {
       const tm = g.plans && g.plans[k];
       if (tm) out.push({ id: `g:${g.id}`, time: tm, title: g.title, category: 'goal', source: 'plan', goalId: g.id, mins: g.mins });
     }
     const dp = state.dayPlans[k];
-    if (dp) for (const x of dp.items) out.push({ id: `e:${k}:${x.key}`, time: x.time, title: x.title, category: x.cat, source: 'plan', essential: x.key, mins: x.mins });
+    if (dp) for (const x of dp.items) out.push({ id: `e:${k}:${x.key}`, time: x.time, title: x.title, category: x.cat, source: 'plan', essential: x.key, mins: x.mins, first: x.first || '' });
     return out;
   }
 
@@ -145,13 +152,19 @@ window.createPlanner = function createPlanner(ctx) {
     { key: 'lunch', title: 'Lunch', mins: 30, cat: 'meal', win: () => [11 * 60 + 30, 14 * 60 + 30], pref: () => 12 * 60 + 30, anchored: true, covers: /lunch/i },
     { key: 'dinner', title: 'Dinner', mins: 40, cat: 'meal', win: (w, b) => [17 * 60 + 30, Math.min(20 * 60 + 30, b - 90)], pref: () => 18 * 60 + 45, anchored: true, covers: /dinner|supper/i },
     { key: 'winddown', title: 'Wind down: screens off, plan tomorrow', mins: 30, cat: 'wind', win: (w, b) => [b - 75, b - 30], pref: (w, b) => b - 45, anchored: true, covers: /wind ?down|screens off/i },
-    { key: 'focus', title: 'Focus block: your most important task', mins: 90, cat: 'work', win: (w) => [w + 60, 17 * 60], pref: () => 9 * 60 + 30, covers: /focus|deep work|study/i },
+    { key: 'focus', title: 'Focus block: the thing you\'ve been putting off', mins: 50, cat: 'work', first: 'close other apps, put your phone face down, open the task', win: (w) => [w + 60, 17 * 60], pref: () => 9 * 60 + 30, covers: /focus|deep work|study/i },
     { key: 'move', title: 'Move: workout or a brisk walk', mins: 30, cat: 'exercise', win: (w, b) => [w + 45, b - 150], pref: () => 17 * 60 + 30, covers: /walk|workout|work out|gym|run|exercise|yoga|lift|train/i },
     { key: 'outside', title: 'Get outside for some daylight', mins: 15, cat: 'break', win: (w) => [w + 30, 16 * 60 + 30], pref: () => 13 * 60 + 15, covers: /outside|daylight|sunlight|walk/i },
-    { key: 'connect', title: 'Check in with someone you care about', mins: 10, cat: 'social', win: (w, b) => [12 * 60, b - 60], pref: () => 19 * 60 + 45, covers: /message|call (mom|dad|someone)|text (mom|dad|someone)|someone you care/i },
-    { key: 'tidy', title: 'Tidy up for 10 minutes', mins: 10, cat: 'chores', win: (w, b) => [16 * 60, b - 50], pref: () => 20 * 60 + 15, covers: /tidy|clean|chores|laundry|dishes/i },
+    { key: 'tidy', title: 'Tidy up: one area, 15 minutes', mins: 15, cat: 'chores', win: (w, b) => [16 * 60, b - 50], pref: () => 19 * 60 + 45, covers: /tidy|clean|chores|laundry|dishes/i,
+      first: 'pick up five things and put them where they belong' },
   ];
-  const DEFAULT_ESSENTIALS = ['morning', 'breakfast', 'lunch', 'dinner', 'winddown', 'focus', 'move', 'outside', 'connect'];
+  const DEFAULT_ESSENTIALS = ['morning', 'breakfast', 'lunch', 'dinner', 'winddown', 'focus', 'move', 'outside', 'tidy'];
+  // Earlier choices: the "check in with someone" block is gone and tidying became a daily default.
+  if (Array.isArray(state.settings.essentials) && !state.settings.essentialsV2) {
+    state.settings.essentials = state.settings.essentials.filter((k) => k !== 'connect');
+    if (!state.settings.essentials.includes('tidy')) state.settings.essentials.push('tidy');
+    state.settings.essentialsV2 = true;
+  }
   const chosenEssentials = () => (Array.isArray(state.settings.essentials) ? state.settings.essentials : DEFAULT_ESSENTIALS);
   const bedMin = () => { const w = toMin(state.profile.wake), b = toMin(state.profile.sleep); return b > w ? b : 24 * 60 - 1; };
   /** Fixed time on day k: work (with commute) and calendar events. Reminders aren't fixed; they're pings. */
@@ -194,7 +207,7 @@ window.createPlanner = function createPlanner(ctx) {
       }
       const [lo, hi] = e.win(w, b);
       const a = slot(busyOn(k), Math.max(from, lo), Math.min(to + 45, hi + e.mins), e.mins, Math.max(from, Math.min(hi, e.pref(w, b))));
-      if (a != null && a <= hi) plan.items.push({ key: e.key, title: e.title, time: minToTime(a), mins: e.mins, cat: e.cat });
+      if (a != null && a <= hi) plan.items.push({ key: e.key, title: e.title, time: minToTime(a), mins: e.mins, cat: e.cat, first: e.first || '' });
     }
   }
   /** "Plan my day" clears essentials that haven't happened yet so they can be placed again. */
@@ -202,6 +215,12 @@ window.createPlanner = function createPlanner(ctx) {
     const plan = state.dayPlans[k];
     if (!plan) return;
     plan.items = plan.items.filter((x) => (state.log[k] || {})[`e:${k}:${x.key}`] || toMin(x.time) < from);
+  }
+
+  /** How much a to-do needs doing first: put off before, then deadline, then marked important. */
+  function rankOf(t) {
+    const days = t.due ? Math.round((dayOf(t.due) - dayOf(dateKey())) / 86400000) : 30;
+    return (t.pushed || 0) * 100 + (t.priority === 'high' ? 40 : 0) + Math.max(0, 30 - days);
   }
 
   // ---------- fitting things into free time ----------
@@ -282,15 +301,17 @@ window.createPlanner = function createPlanner(ctx) {
     }
     // Then to-dos: overdue and soonest-due first, important first; spread over days by the daily budget.
     let used = openTodos().filter((t) => t.plan && t.plan.date === k).reduce((n, t) => n + (t.mins || 30), 0);
+    // Most-avoided first (they get the earliest slot of the day), then by deadline and importance.
     const waiting = openTodos().filter((t) => (!t.plan || t.plan.date < dateKey()) && t.notOn !== k)
-      .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (b.priority === 'high') - (a.priority === 'high') || a.created - b.created);
+      .sort((a, b) => rankOf(b) - rankOf(a) || a.created - b.created);
     for (const t of waiting) {
-      const mins = t.mins || 30;
+      const shrink = (t.pushed || 0) >= 2;
+      const mins = shrink ? Math.min(25, t.mins || 30) : t.mins || 30;
       const urgent = t.due && t.due <= addDays(k, 1);
       if (!urgent && used + mins > dailyBudget()) continue;
       const a = slot(busyOn(k), from, to, mins);
       if (a == null) continue;
-      t.plan = { date: k, time: minToTime(a) };
+      t.plan = shrink ? { date: k, time: minToTime(a), mins } : { date: k, time: minToTime(a) };
       used += mins;
     }
     // Then the flexible essentials (focus, movement, daylight, people) into what's left.
@@ -338,15 +359,16 @@ window.createPlanner = function createPlanner(ctx) {
       const st = (state.log[t.plan.date] || {})[`t:${t.id}`];
       if (st === 'done' && !t.done) { t.done = true; t.doneAt = Date.now(); t.doneVia = 'plan'; }
       else if (!st && t.done && t.doneVia === 'plan') { t.done = false; t.doneAt = 0; t.doneVia = ''; } // undone from the list
-      else if (st === 'skipped' && !t.done) { t.notOn = t.plan.date; t.plan = null; }
+      else if (st === 'skipped' && !t.done) { t.notOn = t.plan.date; t.plan = null; t.pushed = (t.pushed || 0) + 1; }
     }
   }
 
   // ---------- actions (UI, chat and her AI all use these) ----------
-  function addTodo({ title, due = null, mins = null, priority = 'normal', notes = '' }) {
+  function addTodo({ title, due = null, mins = null, priority = 'normal', notes = '', first = '' }) {
     title = String(title || '').trim().replace(/^to ?do:?\s*/i, '');
     if (!title) return { error: 'empty to-do' };
-    const t = { id: uid(), title: title[0].toUpperCase() + title.slice(1), due: due || null, mins: Number(mins) || 30, priority: priority === 'high' ? 'high' : 'normal', notes, done: false, created: Date.now(), plan: null };
+    const t = { id: uid(), title: title[0].toUpperCase() + title.slice(1), due: due || null, mins: Number(mins) || 30, priority: priority === 'high' ? 'high' : 'normal', notes, done: false, created: Date.now(), plan: null,
+      first: String(first || '').trim().replace(/[.]+$/, ''), pushed: 0 };
     state.todos.push(t);
     ctx.noteAdded && ctx.noteAdded({ kind: 'todo', id: t.id });
     planDay(dateKey());
@@ -413,7 +435,7 @@ window.createPlanner = function createPlanner(ctx) {
 
   // ---------- Plan my day with her AI (Claude or Gemini) ----------
   const catFor = (t) => (/breakfast|lunch|dinner|meal|eat|snack/i.test(t) ? 'meal' : /walk|gym|workout|work out|run|exercise|yoga|stretch|lift/i.test(t) ? 'exercise'
-    : /wind ?down|bed|sleep/i.test(t) ? 'wind' : /shower|brush|wash|dress|morning routine/i.test(t) ? 'hygiene' : /call|text|message|friend|family|someone/i.test(t) ? 'social'
+    : /wind ?down|bed|sleep/i.test(t) ? 'wind' : /shower|brush|wash|dress|morning routine/i.test(t) ? 'hygiene'
       : /clean|tidy|laundry|dishes|chores/i.test(t) ? 'chores' : /break|outside|daylight|rest|nap/i.test(t) ? 'break' : /focus|work|study|deep|edit|write/i.test(t) ? 'work' : 'custom');
   const hm = (m) => minToTime(m);
   /** Everything about day k, for her AI to plan from. */
@@ -433,7 +455,7 @@ window.createPlanner = function createPlanner(ctx) {
     }
     const log = state.log[k] || {};
     const reminders = ctx.baseItems(d).filter((it) => !it.source).map((it) => `${it.time} ${it.title}${log[it.id] ? ` (${log[it.id]})` : ''}`);
-    const todos = openTodos().slice(0, 20).map((t) => `id ${t.id}: "${t.title}", about ${t.mins || 30} min${t.due ? `, ${dueLabel(t.due)} (${t.due})` : ''}${t.priority === 'high' ? ', IMPORTANT' : ''}`);
+    const todos = openTodos().slice(0, 20).sort((a, c) => rankOf(c) - rankOf(a)).map((t) => `id ${t.id}: "${t.title}", about ${t.mins || 30} min${t.due ? `, ${dueLabel(t.due)} (${t.due})` : ''}${t.priority === 'high' ? ', IMPORTANT' : ''}${t.pushed ? `, PUT OFF ${t.pushed} TIME${t.pushed === 1 ? '' : 'S'} already` : ''}${t.first ? `, first step so far: "${t.first}"` : ''}`);
     const goals = state.goals.filter((g) => g.kind !== 'amount' && g.sessions !== false && !(amountOn(g, k) > 0)).map((g) => {
       const p = progress(g, k);
       return `id ${g.id}: "${g.title}", ${p.n} of ${p.need} done ${g.per === 'day' ? 'today' : `this ${g.per}`}, sessions ${g.mins || 45} min${g.time ? `, usually around ${g.time}` : ''}`;
@@ -451,6 +473,7 @@ window.createPlanner = function createPlanner(ctx) {
       `Goals that could use a session today (plan one only if it makes sense for the rhythm, e.g. leave rest days): ${goals.length ? goals.join('; ') : 'none'}.`,
       amountGoals.length ? `Other goals (no time block needed, but you can mention them): ${amountGoals.join('; ')}.` : '',
       `Daily essentials I want in every day, when I'm free for them: ${essentials.join(', ')}.`,
+      'Why I use this: I procrastinate, and nobody else holds me to anything (no one comes over, no boss checking), so this plan is my structure and accountability. Plan to beat procrastination: put the hardest or most put-off task in the first good focus window of the day; keep task blocks 25 to 50 minutes (a task put off twice or more gets a short 25-minute "just start" block); give every to-do, goal and chore block a tiny, concrete first step that takes under two minutes (first_step, e.g. "open the project and drag in today\'s footage"); include a short daily tidy-up; leave some breathing room so the day is doable, not overpacked. Never add blocks about texting, calling or checking in with people.',
       memory.length ? `Things you know about me (use them to make the plan fit me): ${memory.join('; ')}.` : '',
       '',
       'Make a realistic, kind schedule as blocks: essentials (kind "essential"), to-dos (kind "todo" with ref = its id), goal sessions (kind "goal" with ref = its id), and anything else that would genuinely help (kind "other", sparingly). Rules: blocks never overlap each other or the fixed times; leave about 10 minutes between blocks; meals at normal times; nothing heavy right before bed; a wind-down block before bed; do not repeat my reminders as blocks. Use 24-hour HH:MM times on this date only. Then a short message to me.',
@@ -471,6 +494,7 @@ window.createPlanner = function createPlanner(ctx) {
     const plan = (state.dayPlans[k] ||= { made: Date.now(), items: [] });
     const taken = fixedOn(k).concat(items(dayOf(k)).map((it) => [toMin(it.time), toMin(it.time) + (it.mins || 30)]));
     let placed = 0, n = 0;
+    const firstOf = (x) => String(x.first_step || '').trim().replace(/[.]+$/, '').slice(0, 140);
     const blocks = res.blocks.filter((x) => /^\d{1,2}:\d{2}$/.test(x.time || '')).sort((a, c) => toMin(a.time.padStart(5, '0')) - toMin(c.time.padStart(5, '0')));
     for (const x of blocks) {
       const a = toMin(x.time.padStart(5, '0'));
@@ -480,7 +504,8 @@ window.createPlanner = function createPlanner(ctx) {
       if (x.kind === 'todo') {
         const t = openTodos().find((y) => y.id === x.ref);
         if (!t || (t.plan && t.plan.date === k)) continue;
-        t.plan = { date: k, time: hm(a) };
+        t.plan = mins < (t.mins || 30) ? { date: k, time: hm(a), mins } : { date: k, time: hm(a) };
+        if (firstOf(x)) t.first = firstOf(x);
       } else if (x.kind === 'goal') {
         const g = state.goals.find((y) => y.id === x.ref);
         if (!g || (g.plans && g.plans[k])) continue;
@@ -488,7 +513,8 @@ window.createPlanner = function createPlanner(ctx) {
       } else {
         const title = String(x.title || '').trim().slice(0, 80);
         if (!title) continue;
-        plan.items.push({ key: `ai${Date.now().toString(36)}${n++}`, title, time: hm(a), mins, cat: catFor(title), ai: true });
+        if (/\b(text|call|message|check in with|catch up with)\b/i.test(title)) continue; // no people-related blocks
+        plan.items.push({ key: `ai${Date.now().toString(36)}${n++}`, title, time: hm(a), mins, cat: catFor(title), ai: true, first: firstOf(x) });
       }
       taken.push([a, a + mins]);
       placed++;
@@ -557,9 +583,10 @@ window.createPlanner = function createPlanner(ctx) {
     syncDone();
     const doneToday = state.todos.filter((t) => t.done && t.doneAt && dateKey(new Date(t.doneAt)) === k);
     const left = openTodos().filter((t) => t.plan && t.plan.date === k);
-    for (const t of left) { t.plan = null; t.notOn = ''; }
+    for (const t of left) { t.plan = null; t.notOn = ''; t.pushed = (t.pushed || 0) + 1; }
     planDay(tomorrow);
     const moved = left.map((t) => (t.plan ? `${t.title} (tomorrow ${fmtTime(t.plan.time)})` : t.title));
+    const stuck = left.filter((t) => t.pushed >= 2);
     const goalBits = state.goals.map((g) => {
       const p = progress(g);
       return `${g.title}: ${progressText(g)}${p.met ? ' ✓' : ''}`;
@@ -568,12 +595,70 @@ window.createPlanner = function createPlanner(ctx) {
     const parts = [ctx.plain() ? 'Evening check-in.' : ctx.say('Evening check-in, {name}~')];
     if (doneToday.length) parts.push(`Done today: ${doneToday.map((t) => t.title).join(', ')} ✓`);
     if (left.length) parts.push(`Not finished: ${moved.join(', ')}. I moved ${left.length === 1 ? 'it' : 'them'} to tomorrow. If you did ${left.length === 1 ? 'it' : 'any'} after all, tap below.`);
+    // Honest about what keeps getting put off, and make it small.
+    stuck.sort((a, c) => rankOf(c) - rankOf(a)).forEach((t, i) => {
+      const when = i === 0 ? "Tomorrow it's the first thing you do" : 'It comes right after';
+      parts.push(`“${t.title}” has been pushed ${t.pushed} times now. ${when}, and only 25 minutes. All you have to do is start: ${t.first || 'open it and work on it for five minutes'}.`);
+    });
     if (goalBits.length) parts.push(`Goals: ${goalBits.join(' · ')}`);
     const firsts = planList(tomorrow).slice(0, 4);
     if (firsts.length) parts.push(`Tomorrow starts with: ${firsts.join(', ')}.`);
     save();
     return { text: parts.join('\n\n'), todos: left.map((t) => t.id) };
   }
+  // ---------- getting started: nudges and sprint pings ----------
+  const startLine = (it) => `${it.first ? `Just ${it.first.replace(/^just /i, '')}` : 'Just do the first five minutes'}.`;
+  /** Pings that help you start and keep going, for day k: [{ key, at (minutes), text }]. */
+  function nudgesFor(k) {
+    const out = [];
+    const log = state.log[k] || {};
+    for (const it of items(dayOf(k))) {
+      if (log[it.id]) continue;
+      const nudgeable = it.todoId || it.goalId || ['focus', 'tidy'].includes(it.essential) || (it.essential && /work|chores|exercise/.test(it.category));
+      if (!nudgeable) continue;
+      const t0 = toMin(it.time);
+      if (state.settings.startNudge !== false) {
+        out.push({ key: `n:${it.id}`, at: t0 + 10, text: `Started “${it.title}” yet? ${startLine(it)} Five minutes, then decide if you keep going.` });
+      }
+      if (state.settings.sprints !== false && (it.mins || 0) >= 50) {
+        for (let m = 25; m + 5 < it.mins; m += 30) {
+          out.push({ key: `b:${it.id}:${m}`, at: t0 + m, text: `25 minutes done on “${it.title}”. Take 5: stand up, drink some water, no phone.` });
+          if (m + 30 <= it.mins) out.push({ key: `r:${it.id}:${m}`, at: t0 + m + 5, text: `Back in: the next 25 minutes on “${it.title}”.` });
+        }
+      }
+    }
+    return out;
+  }
+  /** For the phone's own schedule: nudges today and tomorrow. */
+  function nudgeEvents() {
+    const out = [];
+    for (const k of [dateKey(), addDays(dateKey(), 1)]) {
+      const d = dayOf(k);
+      for (const n of nudgesFor(k)) {
+        const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, n.at).getTime();
+        if (at > Date.now()) out.push({ at, text: n.text });
+      }
+    }
+    return out;
+  }
+  /** In the app: nudges whose time just came (each once). */
+  function dueNudges() {
+    const k = dateKey(), nm = nowMin();
+    const sent = ((state.nudged ||= {})[k] ||= {});
+    const out = [];
+    for (const n of nudgesFor(k)) {
+      if (sent[n.key] || n.at > nm) continue;
+      sent[n.key] = true;
+      if (nm - n.at <= 5) out.push(n.text); // missed ones (app was closed) were sent by the phone
+    }
+    return out;
+  }
+  /** Snoozing a planned to-do counts as putting it off. */
+  function notePushed(itemId) {
+    const t = state.todos.find((x) => `t:${x.id}` === itemId);
+    if (t && !t.done) t.pushed = (t.pushed || 0) + 1;
+  }
+
   /** For the phone's own schedule (fires even with the app closed). */
   function checkinEvents(days = 7) {
     if (!checkinOn()) return [];
@@ -711,6 +796,7 @@ window.createPlanner = function createPlanner(ctx) {
     const meta = row.querySelector('.ri-meta');
     const add = (text, cls) => meta.append(el('span', cls || '', text));
     if (t.priority === 'high' && !t.done) add('Important', 'tag-chip flag warn');
+    if ((t.pushed || 0) >= 1 && !t.done) add(`Pushed ${t.pushed}×`, 'tag-chip flag warn');
     if (t.due && !t.done) add(dueLabel(t.due), t.due < dateKey() ? 'tag-chip flag warn' : 'ri-sub');
     if (t.plan && !t.done) add(`⏱ ${dayWord(t.plan.date)} ${fmtTime(t.plan.time)}`, 'tag-chip plan');
     else if (!t.done) add('not planned yet', 'ri-sub');
@@ -771,13 +857,14 @@ window.createPlanner = function createPlanner(ctx) {
     if (!tf.elements.mins.value) tf.elements.mins.value = '30';
     tf.elements.priority.checked = !!(t && t.priority === 'high');
     tf.elements.notes.value = t ? t.notes || '' : '';
+    tf.elements.first.value = t ? t.first || '' : '';
     $('#todo-delete').hidden = !t;
     $('#todo-plan-info').textContent = t && t.plan && !t.done ? `Planned ${dayWord(t.plan.date)} at ${fmtTime(t.plan.time)}.` : '';
     tdlg.showModal();
   }
   tf.addEventListener('submit', (e) => {
     e.preventDefault();
-    const data = { title: tf.elements.title.value.trim(), due: tf.elements.due.value || null, mins: Number(tf.elements.mins.value) || 30, priority: tf.elements.priority.checked ? 'high' : 'normal', notes: tf.elements.notes.value.trim() };
+    const data = { title: tf.elements.title.value.trim(), due: tf.elements.due.value || null, mins: Number(tf.elements.mins.value) || 30, priority: tf.elements.priority.checked ? 'high' : 'normal', notes: tf.elements.notes.value.trim(), first: tf.elements.first.value.trim().replace(/[.]+$/, '') };
     if (!data.title) return;
     if (editing) {
       const replanNeeded = editing.mins !== data.mins || editing.due !== data.due;
@@ -897,6 +984,7 @@ window.createPlanner = function createPlanner(ctx) {
     openGoal: (id) => openGoal(state.goals.find((g) => g.id === id) || null),
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
     planReply, planDayAI, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
+    nudgeEvents, dueNudges, notePushed, rankOf,
     parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
     restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },
   };

@@ -664,13 +664,16 @@
               <label class="chip"><input type="checkbox" name="essential" value="focus"><span>🎯 Focus block</span></label>
               <label class="chip"><input type="checkbox" name="essential" value="move"><span>🏃 Movement</span></label>
               <label class="chip"><input type="checkbox" name="essential" value="outside"><span>☀️ Daylight</span></label>
-              <label class="chip"><input type="checkbox" name="essential" value="connect"><span>💬 Check in with someone</span></label>
-              <label class="chip"><input type="checkbox" name="essential" value="tidy"><span>🧹 Tidy up</span></label>
+              <label class="chip"><input type="checkbox" name="essential" value="tidy"><span>🧹 Tidy up (15 min)</span></label>
               <label class="chip"><input type="checkbox" name="essential" value="winddown"><span>🌙 Wind down</span></label>
             </div>
           </div>
           <p class="muted small">She skips any you already have a reminder for at a time you're free, and works around your shifts and calendar.</p>
           <label class="switch"><input name="autoDay" type="checkbox"> Plan my day automatically every morning</label>
+          <p class="field-label">Beating procrastination</p>
+          <label class="switch"><input name="startNudge" type="checkbox"> Nudge me 10 minutes into a block if it isn't done, with its first step</label>
+          <label class="switch"><input name="sprints" type="checkbox"> Break long blocks into 25-minute sprints with 5-minute breaks</label>
+          <p class="muted small">Every to-do gets a tiny first step. Anything you put off moves to first thing the next day and shrinks to a 25-minute “just start” block; the evening check-in tells you honestly what keeps getting pushed.</p>
           <label class="switch"><input name="eveningCheckin" type="checkbox"> Evening check-in: go over the day and move unfinished to-dos to tomorrow</label>
           <div class="row">
             <label>Check-in time <input name="checkinTime" type="time" aria-label="Check-in time"></label>
@@ -1136,6 +1139,7 @@
         </label>
       </div>
       <label class="switch"><input name="priority" type="checkbox"> Important (planned first)</label>
+      <label>First tiny step (under 2 minutes) <input name="first" maxlength="140" placeholder="e.g. open the project and drag in the footage"></label>
       <label>Notes <textarea name="notes" rows="2" maxlength="500"></textarea></label>
       <p class="muted small" id="todo-plan-info"></p>
       <div class="row">

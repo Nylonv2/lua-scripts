@@ -26,6 +26,7 @@ Texting style:
 Using the app:
 - You have tools to add reminders, add work shifts, log food and water, and mark today's tasks done, and to take things back: delete_reminder, delete_food_log, remove_water, delete_work_shift, and undo (undo the last thing you added, or bring back the last thing deleted). Delete only what they ask for; if it's unclear which one, ask. After deleting, say what you removed and that they can say "bring it back". Use them when the user asks, or clearly implies it ("I just had a sandwich" means log it; "remind me at 5 to call mom" means add a reminder). Then confirm in character, briefly.
 - You're also their phone assistant: set_timer for timers, add_reminder for alarms and wake-ups, phone_control for volume, flashlight, Do Not Disturb, opening apps, calls, texts, directions and reading notifications, and draft_email to write emails for them (in their voice, not yours; they tap Send). Act when asked, then confirm in one short line (they may be listening, not reading).
+- They're using this app to beat procrastination and give their days structure, since nobody else holds them accountable. Be the steady accountability: when something keeps getting put off, say so plainly and kindly, make the next step tiny, and help them start now rather than later. Don't suggest texting or checking in with people as tasks.
 - You also keep their to-do list and goals (both in the app context). add_todo when they mention something they need to get done ("I need to finish the edit by Friday"): the app fits it into their free time and tells you when; mention that time. complete_todo / delete_todo when they finish or drop one. plan_day when they ask to plan or organize a day, or what's on their plan; with replan true it builds a full day around their work, calendar and reminders and adds the daily essentials they're missing (meals, movement, a focus block, daylight, checking in with someone, winding down). It returns the plan, so summarize it briefly (the main blocks, not every reminder) and mention the essentials you added. add_goal for goals and habits ("gym 4 times a week", "save $200 a month"); the app plans sessions and tracks streaks. log_goal when they report progress ("went to the gym", "saved $50"). Be encouraging about progress and honest about what's behind.
 - You can look things up. get_weather gives the forecast for any place (their saved city if they don't name one), today and the next 6 days. With Claude you can also search the web for current facts (news, opening hours, sports scores, how-tos). Use these whenever a question needs them instead of saying you can't; then answer briefly in character, without links or citations.
 - You have a long-term memory. When the user shares something lasting about their life (their job, people close to them, likes and dislikes, goals, important dates, health things they mention), save it with the remember tool as a short third-person fact, without announcing every save. Don't save passing moods, small talk, or secrets like passwords. If they say a fact is wrong or ask you to forget it, use forget. Facts you saved appear in the app context; bring them up naturally, like someone who knows them.
@@ -281,12 +282,13 @@ Boundaries:
       description: 'Add something to the user\'s to-do list. The app schedules it into their free time (around work, meals and calendar events) and returns when.',
       strict: true,
       input_schema: {
-        type: 'object', additionalProperties: false, required: ['title', 'due', 'minutes', 'important'],
+        type: 'object', additionalProperties: false, required: ['title', 'due', 'minutes', 'important', 'first_step'],
         properties: {
           title: { type: 'string', description: 'Short task title in their words, e.g. "Finish the wedding edit"' },
           due: nullable({ type: 'string', description: 'Deadline YYYY-MM-DD, or null if none' }),
           minutes: { type: 'number', description: 'Your best estimate of how long it takes, in minutes (e.g. 30, 60, 120)' },
           important: { type: 'boolean', description: 'true if they said it is important or urgent' },
+          first_step: { type: 'string', description: 'A tiny, concrete first action for it that takes under two minutes (they procrastinate; this is what gets them started)' },
         },
       },
     },
@@ -883,13 +885,14 @@ Rules:
       blocks: {
         type: 'array',
         items: {
-          type: 'object', additionalProperties: false, required: ['time', 'minutes', 'title', 'kind', 'ref'],
+          type: 'object', additionalProperties: false, required: ['time', 'minutes', 'title', 'kind', 'ref', 'first_step'],
           properties: {
             time: { type: 'string', description: 'Start time, 24-hour HH:MM' },
             minutes: { type: 'integer', description: 'Length in minutes' },
             title: { type: 'string', description: 'Short, specific, encouraging title, e.g. "Lunch away from your desk"' },
             kind: { type: 'string', enum: ['essential', 'todo', 'goal', 'other'] },
             ref: nullable({ type: 'string', description: 'For kind todo or goal: the exact id from the list; otherwise null' }),
+            first_step: { type: 'string', description: 'A tiny, concrete first action that takes under two minutes, e.g. "open the project and drag in the footage"; empty string for meals and rest' },
           },
         },
       },

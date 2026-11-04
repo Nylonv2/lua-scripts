@@ -62,8 +62,8 @@ how each day went; tap a day to see it, add a reminder for that date, or edit on
 edit by Friday (2h)", or just tell her in the chat). She **fits each to-do into your free time** around work, meals,
 calendar events and your goals, puts it in Today like a reminder, and pings you when it's time. **⏱ Plan my day**
 builds your whole day: around your work (including the commute), calendar and reminders she adds the
-**daily essentials** you're missing (morning routine, breakfast, lunch, dinner, a focus block, movement, daylight,
-checking in with someone, winding down; tidying up is optional), fits in your to-dos and goal sessions, and reminds you
+**daily essentials** you're missing (morning routine, breakfast, lunch, dinner, a focus block for what you've been putting off,
+movement, daylight, a 15-minute tidy-up, winding down), fits in your to-dos and goal sessions, and reminds you
 at each one. Anything you already have a reminder for at a time you're free isn't added twice, and nothing lands during a
 shift. **With her AI on (your Claude key, or Gemini), Claude makes up the day itself:** the app sends it your
 shifts (with commute), calendar, reminders, to-dos with deadlines, goals, the essentials you picked and what she knows
@@ -73,6 +73,14 @@ request (roughly 1–4 cents with Opus, less with Sonnet; it shows in the cost m
 built-in planner does it. Find it on Today ("Want me to plan your day?"), at the top of Plan → Today, or just say "plan my day". Choose
 the essentials, or have it done automatically every morning, in Settings → Your day → Planning. To-dos due soon
 always get time; the rest are spread out (up to 3 hours a day, changeable).
+
+**Built to beat procrastination:** every to-do gets a tiny **first step** that takes under two minutes (Claude writes
+one, or add your own), and every reminder leads with it. Ten minutes into a block that isn't done she nudges you with
+that first step; long blocks are broken into **25-minute sprints** with 5-minute breaks. Anything you put off (skipped,
+snoozed or unfinished at the check-in) is counted: it's planned **first thing** the next day ("⭐ First thing"), and once
+it's been pushed twice it shrinks to a 25-minute **"Just start"** block, and the evening check-in says honestly what keeps
+getting pushed. A daily **tidy-up** is part of every planned day; the planner never adds tasks about texting or checking
+in with people. Turn the nudges and sprints on or off in Settings → Your day → Planning.
 
 **Goals:** habits and targets, like "gym 4 times a week" (she plans the sessions into free days, with rest days when
 there's room) or "save $200 a month" (tell her as you go: "I saved $50"). Each goal shows this week's progress and your

@@ -54,7 +54,6 @@
       mk(15 * 60, 'Stretch & rest your eyes', 'break'),
       mk(17 * 60 + 30, 'Walk or workout', 'exercise'),
       mk(19 * 60, 'Dinner', 'meal'),
-      mk(20 * 60, 'Message someone you care about', 'social'),
       mk(s - 60, 'Wind down — screens off soon', 'wind'),
       mk(s - 30, 'Brush teeth & get ready for bed', 'hygiene'),
       mk(s, 'Lights out', 'sleep'),
@@ -107,6 +106,11 @@
   } catch { state = blank(); }
   // Fill in settings added in newer versions.
   state.settings = { ...blank().settings, ...state.settings };
+  // The app no longer suggests messaging people: drop that reminder if it's still the original one it added.
+  if (!state.settings.noSocialV1) {
+    state.items = state.items.filter((it) => !(it.title === 'Message someone you care about' && it.category === 'social'));
+    state.settings.noSocialV1 = true;
+  }
   state.ai = { ...blank().ai, ...state.ai };
   let restoring = false; // a backup is being restored: don't overwrite it before the reload
   // The hidden copy that answers the widget / assistant stamps each save. If the stamp moved since
@@ -521,7 +525,8 @@
   }
 
   function fireItem(item) {
-    const line = say(pick(R.due[item.category] || R.due.custom), item);
+    // Planned blocks lead with the tiny first step: starting is the hard part.
+    const line = say(pick(R.due[item.category] || R.due.custom), item) + (item.first ? `\nStart with: ${item.first}.` : '') + (item.frog ? '\n⭐ This is the first thing today. Do it before anything else.' : '');
     riasSays(line, { itemId: item.id, title: item.title, time: item.time });
     showAlarm(item, line);
   }
@@ -646,6 +651,7 @@
         addMessage('rias', say(`You marked “${it.title}” done from my pop-up. ${pick(praiseLines())}`));
       } else if (a.action === 'snooze' && a.until > Date.now()) {
         state.snoozes = state.snoozes.filter((sn) => sn.id !== it.id).concat({ id: it.id, at: a.until });
+        if (Planner) Planner.notePushed(it.id);
       }
     }
     if (list.length) { updateSummary(); save(); renderToday(); renderStatus(); }
@@ -682,6 +688,7 @@
     if (!item || statusOf(itemId)) return;
     state.snoozes = state.snoozes.filter((s) => s.id !== itemId);
     state.snoozes.push({ id: itemId, at: Date.now() + mins * 60000 });
+    if (Planner) Planner.notePushed(itemId); // snoozing a to-do counts as putting it off
     addMessage('me', `${mins} more minutes…`);
     setTimeout(() => addMessage('rias', say(pick(R.snooze))), 500);
   }
@@ -719,6 +726,7 @@
     // To-dos and goal sessions fitted into today's free time; the evening check-in.
     if (Planner) {
       if (Planner.autoPlan()) renderToday();
+      for (const text of Planner.dueNudges()) riasSays(text); // "started yet?" and sprint breaks
       if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
         const c = Planner.checkIn();
         if (c) riasSays(c.text, { action: 'checkin', todos: c.todos });
@@ -1337,6 +1345,7 @@
         if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
         else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : it.goalId ? '🎯 Goal' : '✦ Daily essential', 'tag-chip plan');
+        if (it.frog && !st) add('⭐ First thing', 'tag-chip flag warn');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
         if (flag) add(flag, `tag-chip flag ${flag === 'Missed' ? 'warn' : ''}`);
@@ -2068,8 +2077,8 @@
       getWeather: weatherTool,
       remember({ fact }) { return remember(fact) ? { ok: true } : { ok: true, note: 'already remembered' }; },
       forget({ fact }) { return { ok: true, removed: forget(fact) }; },
-      addTodo({ title, due, minutes, important }) {
-        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal' });
+      addTodo({ title, due, minutes, important, first_step }) {
+        const r = Planner.addTodo({ title, due: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, mins: minutes, priority: important ? 'high' : 'normal', first: first_step || '' });
         return r.ok ? { ok: true, added: r.todo.title, due: r.todo.due, planned: r.planned || 'not yet: no free time soon, it waits on the list' } : r;
       },
       completeTodo({ title }) { return Planner.completeTodo(title); },
@@ -2906,7 +2915,7 @@
         const withBrief = brief && !briefed && it.category === 'wake';
         if (withBrief) briefed = true;
         events.push({
-          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${withBrief ? `\n${brief}` : ''}`,
+          at: t, text: `${say(pick(R.due[it.category] || R.due.custom), it)}${alarmFor(it) ? '' : `\n${fmtTime(it.time)} · ${it.title}`}${it.first ? `\nStart with: ${it.first}.` : ''}${withBrief ? `\n${brief}` : ''}`,
           itemId: it.id, title: `${fmtTime(it.time)} · ${it.title}`, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}),
           icon: CATEGORY_ICON[it.category] || '⏰',
         });
@@ -2940,7 +2949,7 @@
       const it = findItem(sn.id);
       if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}) });
     }
-    if (Planner) events.push(...Planner.checkinEvents(days));
+    if (Planner) events.push(...Planner.checkinEvents(days), ...Planner.nudgeEvents());
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
     const last = new Date(); last.setDate(last.getDate() + days);
     events.push({ at: at(last, w + 60), text: say("I haven't seen you in days, {name}. Open the app so I can keep planning your days.") });
@@ -3075,6 +3084,8 @@
     sf.elements.checkinTime.value = state.settings.checkinTime || (state.profile ? minToTime(Planner.checkinMin()) : '21:30');
     sf.elements.planHours.value = String(state.settings.planHours || 3);
     sf.elements.autoDay.checked = !!state.settings.autoDay;
+    sf.elements.startNudge.checked = state.settings.startNudge !== false;
+    sf.elements.sprints.checked = state.settings.sprints !== false;
     { const on = Array.isArray(state.settings.essentials) ? state.settings.essentials : Planner.DEFAULT_ESSENTIALS;
       for (const i of sf.querySelectorAll('input[name=essential]')) i.checked = on.includes(i.value); }
     calWriteHint();
@@ -3341,6 +3352,9 @@
       eveningCheckin: sf.elements.eveningCheckin.checked,
       planHours: Number(sf.elements.planHours.value) || 3,
       autoDay: sf.elements.autoDay.checked,
+      startNudge: sf.elements.startNudge.checked,
+      sprints: sf.elements.sprints.checked,
+      essentialsV2: true,
       essentials: [...sf.querySelectorAll('input[name=essential]:checked')].map((i) => i.value),
       wakeName: sf.elements.wakeName.value.trim(),
     });
