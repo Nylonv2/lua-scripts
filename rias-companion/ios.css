@@ -1,0 +1,348 @@
+/* =====================================================================================
+   iPhone style (the default look). Apple's design rules, using Ionic's iOS values:
+   system colors, grouped inset lists, large titles, a frosted tab bar, iOS switches,
+   segmented controls and bottom sheets. Light or dark (Settings → Look → Appearance).
+   Font: Inter (SIL OFL). Icons: Phosphor (MIT). The "Classic Rias look" (data-scene) skips this.
+   ===================================================================================== */
+@font-face {
+  font-family: "InterVar";
+  src: url("vendor/fonts/inter-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* ---------- tokens (the :not(#ios) beats theme and discreet-mode colors) ---------- */
+:root:not([data-scene]):not(#ios) {
+  --ios-tint: #007aff; --ios-tint-rgb: 0, 122, 255;
+  --ios-red: #ff3b30; --ios-green: #34c759; --ios-orange: #ff9500; --ios-yellow: #ffcc00; --ios-purple: #af52de; --ios-teal: #30b0c7;
+  --ios-bg: #f2f2f7; --ios-card: #ffffff; --ios-card-2: #f2f2f7; --ios-elev: #ffffff;
+  --ios-label: #000000; --ios-label-2: rgba(60, 60, 67, .6); --ios-label-3: rgba(60, 60, 67, .3);
+  --ios-sep: rgba(60, 60, 67, .29); --ios-sep-opaque: #c6c6c8;
+  --ios-fill: rgba(118, 118, 128, .12); --ios-fill-2: rgba(118, 118, 128, .2);
+  --ios-bar: rgba(249, 249, 249, .86); --ios-seg-on: #ffffff; --ios-bubble: #e9e9eb; --ios-shadow: rgba(0, 0, 0, .08);
+  --ios-switch-off: rgba(120, 120, 128, .16);
+  /* the rest of the app reads these */
+  --bg: var(--ios-bg); --panel: var(--ios-card); --panel-2: var(--ios-fill); --panel-solid: var(--ios-card);
+  --line: var(--ios-sep); --line-strong: var(--ios-sep-opaque); --text: var(--ios-label); --muted: var(--ios-label-2); --gold: var(--ios-label-2);
+  --g1: var(--ios-tint); --g2: var(--ios-tint); --crimson: var(--ios-tint); --crimson-2: var(--ios-tint);
+  --accent-soft: rgba(var(--ios-tint-rgb), .12); --a1: var(--ios-tint-rgb); --a2: var(--ios-tint-rgb); --a3: var(--ios-tint-rgb);
+  --radius: 12px; --radius-sm: 10px;
+  color-scheme: light;
+}
+:root[data-appearance="dark"]:not([data-scene]):not(#ios) {
+  --ios-tint: #0a84ff; --ios-tint-rgb: 10, 132, 255;
+  --ios-red: #ff453a; --ios-green: #30d158; --ios-orange: #ff9f0a; --ios-yellow: #ffd60a; --ios-purple: #bf5af2; --ios-teal: #40c8e0;
+  --ios-bg: #000000; --ios-card: #1c1c1e; --ios-card-2: #2c2c2e; --ios-elev: #2c2c2e;
+  --ios-label: #ffffff; --ios-label-2: rgba(235, 235, 245, .6); --ios-label-3: rgba(235, 235, 245, .3);
+  --ios-sep: rgba(84, 84, 88, .65); --ios-sep-opaque: #38383a;
+  --ios-fill: rgba(118, 118, 128, .24); --ios-fill-2: rgba(118, 118, 128, .32);
+  --ios-bar: rgba(22, 22, 23, .86); --ios-seg-on: #636366; --ios-bubble: #26252a; --ios-shadow: rgba(0, 0, 0, .5);
+  --ios-switch-off: rgba(120, 120, 128, .32);
+  color-scheme: dark;
+}
+/* Accent from the theme picker, in Apple's system colors */
+:root[data-theme="crimson"]:not([data-plain]):not([data-scene]):not(#ios) { --ios-tint: #ff2d55; --ios-tint-rgb: 255, 45, 85; }
+:root[data-theme="amethyst"]:not([data-plain]):not([data-scene]):not(#ios) { --ios-tint: #af52de; --ios-tint-rgb: 175, 82, 222; }
+:root[data-theme="midnight"]:not([data-plain]):not([data-scene]):not(#ios) { --ios-tint: #5856d6; --ios-tint-rgb: 88, 86, 214; }
+:root[data-theme="gold"]:not([data-plain]):not([data-scene]):not(#ios) { --ios-tint: #ff9500; --ios-tint-rgb: 255, 149, 0; }
+
+/* ---------- base ---------- */
+html:not([data-scene]) body {
+  background: var(--ios-bg); color: var(--ios-label);
+  font-family: "InterVar", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 17px; line-height: 1.35; letter-spacing: -.011em; font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+html:not([data-scene]) :is(button, input, select, textarea) { font-family: inherit; letter-spacing: inherit; }
+html:not([data-scene]) .app-bg, html:not([data-scene]) .scene-bg, html:not([data-scene]) .app[data-period] .app-bg,
+html:not([data-scene]) .chat-view[data-period] .scene-bg { background: var(--ios-bg); }
+html:not([data-scene]) .muted { color: var(--ios-label-2); }
+html:not([data-scene]) .muted.small, html:not([data-scene]) p.small { font-size: 13px; line-height: 1.38; }
+html:not([data-scene]) a, html:not([data-scene]) .link { color: var(--ios-tint); }
+html:not([data-scene]) ::selection { background: rgba(var(--ios-tint-rgb), .25); }
+
+/* ---------- large titles ---------- */
+html:not([data-scene]) :is(.page-title, .home-greet h1) {
+  font-size: 34px; font-weight: 700; letter-spacing: -.022em; line-height: 1.12; color: var(--ios-label); }
+html:not([data-scene]) :is(.eyebrow, .section-title, .group-title, .set-group h2, .tile-label, .next-card .next-label, .ns-label, .field-label, .test-label, .more-label, .coming-head) {
+  font-size: 13px !important; font-weight: 400 !important; letter-spacing: -.004em !important; text-transform: uppercase;
+  color: var(--ios-label-2) !important; }
+html:not([data-scene]) .eyebrow { text-transform: none !important; font-size: 15px !important; font-weight: 500 !important; }
+html:not([data-scene]) :is(h1, h2, h3, h4, .dd-head h3, .name, .biz-title) { font-family: inherit !important; font-style: normal; }
+html:not([data-scene]) :is(.group-title, .more-label, .coming-head) { margin: 26px 16px 7px !important; }
+html:not([data-scene]) .stack h2, html:not([data-scene]) dialog h2 { font-size: 20px; font-weight: 600; letter-spacing: -.017em; }
+
+/* The compact bar that appears when a big title scrolls away (ios.js) */
+.ios-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 40; pointer-events: none; opacity: 0;
+  padding: calc(env(safe-area-inset-top) + 12px) 56px 11px; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em;
+  background: var(--ios-bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: .5px solid var(--ios-sep); transition: opacity .18s ease; color: var(--ios-label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ios-nav.show { opacity: 1; }
+html[data-scene] .ios-nav { display: none; }
+
+/* ---------- tab bar: frosted, icons fill in when selected ---------- */
+html:not([data-scene]) .tabs {
+  background: var(--ios-bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+  border-top: .5px solid var(--ios-sep); padding: 4px 0 calc(env(safe-area-inset-bottom) + 2px); }
+html:not([data-scene]) .tabs button { min-height: 49px; gap: 2px; font-size: 10px; font-weight: 500; letter-spacing: .01em; color: #999999; }
+html:not([data-scene]) .tabs .tab-ic { width: auto; height: 28px; background: none !important; box-shadow: none !important; }
+html:not([data-scene]) .tabs .ic { width: 27px; height: 27px; }
+html:not([data-scene]) .tabs .ic-f { display: none; }
+html:not([data-scene]) .tabs button.active { color: var(--ios-tint); }
+html:not([data-scene]) .tabs button.active .ic-o { display: none; }
+html:not([data-scene]) .tabs button.active .ic-f { display: block; }
+html:not([data-scene]) .tabs button.active .tab-ic { color: var(--ios-tint); }
+html[data-scene] .tabs .ic-f { display: none; }
+
+/* ---------- inset grouped lists ---------- */
+html:not([data-scene]) :is(.card, .list-card, .set-group, .tile, .summary, .sched-card, .update-card, .food-entry, .more-list, .set-menu) {
+  background: var(--ios-card); border: 0 !important; border-radius: 12px; box-shadow: none; }
+html:not([data-scene]) .swipe .row-item, html:not([data-scene]) .swipe .row-item.done { background: var(--ios-card); }
+html:not([data-scene]) .row-item { min-height: 56px; padding: 11px 16px; gap: 12px; border: 0; position: relative; }
+/* hairline separators inset to the text, like iOS */
+html:not([data-scene]) .list-card .swipe + .swipe .row-item::before,
+html:not([data-scene]) .list-card > .row-item + .row-item::before,
+html:not([data-scene]) .coming-row + .coming-row::before,
+html:not([data-scene]) .more-row + .more-row::before,
+html:not([data-scene]) #set-menu .set-tile + .set-tile::before {
+  content: ""; position: absolute; top: 0; right: 0; left: 52px; border-top: .5px solid var(--ios-sep); }
+html:not([data-scene]) :is(.coming-row, .more-row, #set-menu .set-tile) { position: relative; border-top: 0 !important; }
+html:not([data-scene]) .coming-row + .coming-row::before { left: 16px; }
+html:not([data-scene]) .more-row + .more-row::before, html:not([data-scene]) #set-menu .set-tile + .set-tile::before { left: 62px; }
+html:not([data-scene]) .swipe { border-top: 0 !important; }
+html:not([data-scene]) .ri-title { font-size: 17px; font-weight: 400; letter-spacing: -.02em; }
+html:not([data-scene]) .ri-meta { font-size: 13px; color: var(--ios-label-2); gap: 6px; }
+html:not([data-scene]) .ri-time { color: var(--ios-label-2); font-variant-numeric: tabular-nums; }
+html:not([data-scene]) .ri-sub { color: var(--ios-label-2); }
+html:not([data-scene]) .ri-chev { color: var(--ios-label-3); }
+html:not([data-scene]) .ri-chev .ic { width: 15px; height: 15px; }
+html:not([data-scene]) .row-item.next { box-shadow: none; }
+html:not([data-scene]) .row-item.next .ri-title { font-weight: 600; }
+html:not([data-scene]) .row-item.missed .ri-title { color: var(--ios-label-2); }
+/* Reminders-style round checkbox */
+html:not([data-scene]) .check { width: 24px; height: 24px; min-width: 24px; border: 1.5px solid var(--ios-label-3); border-radius: 50%; background: none; color: transparent;
+  display: grid; place-items: center; padding: 0; transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
+html:not([data-scene]) .check .ic { width: 14px; height: 14px; }
+html:not([data-scene]) .row-item.done .check, html:not([data-scene]) .todo-row.done .check, html:not([data-scene]) .chore-row.done .check {
+  background: var(--ios-tint); border-color: var(--ios-tint); color: #fff; }
+html:not([data-scene]) .row-item.done .ri-title { color: var(--ios-label-2); text-decoration: none; }
+/* tags: small tinted capsules */
+html:not([data-scene]) .tag-chip { border-radius: 6px; padding: 1px 6px; font-size: 12px; font-weight: 500; letter-spacing: 0; background: var(--ios-fill); color: var(--ios-label-2); }
+html:not([data-scene]) .tag-chip.plan { background: rgba(var(--ios-tint-rgb), .12); color: var(--ios-tint); }
+html:not([data-scene]) .tag-chip.alm { background: rgba(255, 149, 0, .14); color: var(--ios-orange); }
+html:not([data-scene]) .tag-chip.work { background: var(--ios-fill); color: var(--ios-label-2); }
+html:not([data-scene]) .tag-chip.cal { background: rgba(52, 199, 89, .14); color: var(--ios-green); }
+html:not([data-scene]) .tag-chip.flag { background: var(--ios-fill); color: var(--ios-label); }
+html:not([data-scene]) .tag-chip.flag.warn { background: rgba(255, 59, 48, .12); color: var(--ios-red); }
+html:not([data-scene]) .tag-chip.cue { background: rgba(88, 86, 214, .13); color: #5856d6; }
+html:not([data-scene]) .tag-chip.pair { background: rgba(175, 82, 222, .13); color: var(--ios-purple); }
+html[data-appearance="dark"]:not([data-scene]) .tag-chip.cue { color: #7d7aff; }
+html:not([data-scene]) .chore-row.overdue { box-shadow: none; }
+html:not([data-scene]) .chore-row.overdue .ri-title::after { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ios-red); margin-left: 8px; vertical-align: middle; }
+
+/* ---------- buttons ---------- */
+html:not([data-scene]) :is(.btn-primary, button.primary, .stack button.primary, .plan-week, .tile-btn) {
+  background: var(--ios-tint) !important; color: #fff !important; border: 0 !important; border-radius: 12px; font-weight: 600; font-size: 17px; letter-spacing: -.02em; box-shadow: none; }
+html:not([data-scene]) :is(.btn-primary, button.primary, .stack button.primary) { min-height: 50px; }
+html:not([data-scene]) .btn-primary.sm { min-height: 36px; font-size: 15px; padding: 0 14px; border-radius: 18px; }
+html:not([data-scene]) .btn-primary.sm.tonal, html:not([data-scene]) .btn-primary.tonal {
+  background: rgba(var(--ios-tint-rgb), .12) !important; color: var(--ios-tint) !important; }
+html:not([data-scene]) .stack button:not(.primary):not(.danger):not(.btn-primary):not(.mem-del):not(.check):not(.icon-btn):not(.set-tile):not(.btn-text) {
+  background: var(--ios-fill); color: var(--ios-tint); border: 0; min-height: 50px; border-radius: 12px; font-size: 17px; font-weight: 500; }
+html:not([data-scene]) .stack button.danger { background: var(--ios-fill); border: 0; color: var(--ios-red); border-radius: 12px; min-height: 50px; font-weight: 500; }
+html:not([data-scene]) .btn-text { color: var(--ios-tint); font-weight: 400; font-size: 17px; }
+html:not([data-scene]) .icon-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--ios-fill); color: var(--ios-tint); border: 0; font-size: 20px; }
+html:not([data-scene]) button:active { transform: none; opacity: .55; }
+html:not([data-scene]) :is(.btn-primary, button.primary):active { opacity: .8; }
+/* the "new" button: iOS doesn't do floating blobs; a compact tinted capsule */
+html:not([data-scene]) .fab, html:not([data-scene]) .fab.extended {
+  background: var(--ios-tint) !important; color: #fff; border: 0 !important; height: 50px; min-width: 50px; border-radius: 25px; padding: 0 20px;
+  font-size: 17px; font-weight: 600; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 70px); border-radius: 25px !important;
+  box-shadow: 0 4px 14px rgba(var(--ios-tint-rgb), .35), 0 1px 3px rgba(0, 0, 0, .12); }
+html:not([data-scene]) .fab .ic { width: 22px; height: 22px; }
+
+/* ---------- segmented control ---------- */
+html:not([data-scene]) .segmented { background: var(--ios-fill); border: 0; border-radius: 9px; padding: 2px; gap: 0; }
+html:not([data-scene]) .segmented button { min-height: 32px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--ios-label); background: transparent; border: 0; box-shadow: none; position: relative; }
+html:not([data-scene]) .segmented button + button:not(.active)::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; border-left: .5px solid var(--ios-sep); }
+html:not([data-scene]) .segmented button.active + button::before { display: none; }
+html:not([data-scene]) .segmented button.active { background: var(--ios-seg-on); font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04); color: var(--ios-label); }
+
+/* ---------- form fields ---------- */
+html:not([data-scene]) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea) {
+  background: var(--ios-card); border: 0; border-radius: 10px; font-size: 17px; min-height: 44px; padding: 0 14px; color: var(--ios-label); box-shadow: none; }
+html:not([data-scene]) :is(.set-group, dialog, .card) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea) { background: var(--ios-fill); }
+html:not([data-scene]) textarea { padding: 10px 14px; }
+html:not([data-scene]) :is(input, select, textarea):focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--ios-tint-rgb), .5); }
+html:not([data-scene]) ::placeholder { color: var(--ios-label-3); }
+html:not([data-scene]) select { -webkit-appearance: none; appearance: none; padding-right: 34px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ios-label-2) 50%), linear-gradient(135deg, var(--ios-label-2) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+html:not([data-scene]) label { color: var(--ios-label); }
+
+/* iOS switch: label on the left, toggle on the right (same checkbox, so forms still work) */
+html:not([data-scene]) label.switch { display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; gap: 14px; min-height: 44px; font-size: 17px; line-height: 1.3; }
+html:not([data-scene]) label.switch input[type=checkbox] {
+  -webkit-appearance: none; appearance: none; flex: none; width: 51px; height: 31px; margin: 0; border-radius: 16px; position: relative; cursor: pointer;
+  background: var(--ios-switch-off); transition: background-color .25s ease; border: 0; }
+html:not([data-scene]) label.switch input[type=checkbox]::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .15), 0 3px 1px rgba(0, 0, 0, .06); transition: transform .25s cubic-bezier(.3, .7, .4, 1.2); }
+html:not([data-scene]) label.switch input[type=checkbox]:checked { background: var(--ios-green); }
+html:not([data-scene]) label.switch input[type=checkbox]:checked::after { transform: translateX(20px); }
+html:not([data-scene]) label.switch input[type=checkbox]:focus-visible { box-shadow: 0 0 0 3px rgba(var(--ios-tint-rgb), .4); }
+/* chips: filter pills */
+html:not([data-scene]) .chip span { min-height: 34px; padding: 0 13px; border-radius: 17px; background: var(--ios-fill); border: 0; color: var(--ios-label); font-size: 15px; font-weight: 500; }
+html:not([data-scene]) .chip input:checked + span { background: var(--ios-tint); color: #fff; box-shadow: none; }
+
+/* ---------- Today (home) ---------- */
+html:not([data-scene]) .top { background: transparent; }
+html:not([data-scene]) .home-greet h1 { font-size: 34px; }
+html:not([data-scene]) .home-greet p { color: var(--ios-label-2); font-size: 15px; }
+html:not([data-scene]) .home-hero { background: var(--ios-card); border: 0; border-radius: 12px; min-height: 0; padding: 14px 16px; }
+html:not([data-scene]) .home-hero .bubble { font-size: 17px; color: var(--ios-label); }
+html:not([data-scene]) .next-card { border-radius: 16px; padding: 18px; background: var(--ios-card); }
+html:not([data-scene]) .next-card .next-label { color: var(--ios-tint) !important; font-weight: 600 !important; }
+html:not([data-scene]) .next-card .next-title { font-size: 24px; font-weight: 700; letter-spacing: -.022em; }
+html:not([data-scene]) .next-card .next-time { color: var(--ios-label-2); font-size: 15px; }
+html:not([data-scene]) .next-card button { min-height: 50px; border-radius: 12px; font-size: 17px; background: var(--ios-fill); color: var(--ios-tint); }
+html:not([data-scene]) .next-card button.done { background: var(--ios-tint); color: #fff; }
+html:not([data-scene]) .next-card.waiting { box-shadow: 0 0 0 2px var(--ios-tint); }
+html:not([data-scene]) .coming .list-card, html:not([data-scene]) .coming > div:not(.coming-head) { border-radius: 12px; overflow: hidden; }
+html:not([data-scene]) .coming-row { min-height: 48px; font-size: 17px; background: var(--ios-card); }
+html:not([data-scene]) .coming-time { color: var(--ios-label-2); font-size: 15px; }
+html:not([data-scene]) .coming-head .btn-text { font-size: 15px; text-transform: none; }
+html:not([data-scene]) .tile { padding: 14px; min-height: 92px; border-radius: 12px; }
+html:not([data-scene]) .tile b { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+html:not([data-scene]) .tile-sub { color: var(--ios-label-2); font-size: 13px; }
+html:not([data-scene]) .tile-btn { min-height: 30px; font-size: 15px; border-radius: 15px !important; padding: 0 12px; background: rgba(var(--ios-tint-rgb), .12) !important; color: var(--ios-tint) !important; }
+html:not([data-scene]) .goodnight-btn { background: var(--ios-card); color: var(--ios-tint); }
+
+/* ---------- Plan ---------- */
+html:not([data-scene]) #view-today > .page-head { gap: 6px; }
+html:not([data-scene]) #view-today .day-pick .page-title { font-size: 28px; }
+html:not([data-scene]) #view-today .day-pick .icon-btn { width: 36px; height: 36px; font-size: 20px; }
+html:not([data-scene]) #view-today .progress-mini { color: var(--ios-label-2); font-size: 15px; }
+html:not([data-scene]) .ring circle:first-child { stroke: var(--ios-fill-2); }
+html:not([data-scene]) .ring circle + circle, html:not([data-scene]) #ring { stroke: var(--ios-tint); }
+html:not([data-scene]) .plan-day-btn { margin-bottom: 16px; }
+html:not([data-scene]) .day-back { color: var(--ios-tint); font-weight: 400; }
+html:not([data-scene]) .todo-quick input { min-height: 44px; background: var(--ios-card); }
+html:not([data-scene]) .todo-quick button { width: 44px; min-height: 44px; border-radius: 22px; }
+html:not([data-scene]) .goal-card { border-radius: 12px; }
+html:not([data-scene]) .month-grid { background: var(--ios-card); border-radius: 12px; }
+html:not([data-scene]) .m-wd { font-family: inherit; font-style: normal; color: var(--ios-label-2); font-size: 12px; font-weight: 600; letter-spacing: 0; }
+html:not([data-scene]) .m-day { border-radius: 50%; border: 0 !important; background: none; color: var(--ios-label); font-size: 17px; box-shadow: none !important; }
+html:not([data-scene]) .m-day.future { color: var(--ios-label); }
+html:not([data-scene]) .m-day.out { opacity: .3; }
+html:not([data-scene]) .m-day.h1 { background: rgba(var(--ios-tint-rgb), .1); } html:not([data-scene]) .m-day.h2 { background: rgba(var(--ios-tint-rgb), .2); }
+html:not([data-scene]) .m-day.h3 { background: rgba(var(--ios-tint-rgb), .35); } html:not([data-scene]) .m-day.h4 { background: rgba(var(--ios-tint-rgb), .55); color: #fff; }
+html:not([data-scene]) .m-day.today { color: var(--ios-tint); font-weight: 700; }
+html:not([data-scene]) .m-day.today b { font-weight: 700; }
+html:not([data-scene]) .m-day.sel { outline: 0; background: var(--ios-tint) !important; color: #fff; }
+html:not([data-scene]) .m-day.sel.today { color: #fff; }
+html:not([data-scene]) .m-day.wsel { outline: 0; background: rgba(var(--ios-tint-rgb), .18); }
+html:not([data-scene]) .m-week { border: 0; background: rgba(var(--ios-tint-rgb), .12); color: var(--ios-tint); border-radius: 10px; }
+html:not([data-scene]) .m-week small { color: var(--ios-tint); }
+html:not([data-scene]) .m-week.done { background: none; }
+html:not([data-scene]) .m-week.sel { outline: 0; background: var(--ios-tint); color: #fff; }
+html:not([data-scene]) .m-week.sel small { color: #fff; }
+html:not([data-scene]) .day-detail { border-radius: 12px; }
+html:not([data-scene]) .dd-list li { border-color: var(--ios-sep); }
+html:not([data-scene]) .month-legend { color: var(--ios-label-2); font-size: 12px; }
+
+/* ---------- Chat: Messages-style ---------- */
+html:not([data-scene]) .chat-head { background: var(--ios-bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-bottom: .5px solid var(--ios-sep); }
+html:not([data-scene]) .chat-who b { font-size: 17px; font-weight: 600; }
+html:not([data-scene]) .chat-who span { font-size: 12px; }
+html:not([data-scene]) .chat-view .feed { padding: 12px 12px 16px; }
+html:not([data-scene]) .chat-view .msg { font-size: 17px; line-height: 1.32; padding: 8px 13px; border-radius: 19px; max-width: 78%; letter-spacing: -.02em; }
+html:not([data-scene]) .chat-view .msg.rias { background: var(--ios-bubble); color: var(--ios-label); border-bottom-left-radius: 6px; }
+html:not([data-scene]) .chat-view .msg.me { background: var(--ios-tint); color: #fff; border-bottom-right-radius: 6px; }
+html:not([data-scene]) .chat-view .msg .actions { gap: 6px; }
+html:not([data-scene]) .chat-view .msg .actions button { min-height: 34px; border-radius: 17px; padding: 0 12px; font-size: 15px; background: var(--ios-card); color: var(--ios-tint); border: 0; }
+html:not([data-scene]) .chat-view .msg .actions button.done { background: var(--ios-tint); color: #fff; }
+html:not([data-scene]) .chat-view .day-sep span { font-size: 12px; font-weight: 500; color: var(--ios-label-2); }
+html:not([data-scene]) .chat-view .day-sep::before, html:not([data-scene]) .chat-view .day-sep::after { display: none; }
+html:not([data-scene]) .composer { background: var(--ios-bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: .5px solid var(--ios-sep); padding: 8px 10px calc(env(safe-area-inset-bottom) + 8px); }
+html:not([data-scene]) .composer-box { background: var(--ios-card); border: .5px solid var(--ios-sep-opaque); border-radius: 20px; min-height: 38px; }
+html:not([data-scene]) .composer-box:focus-within { box-shadow: none; }
+html:not([data-scene]) .composer-box input { min-height: 36px; background: none !important; font-size: 17px; }
+html:not([data-scene]) .composer .send { width: 34px; height: 34px; min-height: 34px; border-radius: 50%; background: var(--ios-tint); color: #fff; align-self: center; }
+html:not([data-scene]) .composer .send .ic { width: 20px; height: 20px; }
+html:not([data-scene]) .composer :is(.mic, .cam) { color: var(--ios-label-2); }
+
+/* ---------- More / Settings ---------- */
+html:not([data-scene]) .more-row { min-height: 52px; padding: 8px 16px; background: none; }
+html:not([data-scene]) .more-ic, html:not([data-scene]) .set-ic { width: 30px; height: 30px; border-radius: 7px; background: var(--ios-tint); color: #fff; font-size: 17px; }
+html:not([data-scene]) .more-ic .ic { width: 19px; height: 19px; }
+html:not([data-scene]) .more-list .more-row:nth-child(2) .more-ic { background: var(--ios-teal); }
+html:not([data-scene]) .more-list + .more-label + .more-list .more-row:nth-child(1) .more-ic { background: #8e8e93; }
+html:not([data-scene]) .more-list + .more-label + .more-list .more-row:nth-child(2) .more-ic { background: var(--ios-purple); }
+html:not([data-scene]) .more-list + .more-label + .more-list .more-row:nth-child(3) .more-ic { background: var(--ios-green); }
+html:not([data-scene]) .more-txt b { font-size: 17px; font-weight: 400; letter-spacing: -.02em; }
+html:not([data-scene]) .more-txt small { font-size: 13px; color: var(--ios-label-2); }
+html:not([data-scene]) #set-menu { border-radius: 12px; overflow: hidden; }
+html:not([data-scene]) #set-menu .set-tile { min-height: 52px; padding: 8px 16px; }
+html:not([data-scene]) .set-txt b { font-weight: 400; font-size: 17px; }
+html:not([data-scene]) .set-txt small { color: var(--ios-label-2); font-size: 13px; }
+/* each settings section is a grouped list: header above, rows inside */
+html:not([data-scene]) .set-group { padding: 6px 16px; gap: 0; margin: 34px 0 0; position: relative; overflow: visible; }
+html:not([data-scene]) .set-group > h2 { position: absolute; top: -26px; left: 16px; margin: 0 !important; }
+html:not([data-scene]) .set-group > :is(label, .switch, .row, .field, .chips, button, .pair-grid, .perm-row, .sync-row, div) { padding: 8px 0; }
+html:not([data-scene]) .set-group > :is(label, .switch, .row, .field, .pair-grid) + :is(label, .switch, .row, .field, .pair-grid) { border-top: .5px solid var(--ios-sep); }
+html:not([data-scene]) .set-group > p.muted.small { margin: 2px 0 8px; }
+html:not([data-scene]) .set-group > p.field-label { margin: 18px 0 4px; }
+html:not([data-scene]) .set-group label:not(.switch):not(.chip) { display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--ios-label-2); }
+html:not([data-scene]) .save-bar { background: linear-gradient(180deg, transparent, var(--ios-bg) 40%); }
+
+/* ---------- sheets: slide up from the bottom with a grabber ---------- */
+html:not([data-scene]) dialog:not(.alarm):not(.tr-live) {
+  background: var(--ios-bg); color: var(--ios-label); border: 0; border-radius: 13px; box-shadow: 0 10px 40px rgba(0, 0, 0, .25); }
+html:not([data-scene]) dialog:not(.alarm):not(.tr-live)::backdrop { background: rgba(0, 0, 0, .4); }
+html:not([data-scene]) dialog.sheet { border-radius: 13px 13px 0 0; margin-bottom: 0; }
+html:not([data-scene]) dialog[open]:not(.alarm):not(.tr-live) { animation: ios-sheet-up .42s cubic-bezier(.2, .9, .25, 1); }
+html:not([data-scene]) dialog[open]:not(.alarm):not(.tr-live)::backdrop { animation: ios-fade .3s ease; }
+@keyframes ios-sheet-up { from { transform: translateY(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ios-fade { from { opacity: 0; } to { opacity: 1; } }
+html:not([data-scene]) .sheet-grab { width: 36px; height: 5px; border-radius: 3px; background: var(--ios-fill-2); }
+html:not([data-scene]) .sheet-actions { background: var(--ios-bg); }
+html:not([data-scene]) dialog .big-input { background: var(--ios-card) !important; font-size: 20px; font-weight: 600; min-height: 50px; }
+
+/* ---------- notification banner ---------- */
+html:not([data-scene]) .toast { background: var(--ios-bar); -webkit-backdrop-filter: saturate(180%) blur(30px); backdrop-filter: saturate(180%) blur(30px);
+  border: 0; border-radius: 22px; box-shadow: 0 8px 30px rgba(0, 0, 0, .18); color: var(--ios-label); }
+html:not([data-scene]) .toast-head b { font-size: 15px; font-weight: 600; }
+html:not([data-scene]) .toast-head span { color: var(--ios-label-2); font-size: 13px; }
+html:not([data-scene]) .toast p { font-size: 15px; }
+html:not([data-scene]) .toast-pic { border-radius: 9px; box-shadow: none; }
+
+/* ---------- empty states ---------- */
+html:not([data-scene]) .empty-state .empty-ic { background: none; color: var(--ios-label-3); font-size: 44px; width: auto; height: auto; }
+html:not([data-scene]) .empty-state b { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+html:not([data-scene]) .empty-state p { color: var(--ios-label-2); font-size: 15px; }
+
+/* ---------- Track ---------- */
+html:not([data-scene]) .daynav b { font-size: 17px; font-weight: 600; }
+html:not([data-scene]) .daynav button { width: 36px; height: 36px; background: var(--ios-fill); color: var(--ios-tint); }
+html:not([data-scene]) .meter { background: var(--ios-fill); border-radius: 4px; }
+html:not([data-scene]) .meter > * { background: var(--ios-tint); border-radius: 4px; }
+
+/* ---------- inline icons (ios.js swaps emoji labels for Phosphor icons) ---------- */
+.ii { width: 1.05em; height: 1.05em; vertical-align: -.16em; fill: currentColor; margin-right: .3em; flex: none; }
+.tag-chip .ii { width: 12px; height: 12px; margin-right: 3px; vertical-align: -1px; }
+button .ii { width: 1.15em; height: 1.15em; }
+
+/* ---------- swipe actions: iOS orange / red ---------- */
+html:not([data-scene]) .swipe-acts button { background: var(--ios-orange) !important; color: #fff !important; font-weight: 500; font-size: 15px; border: 0; }
+html:not([data-scene]) .swipe-acts button:last-child { background: var(--ios-red) !important; }
+html:not([data-scene]) .swipe-done { background: var(--ios-green) !important; color: #fff; }
+
+/* ---------- motion ---------- */
+html:not([data-scene]) .ios-in { animation: ios-rise .36s cubic-bezier(.2, .9, .25, 1) both; animation-delay: calc(var(--i, 0) * 22ms); }
+@keyframes ios-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+html:not([data-scene]) .view-enter { animation: ios-push .32s cubic-bezier(.2, .9, .25, 1); }
+@keyframes ios-push { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-scene]) .view-enter, html:not([data-scene]) dialog[open], html:not([data-scene]) .ios-in { animation: none !important; }
+}

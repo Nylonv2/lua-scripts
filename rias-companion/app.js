@@ -284,6 +284,26 @@
     if (N && N.setTheme) { try { N.setTheme(state.settings.theme || 'crimson'); } catch { /* older app */ } }
   }
   applyTheme();
+  // ---------- Appearance: light or dark (Automatic follows the phone) ----------
+  function isNight() {
+    const pref = state.settings.appearance || 'auto';
+    if (pref !== 'auto') return pref === 'dark';
+    const d = window.RiasDevice;
+    if (d && d.nightMode) { try { return !!d.nightMode(); } catch { /* older app */ } }
+    return !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function applyAppearance() {
+    const night = isNight();
+    const root = document.documentElement;
+    if (root.dataset.appearance === (night ? 'dark' : 'light')) return;
+    root.dataset.appearance = night ? 'dark' : 'light';
+    const meta = document.querySelector('meta[name=theme-color]');
+    if (meta && !root.dataset.scene) meta.content = night ? '#000000' : '#f2f2f7';
+  }
+  applyAppearance();
+  if (window.matchMedia) { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyAppearance); } catch { /* old browser */ } }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) applyAppearance(); });
+  setInterval(applyAppearance, 30000);
   // ---------- Discreet mode: a plain assistant app, same features ----------
   const plainName = () => (state.settings.plainName || '').trim() || 'Assistant';
   function applyPlain() {
@@ -3266,6 +3286,7 @@
     sf.elements.homeChar.value = state.settings.homeChar || 'animated';
     sf.elements.riasOutfit.value = state.settings.riasOutfit || 'auto';
     sf.elements.theme.value = state.settings.theme || 'crimson';
+    sf.elements.appearance.value = state.settings.appearance || 'auto';
     sf.elements.rias.checked = !state.settings.plain;
     sf.elements.plainName.value = state.settings.plainName || '';
     sf.elements.plainIcon.checked = !!state.settings.plainIcon;
@@ -3616,6 +3637,7 @@
       homeChar: sf.elements.homeChar.value,
       riasOutfit: sf.elements.riasOutfit.value,
       theme: sf.elements.theme.value,
+      appearance: sf.elements.appearance.value,
       plain: !sf.elements.rias.checked,
       plainName: sf.elements.plainName.value.trim(),
       plainIcon: !sf.elements.rias.checked && sf.elements.plainIcon.checked,
@@ -3629,7 +3651,7 @@
       alarmRing: sf.elements.alarmRing.checked,
       aiLimit: Number(sf.elements.aiLimit.value) || 0,
     });
-    applyTheme();
+    applyTheme(); applyAppearance();
     applyPlain();
     renderStatus();
     syncLauncher();

@@ -16,10 +16,12 @@ html = read('index.html')
 icon = 'data:image/svg+xml;base64,' + base64.b64encode((here / 'icons/icon.svg').read_bytes()).decode()
 
 html = html.replace('<link rel="stylesheet" href="style.css">', f"<style>\n{read('style.css')}</style>")
+inter = 'data:font/woff2;base64,' + base64.b64encode((here / 'vendor/fonts/inter-var.woff2').read_bytes()).decode()
+html = html.replace('<link rel="stylesheet" href="ios.css">', "<style>\n" + read('ios.css').replace('vendor/fonts/inter-var.woff2', inter) + "</style>")
 html = html.replace('<script src="dialogue.js"></script>', f"<script>\n{read('dialogue.js')}</script>")
 html = html.replace('<script src="talk.js"></script>', f"<script>\n{read('talk.js')}</script>")
 html = html.replace('<script src="chat.js"></script>', f"<script>\n{read('chat.js')}</script>")
-for js in ('food.js', 'work.js', 'planner.js', 'vendor/anthropic-sdk.js', 'ai.js', 'rias-avatar.js', 'living-photo.js', 'photo-cutout.js', 'alarm-card.js', 'natural-voice.js', 'assistant.js', 'biz.js', 'translate.js'):
+for js in ('food.js', 'work.js', 'planner.js', 'vendor/anthropic-sdk.js', 'ai.js', 'rias-avatar.js', 'living-photo.js', 'photo-cutout.js', 'alarm-card.js', 'natural-voice.js', 'assistant.js', 'biz.js', 'translate.js', 'vendor/motion.js', 'ios.js'):
     html = html.replace(f'<script src="{js}"></script>', f"<script>\n{read(js)}</script>")
 html = html.replace('<script src="app.js"></script>', f"<script>\n{read('app.js')}</script>")
 html = re.sub(r'\s*<link rel="(manifest|apple-touch-icon)"[^>]*>', '', html)

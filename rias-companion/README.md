@@ -99,6 +99,13 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**iPhone-style look:** grouped inset lists, large titles that shrink into a frosted bar as you scroll, a frosted tab
+bar whose icons fill in when selected, iOS switches, segmented controls, pull-up sheets, notification-style banners
+and Messages-style chat bubbles. It uses Apple's system colors (the theme picks the accent: pink, purple, indigo or
+orange; Discreet mode is blue), the Inter font, Phosphor icons and small Motion animations (rows rising in, a pop when
+you tick something off). **Settings → Look → Appearance:** Automatic (follows your phone's light or dark mode), Light or
+Dark. The Classic Rias look is still there in Look & app style.
+
 **Help with doomscrolling and putting things off (based on research):**
 - **Pause before scrolling** (Android): pick the apps (TikTok, Instagram, YouTube, Reddit, X…) in Settings → Day →
   *Pause before scrolling*, then allow "Rias: pause before scrolling apps" in Android's Accessibility settings (the
@@ -323,4 +330,6 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 
 ### Credits
 Kokoro-82M voice model (Apache-2.0) by hexgrad; sherpa-onnx speech engine (Apache-2.0) by k2-fsa, whose Java bindings
-are included in `android/src/com/k2fsa`; Vosk offline speech recognition (Apache-2.0) by Alpha Cephei; JNA (Apache-2.0).
+are included in `android/src/com/k2fsa`; Vosk offline speech recognition (Apache-2.0) by Alpha Cephei; JNA (Apache-2.0);
+Phosphor Icons (MIT); the Inter typeface (SIL Open Font License 1.1) by Rasmus Andersson; Motion (MIT) by Motion Division.
+The iPhone-style look follows Apple's Human Interface Guidelines, using the iOS color and spacing values from Ionic Framework (MIT).

@@ -51,6 +51,12 @@ final class RiasDevice {
     @JavascriptInterface public void wakeName(String name) { WakeService.setWakeName(ctx, name); }
     /** Copies the plan into the phone's calendar: [{key, title, start, end}] ([] removes what's still ahead). */
     @JavascriptInterface public void calendarSync(String json) { CalendarSync.sync(ctx, json); }
+    /** Whether the phone is in dark mode right now (the page follows it when Appearance is Automatic). */
+    @JavascriptInterface
+    public boolean nightMode() {
+        int m = ctx.getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        return m == android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
     /** Pause before scrolling apps: {on, apps, seconds, grace, next} (any subset). */
     @JavascriptInterface public void pauseConfig(String json) { ScrollPause.configure(ctx, json); }
     /** Whether the pause is switched on in Android's Accessibility settings. */
