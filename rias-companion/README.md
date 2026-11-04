@@ -74,6 +74,15 @@ built-in planner does it. Find it on Today ("Want me to plan your day?"), at the
 the essentials, or have it done automatically every morning, in Settings → Your day → Planning. To-dos due soon
 always get time; the rest are spread out (up to 3 hours a day, changeable).
 
+**Every day planned for what it is:** work days stay light around the shift, days off get two focus blocks and the
+bigger jobs. **Workouts** follow a real program (Settings → Your day → Planning: how many a week, push/pull/legs,
+upper/lower, full body, home, running or a mix; morning, after work or evening; travel to the gym): sessions rotate,
+rest days fall in between when the week allows, rest days get a different kind of movement (a walk, mobility, a bike
+ride, yoga), and runs move indoors when rain is forecast. **Weekly jobs** land on the right day: groceries on your first
+day off, errands on the next, meal prep (after groceries), a budget check and a weekly review on Sunday; missed ones carry
+over. **Extras** rotate in so days don't repeat (stretch, learn a skill, hobby time, read, journal), more on days off, plus
+getting tomorrow ready (clothes, bag, lunch) the evening before a work day. Busy days drop extras to stay doable.
+
 **Built to beat procrastination:** every to-do gets a tiny **first step** that takes under two minutes (Claude writes
 one, or add your own), and every reminder leads with it. Ten minutes into a block that isn't done she nudges you with
 that first step; long blocks are broken into **25-minute sprints** with 5-minute breaks. Anything you put off (skipped,

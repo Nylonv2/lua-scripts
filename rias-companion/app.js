@@ -1784,7 +1784,7 @@
     baseItems: (d) => itemsOn(d).filter((it) => it.source !== 'plan'),
     allItems: (d) => itemsOn(d),
     say: (t) => say(t), plain: () => !!state.settings.plain, ask: (t) => ask(t), prompt: (t) => askNumber(t),
-    noteAdded: (r) => noteAdded(r), toTrash: (r) => toTrash(r),
+    noteAdded: (r) => noteAdded(r), toTrash: (r) => toTrash(r), weatherFor: (d) => weatherFor(d),
     aiPlan: (brief) => (AI.enabled() ? AI.planDay(brief) : Promise.resolve(null)), // AI is created further down; used only on demand
     toast: (text) => { addMessage('rias', text); showToast({ text }); },
     celebrateSmall: () => haptic([12, 60, 12]),
@@ -3144,6 +3144,14 @@
     sf.elements.planHours.value = String(state.settings.planHours || 3);
     sf.elements.autoDay.checked = !!state.settings.autoDay;
     sf.elements.startNudge.checked = state.settings.startNudge !== false;
+    sf.elements.workoutDays.value = String(state.settings.workoutDays ?? 3);
+    sf.elements.workoutStyle.value = state.settings.workoutStyle || 'ppl';
+    sf.elements.workoutTime.value = state.settings.workoutTime || 'after';
+    sf.elements.gymTravel.value = String(state.settings.gymTravel ?? 15);
+    for (const [name, key, def] of [['weeklyJob', 'weeklyJobs', ['groceries', 'mealprep', 'errands', 'budget', 'review']], ['extra', 'extras', ['stretch', 'learn', 'hobby', 'read', 'journal', 'prep', 'lunch']]]) {
+      const on = Array.isArray(state.settings[key]) ? state.settings[key] : def;
+      for (const i of sf.querySelectorAll(`input[name=${name}]`)) i.checked = on.includes(i.value);
+    }
     sf.elements.sprints.checked = state.settings.sprints !== false;
     { const on = Array.isArray(state.settings.essentials) ? state.settings.essentials : Planner.DEFAULT_ESSENTIALS;
       for (const i of sf.querySelectorAll('input[name=essential]')) i.checked = on.includes(i.value); }
@@ -3412,6 +3420,12 @@
       planHours: Number(sf.elements.planHours.value) || 3,
       autoDay: sf.elements.autoDay.checked,
       startNudge: sf.elements.startNudge.checked,
+      workoutDays: Number(sf.elements.workoutDays.value),
+      workoutStyle: sf.elements.workoutStyle.value,
+      workoutTime: sf.elements.workoutTime.value,
+      gymTravel: Number(sf.elements.gymTravel.value),
+      weeklyJobs: [...sf.querySelectorAll('input[name=weeklyJob]:checked')].map((i) => i.value),
+      extras: [...sf.querySelectorAll('input[name=extra]:checked')].map((i) => i.value),
       sprints: sf.elements.sprints.checked,
       essentialsV2: true,
       essentials: [...sf.querySelectorAll('input[name=essential]:checked')].map((i) => i.value),

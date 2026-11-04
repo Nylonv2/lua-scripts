@@ -9,6 +9,8 @@ window.createPlanner = function createPlanner(ctx) {
   state.goals ||= [];   // [{ id, title, kind: 'times'|'amount', times, target, unit, per: 'day'|'week'|'month', time: 'HH:MM'|'', mins, sessions, log: { date: n }, plans: { date: 'HH:MM' }, created }]
   state.checkedIn ||= {};
   state.chores ||= [];  // [{ id, title, every (days), mins, first, time, last: 'YYYY-MM-DD'|null, pushed, zones?: [...], zone, plans: { date: 'HH:MM' } }]
+  state.fitness ||= { idx: 0 }; // workout rotation (which session is next)
+  state.weekly ||= {};           // { key: 'YYYY-MM-DD' last done } for weekly jobs
   state.dayPlans ||= {}; // { date: { made, items: [{ key, title, time, mins, cat }] } }: daily essentials placed by "Plan my day"
   const pad = (n) => String(n).padStart(2, '0');
   const minToTime = (m) => `${pad(Math.floor(((m % 1440) + 1440) % 1440 / 60))}:${pad(((m % 60) + 60) % 60)}`;
@@ -196,7 +198,7 @@ window.createPlanner = function createPlanner(ctx) {
     const free = (t) => !fixed.some(([a, b]) => t >= a && t < b);
     const match = (it) => (it.category === e.cat && e.cat !== 'work' && e.cat !== 'break') || e.covers.test(it.title);
     if (ctx.baseItems(dayOf(k)).some((it) => !it.source && match(it) && toMin(it.time) >= lo - 30 && toMin(it.time) <= hi + 30 && free(toMin(it.time)))) return true;
-    if (e.key === 'move') return state.goals.some((g) => g.plans && g.plans[k] && e.covers.test(g.title));
+    if (e.key === 'move') return state.goals.some((g) => g.plans && g.plans[k] && e.covers.test(g.title)) || ((state.dayPlans[k] || {}).items || []).some((x) => x.key === 'gym');
     if (e.key === 'tidy') return state.chores.some((c) => c.plans && c.plans[k]); // a real chore beats a generic tidy-up
     return false;
   }
@@ -210,15 +212,183 @@ window.createPlanner = function createPlanner(ctx) {
       if (!chosenEssentials().includes(e.key) || !!e.anchored !== (which === 'anchored')) continue;
       if (plan.items.some((x) => x.key === e.key) || covered(e, k)) continue;
       if (e.key === 'focus') {
-        // A day that already has a long to-do block doesn't need a separate focus block.
+        // A day that already has a long to-do block doesn't need a separate focus block; neither does a 9-hour shift.
         const todoMins = items(dayOf(k)).filter((it) => it.todoId).reduce((n, it) => n + (it.mins || 30), 0);
-        if (todoMins >= 90) continue;
+        if (todoMins >= 90 || (shiftsMins(k) >= 9 * 60 && !todoMins)) continue;
+      }
+      let title = e.title, mins = e.mins;
+      if (e.key === 'move') { // a different kind of movement each rest day; indoors when it rains
+        const list = rainy(k) ? MOVE_WET : MOVE_DRY;
+        title = list[seed(k) % list.length];
+        mins = /bike/i.test(title) ? 30 : /yoga|walk/i.test(title) ? 25 : 15;
       }
       const [lo, hi] = e.win(w, b);
-      const a = slot(busyOn(k), Math.max(from, lo), Math.min(to + 45, hi + e.mins), e.mins, Math.max(from, Math.min(hi, e.pref(w, b))));
-      if (a != null && a <= hi) plan.items.push({ key: e.key, title: e.title, time: minToTime(a), mins: e.mins, cat: e.cat, first: e.first || '' });
+      const a = slot(busyOn(k), Math.max(from, lo), Math.min(to + 45, hi + mins), mins, Math.max(from, Math.min(hi, e.pref(w, b))));
+      if (a != null && a <= hi) plan.items.push({ key: e.key, title, time: minToTime(a), mins, cat: e.cat, first: e.first || '' });
     }
   }
+  // ---------- variety: workouts, weekly jobs and extras that depend on the day ----------
+  const SPLITS = {
+    ppl: { gym: true, mins: 60, list: ['Push day (chest, shoulders, triceps)', 'Pull day (back, biceps)', 'Leg day (quads, hamstrings, glutes)'] },
+    upperlower: { gym: true, mins: 60, list: ['Upper body', 'Lower body'] },
+    full: { gym: true, mins: 60, list: ['Full body A (squat, bench, row)', 'Full body B (deadlift, press, pull-ups)'] },
+    home: { mins: 35, list: ['Home workout: strength circuit', 'Home workout: core and mobility', 'Home workout: 20-minute HIIT and stretch'] },
+    run: { mins: 40, outdoor: true, list: ['Easy run', 'Interval run', 'Long easy run'] },
+    mix: { gym: true, mins: 50, list: ['Gym: upper body', 'Cardio: 30-minute run or bike', 'Gym: lower body', 'Yoga or mobility'] },
+  };
+  const fit = () => ({ days: Number(state.settings.workoutDays ?? 3), style: state.settings.workoutStyle || 'ppl', when: state.settings.workoutTime || 'after', travel: Number(state.settings.gymTravel ?? 15) });
+  const WEEKLY = [
+    { key: 'groceries', title: 'Grocery run', mins: 45, cat: 'chores', target: 'off', pref: 10 * 60 + 30, first: 'write the list while you finish breakfast' },
+    { key: 'mealprep', title: 'Meal prep: cook 2 or 3 things for the week', mins: 75, cat: 'meal', target: 'sunday', pref: 16 * 60, first: 'take everything out and put it on the counter' },
+    { key: 'errands', title: 'Errands: knock out the small stuff', mins: 45, cat: 'chores', target: 'off2', pref: 14 * 60, first: 'write down the errands and the order to do them' },
+    { key: 'budget', title: 'Budget check: this week\'s spending', mins: 15, cat: 'work', target: 'sunday', pref: 18 * 60, first: 'open your bank app' },
+    { key: 'review', title: 'Weekly review: look back, set up next week', mins: 20, cat: 'work', target: 'sunday', pref: 19 * 60 + 30, first: 'open Plan → Month and look at next week' },
+  ];
+  const DEFAULT_WEEKLY = ['groceries', 'mealprep', 'errands', 'budget', 'review'];
+  const EXTRAS = [
+    { key: 'stretch', title: 'Stretch 10 minutes', mins: 10, cat: 'exercise', pref: (w) => w + 75, first: 'get down on the floor' },
+    { key: 'learn', title: 'Learn: 30 minutes on a skill you\'re building', mins: 30, cat: 'work', pref: () => 15 * 60, first: 'open the course, video or notes where you left off' },
+    { key: 'hobby', title: 'Hobby time: something just for fun', mins: 45, cat: 'break', pref: () => 16 * 60 + 30, offOnly: true, first: 'set out what you need' },
+    { key: 'read', title: 'Read 20 minutes', mins: 20, cat: 'break', pref: (w, b) => b - 105, first: 'put your phone in another room and open the book' },
+    { key: 'journal', title: 'Journal: 3 things from today, 1 for tomorrow', mins: 10, cat: 'wind', pref: (w, b) => b - 70, first: 'open your notes app' },
+  ];
+  const DEFAULT_EXTRAS = ['stretch', 'learn', 'hobby', 'read', 'journal', 'prep', 'lunch'];
+  const chosen = (key, def) => (Array.isArray(state.settings[key]) ? state.settings[key] : def);
+  /** A small, steady number for "random but the same every time" choices per day. */
+  const seed = (str) => { let h = 7; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+  const shiftsMins = (k) => ctx.shiftsOn(dayOf(k)).reduce((n, sh) => { let m = toMin(sh.end) - toMin(sh.start); if (m <= 0) m += 1440; return n + m; }, 0);
+  const isOff = (k) => !ctx.shiftsOn(dayOf(k)).length;
+  const rainy = (k) => { const wx = ctx.weatherFor && ctx.weatherFor(dayOf(k)); return !!wx && (wx.rain >= 60 || [61, 63, 65, 80, 81, 82, 95, 96, 99, 71, 73, 75].includes(wx.code)); };
+  function dayType(k) {
+    const sh = ctx.shiftsOn(dayOf(k));
+    if (!sh.length) return dayOf(k).getDay() % 6 === 0 ? 'weekend day off' : 'day off';
+    return `work day (${sh.map((x) => `${x.label || 'Work'} ${x.start}–${x.end}`).join(', ')})`;
+  }
+  const weekStart = (k) => addDays(k, -((dayOf(k).getDay() + 6) % 7));
+  /** Gym blocks from Monday to the day before k (done, or planned for days still to come). */
+  function workoutsBefore(k) {
+    let n = 0;
+    for (let d = weekStart(k); d < k; d = addDays(d, 1)) {
+      const it = ((state.dayPlans[d] || {}).items || []).find((x) => x.key === 'gym');
+      if (it && (d >= dateKey() || (state.log[d] || {})[`e:${d}:gym`] === 'done')) n++;
+    }
+    return n;
+  }
+  const hasGymGoal = () => state.goals.some((g) => /gym|work ?out|lift|train|exercise|run/i.test(g.title) && g.kind !== 'amount');
+  function placeWorkout(k, from, to) {
+    const f = fit();
+    if (f.days <= 0 || hasGymGoal()) return;
+    const plan = state.dayPlans[k];
+    if (plan.items.some((x) => x.key === 'gym')) return;
+    const need = f.days - workoutsBefore(k);
+    if (need <= 0) return;
+    const daysLeft = Math.round((dayOf(addDays(weekStart(k), 6)) - dayOf(k)) / 86400000) + 1;
+    const y = addDays(k, -1);
+    const yesterday = ((state.dayPlans[y] || {}).items || []).some((x) => x.key === 'gym');
+    if (need < daysLeft && yesterday) return; // rest day after a workout when the week allows it
+    if (shiftsMins(k) >= 10 * 60 && need < daysLeft) return; // skip the gym on a very long shift if another day works
+    const sp = SPLITS[f.style] || SPLITS.ppl;
+    // Which session: the next in the rotation, counting ones already planned on days before this one.
+    let ahead = 0;
+    for (let d = dateKey(); d < k; d = addDays(d, 1)) if (((state.dayPlans[d] || {}).items || []).some((x) => x.key === 'gym' && !(state.log[d] || {})[`e:${d}:gym`])) ahead++;
+    let name = sp.list[((state.fitness.idx || 0) + ahead) % sp.list.length];
+    if (sp.outdoor && rainy(k)) name = `${name} (rain: treadmill or indoor)`;
+    const mins = (isOff(k) && f.style === 'run' && /long/i.test(name) ? 60 : sp.mins) + (sp.gym ? f.travel * 2 : 0);
+    const title = sp.gym && !/^gym|^cardio|^yoga/i.test(name) ? `Gym: ${name}` : name;
+    // When: before or after work as chosen; days off late morning.
+    const sh = ctx.shiftsOn(dayOf(k));
+    const commute = state.settings.workReminders ? Number(state.settings.commute) || 0 : 0;
+    const w = toMin(state.profile.wake);
+    let near = f.when === 'morning' ? w + 45 : f.when === 'evening' ? 18 * 60 + 30 : sh.length ? toMin(sh[sh.length - 1].end) + commute + 30 : 10 * 60 + 30;
+    if (!sh.length && f.when !== 'morning') near = 10 * 60 + 30;
+    const a = slot(busyOn(k), from, Math.min(to, bedMin() - 120), mins, Math.max(from, near));
+    if (a == null) return;
+    plan.items.push({ key: 'gym', title, time: minToTime(a), mins, cat: 'exercise', first: sp.gym ? 'put on gym clothes and fill your water bottle' : 'put on workout clothes and your shoes' });
+  }
+  /** The day of k's week a weekly job belongs on (it moves to the next days if missed). */
+  function weeklyTarget(job, k) {
+    const ws = weekStart(k), days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+    const from = days.filter((d) => d >= dateKey());
+    if (!from.length) return null;
+    if (job.target === 'sunday') {
+      const sun = days[6];
+      return shiftsMins(sun) >= 6 * 60 && shiftsMins(days[5]) < shiftsMins(sun) ? days[5] : sun;
+    }
+    const offs = from.filter((d) => isOff(d));
+    if (job.target === 'off2') return offs[1] || offs[0] || days[5];
+    return offs[0] || days[5];
+  }
+  function placeWeekly(k, from, to) {
+    const plan = state.dayPlans[k];
+    const ws = weekStart(k);
+    for (const job of WEEKLY) {
+      if (!chosen('weeklyJobs', DEFAULT_WEEKLY).includes(job.key)) continue;
+      const key = `wk-${job.key}`;
+      if (plan.items.some((x) => x.key === key)) continue;
+      if ((state.weekly[job.key] || '') >= ws) continue; // done this week
+      const target = weeklyTarget(job, k);
+      if (!target || k < target) continue;
+      // Planned on another day this week and not missed yet? Then it's not today's.
+      let elsewhere = false;
+      for (let d = ws; d <= addDays(ws, 6); d = addDays(d, 1)) if (d !== k && d >= dateKey() && ((state.dayPlans[d] || {}).items || []).some((x) => x.key === key)) elsewhere = true;
+      if (elsewhere) continue;
+      if (job.key === 'mealprep' && chosen('weeklyJobs', DEFAULT_WEEKLY).includes('groceries') && (state.weekly.groceries || '') < ws) {
+        // Groceries first: they need to be done, or planned for this day or earlier this week.
+        let shopped = false;
+        for (let d = ws; d <= k; d = addDays(d, 1)) if (((state.dayPlans[d] || {}).items || []).some((x) => x.key === 'wk-groceries')) shopped = true;
+        if (!shopped) continue;
+      }
+      const late = k > target;
+      const a = slot(busyOn(k), from, to, job.mins, Math.max(from, job.pref));
+      if (a == null) continue;
+      plan.items.push({ key, title: late ? `${job.title} (left over from earlier this week)` : job.title, time: minToTime(a), mins: job.mins, cat: job.cat, first: job.first });
+    }
+  }
+  function placeExtras(k, from, to, jobs = 0) {
+    const plan = state.dayPlans[k];
+    const picks = chosen('extras', DEFAULT_EXTRAS);
+    const w = toMin(state.profile.wake), b = bedMin();
+    const sh = ctx.shiftsOn(dayOf(k));
+    const commute = state.settings.workReminders ? Number(state.settings.commute) || 0 : 0;
+    const put = (key, title, mins, cat, near, first, until = to + 30) => {
+      if (plan.items.some((x) => x.key === key)) return false;
+      const a = slot(busyOn(k), from, until, mins, Math.max(from, Math.min(near, until - mins)));
+      if (a == null) return false;
+      plan.items.push({ key, title, time: minToTime(a), mins, cat, first });
+      return true;
+    };
+    // Situational ones first
+    const coversLunch = (list) => list.length && toMin(list[0].start) <= 12 * 60 && toMin(list[0].end) >= 14 * 60;
+    const tomorrow = ctx.shiftsOn(dayOf(addDays(k, 1)));
+    // The evening before a work day: clothes, bag, and lunch if the shift runs through it.
+    if (picks.includes('prep') && tomorrow.length) {
+      const withLunch = picks.includes('lunch') && coversLunch(tomorrow);
+      put('x-prep', withLunch ? 'Get tomorrow ready: clothes out, bag packed, lunch made' : 'Get tomorrow ready: clothes out, bag packed', withLunch ? 20 : 10, 'chores', b - 90, 'lay out tomorrow\'s clothes');
+    }
+    // Without the evening prep, lunch gets packed in the morning, before leaving (never after the shift starts).
+    if (picks.includes('lunch') && !picks.includes('prep') && coversLunch(sh)) {
+      put('x-lunch', 'Pack your lunch', 10, 'meal', toMin(sh[0].start) - commute - 25, 'put a container on the counter', toMin(sh[0].start) - commute);
+    }
+    // Then a rotating few, more on days off; never on a really long work day
+    const long = shiftsMins(k) >= 9 * 60;
+    let n = Math.max(0, (isOff(k) ? 3 : long ? 0 : 1) - jobs);
+    const pool = EXTRAS.filter((e) => picks.includes(e.key) && (!e.offOnly || isOff(k))).sort((a, c) => seed(k + a.key) - seed(k + c.key));
+    for (const e of pool) {
+      if (n <= 0) break;
+      if (put(`x-${e.key}`, e.title, e.mins, e.cat, e.pref(w, b), e.first)) n--;
+    }
+  }
+  /** On days off, a second focus block in the afternoon (a long work day gets none unless there are to-dos). */
+  function placeSecondFocus(k, from, to) {
+    if (!isOff(k) || !chosenEssentials().includes('focus')) return;
+    const plan = state.dayPlans[k];
+    if (!plan.items.some((x) => x.key === 'focus') || plan.items.some((x) => x.key === 'focus2')) return;
+    const a = slot(busyOn(k), from, to, 50, Math.max(from, 14 * 60 + 30));
+    if (a != null) plan.items.push({ key: 'focus2', title: 'Focus block 2: keep the momentum going', mins: 50, cat: 'work', time: minToTime(a), first: 'pick up exactly where the morning stopped' });
+  }
+  const MOVE_DRY = ['Walk 25 minutes, no phone', 'Stretch and mobility: 15 minutes', 'Easy bike ride or walk', 'Yoga flow: 20 minutes'];
+  const MOVE_WET = ['Stretch and mobility at home', 'Yoga flow at home: 20 minutes', 'Indoor walk: treadmill or a mall loop'];
+
   /** "Plan my day" clears essentials that haven't happened yet so they can be placed again. */
   function clearEssentials(k, from) {
     const plan = state.dayPlans[k];
@@ -320,7 +490,8 @@ window.createPlanner = function createPlanner(ctx) {
       for (const g of state.goals) if (g.plans && g.plans[k] && toMin(g.plans[k]) >= from && !(state.log[k] || {})[`g:${g.id}`]) delete g.plans[k];
     }
     // A full day: meals, mornings and evenings first, at their natural times.
-    if (fullDay) placeEssentials(k, 'anchored');
+    // The workout goes first (meals have flexible windows and move around it), then meals, mornings and evenings.
+    if (fullDay) { (state.dayPlans[k] ||= { made: Date.now(), items: [] }); placeWorkout(k, from, to); placeEssentials(k, 'anchored'); }
     // Goal sessions next: they happen at a set rhythm.
     for (const g of state.goals) {
       if (g.kind === 'amount' || g.sessions === false) continue;
@@ -351,7 +522,15 @@ window.createPlanner = function createPlanner(ctx) {
       used += mins;
     }
     // Then the flexible essentials (focus, movement, daylight, people) into what's left.
-    if (fullDay) { placeEssentials(k, 'flex'); state.dayPlans[k].made = Date.now(); }
+    if (fullDay) {
+      placeEssentials(k, 'flex');
+      placeWeekly(k, from, to);
+      // Keep busy days doable: weekly jobs take the place of a second focus block and some extras.
+      const jobs = state.dayPlans[k].items.filter((x) => x.key.startsWith('wk-')).length;
+      if (jobs < 2) placeSecondFocus(k, from, to);
+      placeExtras(k, from, to, jobs);
+      state.dayPlans[k].made = Date.now();
+    }
     // Replanning never loses a to-do: one that found no new spot keeps its old one if that's still free.
     for (const [t, old] of before) {
       if (t.plan) continue;
@@ -414,6 +593,15 @@ window.createPlanner = function createPlanner(ctx) {
       if (st === 'done' && !t.done) { t.done = true; t.doneAt = Date.now(); t.doneVia = 'plan'; }
       else if (!st && t.done && t.doneVia === 'plan') { t.done = false; t.doneAt = 0; t.doneVia = ''; } // undone from the list
       else if (st === 'skipped' && !t.done) { t.notOn = t.plan.date; t.plan = null; t.pushed = (t.pushed || 0) + 1; }
+    }
+    // A finished workout moves the rotation on; a finished weekly job counts for the week.
+    for (const [k, dp] of Object.entries(state.dayPlans)) {
+      for (const x of dp.items || []) {
+        if ((state.log[k] || {})[`e:${k}:${x.key}`] !== 'done' || x.counted) continue;
+        x.counted = true;
+        if (x.key === 'gym') state.fitness.idx = (state.fitness.idx || 0) + 1;
+        if (x.key.startsWith('wk-')) state.weekly[x.key.slice(3)] = k;
+      }
     }
     for (const c of state.chores) {
       for (const [k] of Object.entries(c.plans || {})) {
@@ -572,11 +760,30 @@ window.createPlanner = function createPlanner(ctx) {
       amountGoals.length ? `Other goals (no time block needed, but you can mention them): ${amountGoals.join('; ')}.` : '',
       `My chores (kind "chore" with ref = its id; overdue ones must get time today, most overdue first; a chore put off twice gets an early 25-minute "just start" block): ${state.chores.filter((c) => choreDue(c, k)).map((c) => `id ${c.id}: "${choreTitle(c)}", about ${c.mins || 15} min, ${choreStatus(c)}${c.pushed ? `, PUT OFF ${c.pushed}×` : ''}${c.first ? `, first step "${c.first}"` : ''}`).join('; ') || 'none due'}.`,
       `Daily essentials I want in every day, when I'm free for them: ${essentials.join(', ')}.`,
+      `This is a ${dayType(k)}.${(() => { const wx = ctx.weatherFor && ctx.weatherFor(d); return wx ? ` Weather: high ${wx.max}°, ${wx.rain}% chance of rain${rainy(k) ? ' (plan movement indoors)' : ''}.` : ''; })()}`,
+      workoutBrief(k),
+      weeklyBrief(k),
+      `Extras I like, pick a few that fit (more on days off, fewer on long work days, and not the same ones every day): ${EXTRAS.filter((e) => chosen('extras', DEFAULT_EXTRAS).includes(e.key)).map((e) => e.title).join('; ')}${chosen('extras', DEFAULT_EXTRAS).includes('prep') && ctx.shiftsOn(dayOf(addDays(k, 1))).length ? '; tomorrow is a work day, so a 10-minute "get tomorrow ready" in the evening' : ''}${chosen('extras', DEFAULT_EXTRAS).includes('lunch') && ctx.shiftsOn(d).length ? '; pack lunch before work' : ''}.`,
       'Why I use this: I procrastinate, and nobody else holds me to anything (no one comes over, no boss checking), so this plan is my structure and accountability. Plan to beat procrastination: put the hardest or most put-off task in the first good focus window of the day; keep task blocks 25 to 50 minutes (a task put off twice or more gets a short 25-minute "just start" block); give every to-do, goal and chore block a tiny, concrete first step that takes under two minutes (first_step, e.g. "open the project and drag in today\'s footage"); include a short daily tidy-up; leave some breathing room so the day is doable, not overpacked. Never add blocks about texting, calling or checking in with people.',
       memory.length ? `Things you know about me (use them to make the plan fit me): ${memory.join('; ')}.` : '',
       '',
       'Make a realistic, kind schedule as blocks: essentials (kind "essential"), to-dos (kind "todo" with ref = its id), goal sessions (kind "goal" with ref = its id), and anything else that would genuinely help (kind "other", sparingly). Rules: blocks never overlap each other or the fixed times; leave about 10 minutes between blocks; meals at normal times; nothing heavy right before bed; a wind-down block before bed; do not repeat my reminders as blocks. Use 24-hour HH:MM times on this date only. Then a short message to me.',
     ].filter((x) => x !== '').join('\n');
+  }
+  function workoutBrief(k) {
+    const f = fit();
+    if (f.days <= 0 || hasGymGoal()) return '';
+    const plan = state.dayPlans[k] || { items: [] };
+    const sp = SPLITS[f.style] || SPLITS.ppl;
+    const need = f.days - workoutsBefore(k);
+    const next = sp.list[(state.fitness.idx || 0) % sp.list.length];
+    return need > 0
+      ? `Workouts: ${f.days} a week, ${need} still to do this week (rest days between when possible). If today is a workout day, the next session is "${sp.gym ? 'Gym: ' : ''}${next}", about ${sp.mins} min${sp.gym && f.travel ? ` plus ${f.travel} min travel each way` : ''}, ${f.when === 'morning' ? 'in the morning' : f.when === 'evening' ? 'in the evening' : 'after work (late morning on days off)'}${sp.outdoor && rainy(k) ? '; it may rain, so indoors' : ''}.${plan.items.some((x) => x.key === 'gym') ? '' : ''}`
+      : `Workouts: this week's ${f.days} are done or planned, so today is a rest day: light movement only.`;
+  }
+  function weeklyBrief(k) {
+    const due = WEEKLY.filter((job) => chosen('weeklyJobs', DEFAULT_WEEKLY).includes(job.key) && (state.weekly[job.key] || '') < weekStart(k) && weeklyTarget(job, k) && k >= weeklyTarget(job, k));
+    return due.length ? `Weekly jobs that belong on this day (do them today): ${due.map((j) => `${j.title} (~${j.mins} min)`).join('; ')}.` : '';
   }
   /** Asks her AI to plan day k, checks every block, and applies it. → lines to say, or null to fall back. */
   async function planDayAI(k = dateKey()) {
@@ -620,7 +827,10 @@ window.createPlanner = function createPlanner(ctx) {
         const title = String(x.title || '').trim().slice(0, 80);
         if (!title) continue;
         if (/\b(text|call|message|check in with|catch up with)\b/i.test(title)) continue; // no people-related blocks
-        plan.items.push({ key: `ai${Date.now().toString(36)}${n++}`, title, time: hm(a), mins, cat: catFor(title), ai: true, first: firstOf(x) });
+        const wk = WEEKLY.find((j) => new RegExp(j.key === 'mealprep' ? 'meal ?prep' : j.key === 'groceries' ? 'grocer' : j.key === 'review' ? 'weekly review' : j.key === 'budget' ? 'budget' : 'errand', 'i').test(title));
+        const key = /\b(gym|push day|pull day|leg day|upper body|lower body|full body|workout|interval run|easy run|long run)\b/i.test(title) && !plan.items.some((y) => y.key === 'gym') ? 'gym'
+          : wk && !plan.items.some((y) => y.key === `wk-${wk.key}`) ? `wk-${wk.key}` : `ai${Date.now().toString(36)}${n++}`;
+        plan.items.push({ key, title, time: hm(a), mins, cat: key === 'gym' ? 'exercise' : catFor(title), ai: true, first: firstOf(x) });
       }
       taken.push([a, a + mins]);
       placed++;
@@ -1225,7 +1435,7 @@ window.createPlanner = function createPlanner(ctx) {
     openGoal: (id) => openGoal(state.goals.find((g) => g.id === id) || null),
     items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
     planReply, planDayAI, brief, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
-    nudgeEvents, dueNudges, notePushed, rankOf,
+    nudgeEvents, dueNudges, notePushed, rankOf, dayType, SPLITS,
     addChore, choreDone, deleteChore, renderChores, openChore: (id) => openChore(state.chores.find((c) => c.id === id) || null), choreTitle, overdueOn,
     parseDue, progress, streak, openTodos, match, dayWord, ESSENTIALS, DEFAULT_ESSENTIALS, dayPlanned: (k = dateKey()) => !!state.dayPlans[k],
     restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },

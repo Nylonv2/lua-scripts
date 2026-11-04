@@ -684,6 +684,48 @@
             </div>
           </div>
           <p class="muted small">She skips any you already have a reminder for at a time you're free, and works around your shifts and calendar.</p>
+          <p class="field-label">Workouts</p>
+          <div class="row">
+            <label>How many a week
+              <select name="workoutDays"><option value="0">None</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select>
+            </label>
+            <label>Kind
+              <select name="workoutStyle">
+                <option value="ppl">Gym: push / pull / legs</option><option value="upperlower">Gym: upper / lower</option><option value="full">Gym: full body</option>
+                <option value="home">Home workouts</option><option value="run">Running</option><option value="mix">Mix: gym, cardio, yoga</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <label>When
+              <select name="workoutTime"><option value="after">After work (late morning on days off)</option><option value="morning">Morning</option><option value="evening">Evening</option></select>
+            </label>
+            <label>Travel to the gym
+              <select name="gymTravel"><option value="0">None</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option></select>
+            </label>
+          </div>
+          <p class="muted small">Sessions rotate (push, then pull, then legs…), with rest days in between when the week allows and lighter movement on rest days. Runs move indoors when rain is forecast. A goal like “Gym 4× a week” takes over from this.</p>
+          <div class="field"><span class="field-label">Weekly jobs (on the right day of the week)</span>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" name="weeklyJob" value="groceries"><span>🛒 Grocery run</span></label>
+              <label class="chip"><input type="checkbox" name="weeklyJob" value="mealprep"><span>🍱 Meal prep</span></label>
+              <label class="chip"><input type="checkbox" name="weeklyJob" value="errands"><span>📦 Errands</span></label>
+              <label class="chip"><input type="checkbox" name="weeklyJob" value="budget"><span>💵 Budget check</span></label>
+              <label class="chip"><input type="checkbox" name="weeklyJob" value="review"><span>🗓️ Weekly review</span></label>
+            </div>
+          </div>
+          <p class="muted small">Groceries go on your first day off, errands on the next, meal prep, the budget and the weekly review on Sunday. Missed ones carry over to the next days until they're done.</p>
+          <div class="field"><span class="field-label">Extras she rotates in (more on days off)</span>
+            <div class="chips">
+              <label class="chip"><input type="checkbox" name="extra" value="stretch"><span>🧘 Stretch</span></label>
+              <label class="chip"><input type="checkbox" name="extra" value="learn"><span>📚 Learn a skill</span></label>
+              <label class="chip"><input type="checkbox" name="extra" value="hobby"><span>🎨 Hobby time</span></label>
+              <label class="chip"><input type="checkbox" name="extra" value="read"><span>📖 Read</span></label>
+              <label class="chip"><input type="checkbox" name="extra" value="journal"><span>✍️ Journal</span></label>
+              <label class="chip"><input type="checkbox" name="extra" value="prep"><span>🎒 Get tomorrow ready</span></label>
+              <label class="chip"><input type="checkbox" name="extra" value="lunch"><span>🥡 Pack lunch</span></label>
+            </div>
+          </div>
           <label class="switch"><input name="autoDay" type="checkbox"> Plan my day automatically every morning</label>
           <p class="field-label">Beating procrastination</p>
           <label class="switch"><input name="startNudge" type="checkbox"> Nudge me 10 minutes into a block if it isn't done, with its first step</label>
