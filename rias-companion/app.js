@@ -1279,25 +1279,41 @@
   }
 
   // ---------- Reminders page ----------
+  let viewDay = null; // Plan → Today: the day shown (YYYY-MM-DD), null = today
+  const viewKey = () => viewDay || dateKey();
+  const viewDate = () => new Date(`${viewKey()}T12:00`);
+  function setViewDay(k) {
+    viewDay = !k || k <= dateKey() ? null : k;
+    renderToday();
+  }
   let todayFilter = 'all';
   const ICON = (name) => `<svg class="ic" aria-hidden="true"><use href="#i-${name}"/></svg>`;
   const PARTS = [['Morning', 4 * 60, 12 * 60], ['Afternoon', 12 * 60, 17 * 60], ['Evening', 17 * 60, 21 * 60], ['Night', 21 * 60, 28 * 60]];
   const partOf = (m) => { const x = m < 4 * 60 ? m + 1440 : m; return PARTS.find(([, a, b]) => x >= a && x < b)[0]; };
 
   function renderToday() {
-    const list = todaysItems();
-    const nm = nowMin();
-    const fired = state.fired[dateKey()] || {};
+    // Plan → Today shows the day picked with ‹ › (or from Month); today by default.
+    if (viewDay && viewDay < dateKey()) viewDay = null;
+    const k = viewKey(), isToday = k === dateKey();
+    const now = viewDate();
+    const list = itemsOn(now);
+    const statusOf = (id) => (state.log[k] || {})[id];
+    const nm = isToday ? nowMin() : -1;
+    const fired = isToday ? state.fired[k] || {} : {};
     const done = list.filter((it) => statusOf(it.id) === 'done').length;
-    const now = new Date();
-    $('#today-weekday').textContent = now.toLocaleDateString([], { weekday: 'long' });
+    const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+    $('#today-weekday').textContent = isToday ? `Today · ${now.toLocaleDateString([], { weekday: 'long' })}` : k === dateKey(tmr) ? `Tomorrow · ${now.toLocaleDateString([], { weekday: 'long' })}` : now.toLocaleDateString([], { weekday: 'long' });
     $('#today-date').textContent = now.toLocaleDateString([], { month: 'long', day: 'numeric' });
-    $('#progress-text').textContent = `${done} of ${list.length}`;
-    $('#ring').style.strokeDasharray = `${list.length ? (done / list.length) * 100 : 0} 100`;
+    $('#day-back').hidden = isToday;
+    $('#today-plan-day').textContent = isToday ? '⏱ Plan my day' : `⏱ Plan ${k === dateKey(tmr) ? 'tomorrow' : now.toLocaleDateString([], { weekday: 'long' })}`;
+    $('#add span').textContent = isToday ? 'New reminder' : `Reminder on ${now.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    $('#view-today').classList.toggle('future-day', !isToday);
+    $('#progress-text').textContent = isToday ? `${done} of ${list.length}` : `${list.length}`;
+    $('#ring').style.strokeDasharray = `${isToday && list.length ? (done / list.length) * 100 : 0} 100`;
     const s = streak();
-    $('#streak-text').textContent = s ? `done · 🔥 ${s}-day streak` : 'done today';
+    $('#streak-text').textContent = !isToday ? 'planned' : s ? `done · 🔥 ${s}-day streak` : 'done today';
 
-    const allDay = allDayEvents();
+    const allDay = allDayEvents(now);
     $('#allday').hidden = !allDay.length;
     $('#allday').textContent = allDay.length ? `📅 All day · ${allDay.map((ev) => ev.title).join(' · ')}` : '';
 
@@ -1306,15 +1322,15 @@
       const st = statusOf(it.id);
       return todayFilter === 'all' || (todayFilter === 'todo' ? !st : !!st);
     });
-    const nextId = (list.find((it) => toMin(it.time) >= nm && !statusOf(it.id)) || {}).id;
+    const nextId = isToday ? (list.find((it) => toMin(it.time) >= nm && !statusOf(it.id)) || {}).id : null;
     const box = $('#items-groups');
     box.textContent = '';
     if (!shown.length) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.innerHTML = `<div class="empty-ic">${ICON(todayFilter === 'done' ? 'check' : 'list')}</div><b></b><p></p>`;
-      empty.querySelector('b').textContent = !list.length ? 'Nothing planned today' : todayFilter === 'done' ? 'Nothing done yet' : 'All done for today';
-      empty.querySelector('p').textContent = !list.length ? 'Tap “New reminder”, or just tell Rias what to remind you about.' : todayFilter === 'done' ? 'Finished reminders show up here.' : 'Ufufu — that\'s my ' + praiseWord() + '.';
+      empty.querySelector('b').textContent = !list.length ? `Nothing planned ${isToday ? 'today' : 'yet'}` : todayFilter === 'done' ? 'Nothing done yet' : 'All done for today';
+      empty.querySelector('p').textContent = !list.length ? (isToday ? 'Tap “New reminder”, or just tell Rias what to remind you about.' : 'Tap “Plan this day” above and she builds the day, or add a reminder for it.') : todayFilter === 'done' ? 'Finished reminders show up here.' : 'Ufufu — that\'s my ' + praiseWord() + '.';
       box.append(empty);
       return;
     }
@@ -1513,6 +1529,7 @@
     // Track remembers whether you were on Food or Work.
     if (b.dataset.view === 'food' && trackPane === 'work') { show('work'); return; }
     if (b.dataset.view === 'more' && currentView === 'settings') openSetCat(null);
+    if (b.dataset.view === 'today' && currentView !== 'today') viewDay = null;
     show(b.dataset.view);
   });
   // Track: Food & water | Work
@@ -1550,9 +1567,9 @@
       }
     }
     // "Plan my day" with her AI on: she builds the day directly.
-    const planAsk = !photo && text.match(/^(?:can you |could you |please |hey,? )?(?:plan|organi[sz]e|schedule|map out|make (?:me )?a (?:plan|schedule) for)(?: out)? (?:my |the )?(day|today|tomorrow)\b/i);
+    const planAsk = !photo && text.match(/^(?:can you |could you |please |hey,? )?(?:plan|organi[sz]e|schedule|map out|make (?:me )?a (?:plan|schedule) for)(?: out)? (?:my |the |this |next )?(day|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
     if (planAsk && AI.enabled()) {
-      const k = /tomorrow/i.test(planAsk[1]) ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return dateKey(d); })() : dateKey();
+      const k = /^(day|today)$/i.test(planAsk[1]) ? dateKey() : Planner.parseDue(planAsk[1]).due || dateKey();
       const typing = showTyping();
       const lines = (await Planner.planDayAI(k)) || Planner.planReply(k, true);
       typing.remove();
@@ -2340,26 +2357,28 @@
   $('#home-coming').addEventListener('click', (e) => { if (e.target.closest('[data-go]')) show('today'); });
   // "Plan my day": a full schedule around work, calendar and reminders, with the daily essentials.
   let planning = false;
-  async function planMyDay() {
+  async function planMyDay(k = dateKey()) {
     if (planning) return;
     planning = true;
     show('today');
     setRemMode('today');
+    setViewDay(k);
     const btns = ['#home-plan-day', '#today-plan-day'].map((id) => $(id));
     const label = btns.map((b) => b.textContent);
     let lines = null;
     if (AI.enabled()) {
-      for (const b of btns) { b.disabled = true; b.textContent = '⏳ Planning your day…'; }
-      lines = await Planner.planDayAI(dateKey());
+      for (const b of btns) { b.disabled = true; b.textContent = '⏳ Planning…'; }
+      lines = await Planner.planDayAI(k);
       btns.forEach((b, i) => { b.disabled = false; b.textContent = label[i]; });
     }
-    if (!lines) lines = Planner.planReply(dateKey(), true); // without AI, or if it couldn't answer
+    if (!lines) lines = Planner.planReply(k, true); // without AI, or if it couldn't answer
     planning = false;
     renderToday();
     lines.forEach((line, i) => setTimeout(() => addMessage('rias', line), 300 + i * 600));
     showToast({ text: lines[0] });
   }
-  for (const id of ['#home-plan-day', '#today-plan-day']) $(id).addEventListener('click', planMyDay);
+  $('#home-plan-day').addEventListener('click', () => planMyDay(dateKey()));
+  $('#today-plan-day').addEventListener('click', () => planMyDay(viewKey()));
   $('#next-card').addEventListener('click', (e) => {
     const b = e.target.closest('[data-next]');
     if (!b) { show('today'); return; }
@@ -2496,7 +2515,7 @@
     if (!$('#month-pane').hidden) renderMonth();
   });
 
-  $('#add').addEventListener('click', () => openEditor(null));
+  $('#add').addEventListener('click', () => openEditor(null, viewDay || undefined));
 
   // ---------- month calendar (Reminders → Month) ----------
   let monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1), monthSel = dateKey();
@@ -2513,6 +2532,9 @@
     if (m === 'todo') { Planner.autoPlan(); Planner.renderTodos(); }
     if (m === 'goals') Planner.renderGoals();
   }
+  $('#day-prev').addEventListener('click', () => { const d = viewDate(); d.setDate(d.getDate() - 1); setViewDay(dateKey(d)); });
+  $('#day-next').addEventListener('click', () => { const d = viewDate(); d.setDate(d.getDate() + 1); setViewDay(dateKey(d)); });
+  $('#day-back').addEventListener('click', () => setViewDay(null));
   $('#rem-mode').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-m]');
     if (b) setRemMode(b.dataset.m);
@@ -2617,6 +2639,23 @@
       ul.append(li);
     }
     box.append(ul);
+    // Upcoming days (and today): open it in Today or plan it.
+    if (st.k >= dateKey()) {
+      const row = document.createElement('div');
+      row.className = 'dd-plan-row';
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'btn-primary sm tonal';
+      open.textContent = 'Open this day';
+      open.addEventListener('click', () => { setRemMode('today'); setViewDay(st.k); });
+      const plan = document.createElement('button');
+      plan.type = 'button';
+      plan.className = 'btn-primary sm';
+      plan.textContent = '⏱ Plan this day';
+      plan.addEventListener('click', () => planMyDay(st.k));
+      row.append(open, plan);
+      box.append(row);
+    }
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'btn-primary dd-add';
@@ -2643,7 +2682,7 @@
   };
   groupsEl.addEventListener('pointerdown', (e) => {
     const row = e.target.closest('.row-item');
-    if (!row || e.target.closest('.check')) return;
+    if (!row || e.target.closest('.check') || viewDay) return; // another day: look and plan, nothing to tick yet
     closeSwipes(row);
     drag = { row, id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, active: false, base: row.classList.contains('open') ? -SWIPE_OPEN : 0 };
   });
@@ -2711,6 +2750,7 @@
     if (!li) return;
     const id = li.dataset.id;
     if (e.target.closest('.check')) {
+      if (viewDay) return; // can't tick off a day that hasn't come yet
       if (statusOf(id)) undo(id); else resolve(id, 'done');
       return;
     }

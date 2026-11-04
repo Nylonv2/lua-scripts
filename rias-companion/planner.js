@@ -653,7 +653,8 @@ window.createPlanner = function createPlanner(ctx) {
     changed();
     const list = planList(k);
     const added = replan ? items(dayOf(k)).filter((it) => it.essential && !(state.log[k] || {})[it.id]).length : 0;
-    const lines = [list.length ? `Here's your ${dayWord(k)}${replan ? ', planned around your schedule' : ''}:\n${list.map((l) => `• ${l}`).join('\n')}` : `Nothing left to plan for ${dayWord(k)}.`];
+    const named = k === addDays(dateKey(), 1) ? `tomorrow (${dayOf(k).toLocaleDateString([], { weekday: 'long' })})` : dayWord(k);
+    const lines = [list.length ? `Here's your ${named === 'today' ? 'day' : named}${replan ? ', planned around your schedule' : ''}:\n${list.map((l) => `• ${l}`).join('\n')}` : `Nothing left to plan for ${dayWord(k)}.`];
     if (added) lines.push(`I added ${added} daily essential${added === 1 ? '' : 's'} where you had room (meals, movement, focus, daylight, winding down). I'll remind you at each one; swipe any you don't want.`);
     const unplanned = openTodos().filter((t) => !t.plan);
     if (unplanned.length) lines.push(`Still on your list for later: ${unplanned.slice(0, 4).map((t) => t.title).join(', ')}${unplanned.length > 4 ? '…' : ''}.`);
@@ -799,8 +800,8 @@ window.createPlanner = function createPlanner(ctx) {
   function handle(text) {
     const s = text.trim().replace(/[.!]+$/, '');
     let m;
-    if (/^(?:plan|organi[sz]e|schedule) (?:out )?my (day|today|tomorrow)\b/i.test(s) || /^make (?:me )?a plan for (today|tomorrow)/i.test(s)) {
-      const k = /tomorrow/i.test(s) ? addDays(dateKey(), 1) : dateKey();
+    if ((m = s.match(/^(?:plan|organi[sz]e|schedule) (?:out )?(?:my |the |this |next )?(day|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i)) || (m = s.match(/^make (?:me )?a plan for (today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i))) {
+      const k = /^(day|today)$/i.test(m[1]) ? dateKey() : parseDue(m[1]).due || dateKey();
       return planReply(k, true);
     }
     if (/^what(?:'s| is) (?:my |the )?plan(?: for (today|tomorrow))?\??$/i.test(s) || /^what(?:'s| is) on my (?:schedule|plan)/i.test(s)) {

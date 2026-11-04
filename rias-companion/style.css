@@ -1685,3 +1685,10 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 #view-today.month-mode .plan-day-btn { display: none; }
 .chore-row.overdue { box-shadow: inset 3px 0 0 #ff8a8a; }
 .chore-starter { width: 100%; margin: 0 0 14px; }
+.day-pick { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.day-pick .icon-btn { width: 40px; height: 40px; flex: none; font-size: 1.3rem; }
+.day-back { display: block; margin: -6px 0 10px; padding: 0; background: none; border: 0; color: var(--crimson-2); font-weight: 600; min-height: 36px; }
+#view-today.month-mode .day-back { display: none; }
+#view-today.future-day .row-item .check { opacity: .35; }
+.dd-plan-row { display: flex; gap: 10px; margin: 12px 0 4px; }
+.dd-plan-row button { flex: 1; min-height: 44px; }

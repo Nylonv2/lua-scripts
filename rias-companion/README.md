@@ -53,10 +53,10 @@ Talk to her by typing, with 🎙, or by sending a photo (📷). Without AI she h
 ### Plan
 Five views at the top: **Today**, **To-do**, **Chores**, **Goals** and **Month**.
 
-**Today:** today's routine grouped by morning, afternoon, evening and night, plus work shifts and phone-calendar events. Swipe right
+**Today:** use **‹ ›** next to the date to look at any upcoming day ("← Back to today" returns); the button becomes **Plan tomorrow / Plan Saturday…** and builds that whole day. Today's routine grouped by morning, afternoon, evening and night, plus work shifts and phone-calendar events. Swipe right
 for done, left for snooze or delete. **＋ New reminder** sets the time, repeat (once, daily, weekdays, weekends, picked
 days, or every so often during the day), type, sound and whether it pops up like an alarm. **Month** shows a calendar of
-how each day went; tap a day to see it, add a reminder for that date, or edit one.
+how each day went; tap a day to see it, add a reminder for that date, or edit one. For today and upcoming days, **Open this day** shows it in Today and **⏱ Plan this day** plans it. In the chat, "plan Friday" works too.
 
 **To-do:** your to-do list. Add things with a deadline, how long they take and whether they're important ("Finish the
 edit by Friday (2h)", or just tell her in the chat). She **fits each to-do into your free time** around work, meals,

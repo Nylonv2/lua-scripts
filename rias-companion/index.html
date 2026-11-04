@@ -195,9 +195,13 @@
           <div class="card day-detail" id="m-detail"></div>
         </div>
         <div class="page-head">
-          <div>
-            <p class="eyebrow" id="today-weekday"></p>
-            <h1 class="page-title" id="today-date"></h1>
+          <div class="day-pick">
+            <button type="button" class="icon-btn" id="day-prev" aria-label="Previous day">‹</button>
+            <div>
+              <p class="eyebrow" id="today-weekday"></p>
+              <h1 class="page-title" id="today-date"></h1>
+            </div>
+            <button type="button" class="icon-btn" id="day-next" aria-label="Next day">›</button>
           </div>
           <div class="progress-mini">
             <svg class="ring" viewBox="0 0 36 36" aria-hidden="true">
@@ -210,6 +214,7 @@
             </div>
           </div>
         </div>
+        <button type="button" class="btn-text day-back" id="day-back" hidden>← Back to today</button>
         <button type="button" class="btn-primary plan-day-btn" id="today-plan-day">⏱ Plan my day</button>
         <div class="segmented" id="today-filter" role="tablist" aria-label="Show">
           <button type="button" data-f="all" class="active" role="tab">All</button>
