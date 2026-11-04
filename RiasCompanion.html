@@ -1765,8 +1765,24 @@ html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.act
 .spend-bar { height: 6px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
 .spend-bar i { display: block; height: 100%; border-radius: 3px; background: var(--g2); }
 .spend-cat.loan .spend-bar i { background: #ff9500; }
-.spend-cat.loan .spend-cat-top span::after { content: " · borrowed money"; color: var(--muted); font-size: .8rem; }
+.spend-cat.loan .spend-cat-top span::after { content: " · paying off debt"; color: var(--muted); font-size: .8rem; }
 .spend-row { width: 100%; text-align: left; background: none; border: 0; color: inherit; display: flex; align-items: center; }
+/* Money in vs out */
+.flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.flow > div { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 12px; background: var(--panel-2); }
+.flow span { font-size: .78rem; color: var(--muted); }
+.flow b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.gain { color: #34c759; } .loss { color: #ff3b30; } .borrow { color: #ff9500; }
+html[data-appearance="dark"] .gain { color: #30d158; } html[data-appearance="dark"] .loss { color: #ff453a; }
+.flow-verdict { margin: 4px 0 0; font-weight: 600; text-align: center; }
+.flow-borrowed { margin: 0; font-size: .85rem; color: #ff9500; text-align: center; }
+.flow-months { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.flow-row { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 10px; }
+.flow-m { color: var(--muted); font-size: .9rem; }
+.flow-bar { height: 8px; border-radius: 4px; background: var(--panel-2); overflow: hidden; }
+.flow-bar i { display: block; height: 100%; border-radius: 4px; }
+.flow-bar i.gain { background: #34c759; } .flow-bar i.loss { background: #ff3b30; }
+.flow-row b { font-variant-numeric: tabular-nums; font-size: .95rem; }
 </style>
   <style>
 /* =====================================================================================
@@ -2517,10 +2533,21 @@ html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px
             <div><p class="eyebrow">Spent in <span id="spend-month"></span></p><b id="spend-total">$0.00</b></div>
             <button type="button" class="icon-btn" id="spend-next" aria-label="Next month">›</button>
           </div>
+          <div class="flow">
+            <div><span>Money in</span><b id="flow-earned">$0.00</b></div>
+            <div><span>Money out</span><b id="flow-spent">$0.00</b></div>
+            <div><span>Net</span><b id="flow-net">$0.00</b></div>
+          </div>
+          <p class="flow-verdict" id="flow-verdict"></p>
+          <p class="flow-borrowed" id="flow-borrowed" hidden></p>
           <div id="spend-cats"></div>
         </div>
+        <div id="flow-months-wrap" hidden>
+          <div class="group-title"><span>Ahead or behind, month by month</span></div>
+          <div class="card flow-months" id="flow-months"></div>
+        </div>
         <div id="spend-recent-wrap" hidden>
-          <div class="group-title"><span>Recent spending</span></div>
+          <div class="group-title"><span>Recent activity</span></div>
           <div class="list-card" id="spend-recent"></div>
         </div>
         <div class="group-title"><span>Bills &amp; subscriptions</span></div>
@@ -2551,7 +2578,7 @@ html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px
         <p class="more-label">Tools</p>
         <div class="list-card more-list">
           <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
-          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>Spending, loans, bills and subscriptions, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>In vs. out each month, spending, loans, bills and subscriptions</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
         </div>
         <p class="more-label">App</p>
@@ -3551,7 +3578,7 @@ html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px
     <div class="row">
       <label>Amount <input name="amount" inputmode="decimal" placeholder="0.00"></label>
       <label>Every
-        <select name="cycle"><option value="week">week</option><option value="month">month</option><option value="quarter">3 months</option><option value="year">year</option></select>
+        <select name="cycle"><option value="week">week</option><option value="month">month</option><option value="quarter">3 months</option><option value="year">year</option><option value="once">one time</option></select>
       </label>
     </div>
     <div class="row">
@@ -3600,7 +3627,7 @@ html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px
   <div class="stack">
     <div class="sheet-grab" aria-hidden="true"></div>
     <h2>Import a list</h2>
-    <p class="muted small">Spending: <b>date | what | amount | category</b> (e.g. <i>2026-11-03 | Wingstop | 21.69</i>). Bills: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
+    <p class="muted small">Money in: <b>date | from | +amount | Income</b> (or Borrowed). Spending: <b>date | what | amount | category</b> (e.g. <i>2026-11-03 | Wingstop | 21.69</i>). Bills: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
     <textarea id="bills-import-text" rows="9" placeholder="Paste here"></textarea>
     <div class="sheet-actions">
       <button type="button" id="bills-import-close">Close</button>
@@ -6826,11 +6853,12 @@ window.createBills = function createBills(ctx) {
   state.billIgnored ||= [];   // names you said no to
   state.billNotesAt ||= 0;    // newest notification already read
   state.spend ||= [];         // money going out: { id, date, amount, what, cat, key }
+  state.income ||= [];        // money coming in: { id, date, amount, what, kind: 'earned' | 'borrowed', key }
   const today = () => dateKey();
   const dayOf = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (k, n) => { const d = dayOf(k); d.setDate(d.getDate() + n); return dateKey(d); };
-  const CYCLES = { week: 'week', month: 'month', quarter: '3 months', year: 'year' };
-  const PER_MONTH = { week: 52 / 12, month: 1, quarter: 1 / 3, year: 1 / 12 };
+  const CYCLES = { week: 'week', month: 'month', quarter: '3 months', year: 'year', once: 'one time' };
+  const PER_MONTH = { week: 52 / 12, month: 1, quarter: 1 / 3, year: 1 / 12, once: 0 };
   function addCycle(k, cycle) {
     const d = dayOf(k);
     if (cycle === 'week') d.setDate(d.getDate() + 7);
@@ -6894,6 +6922,7 @@ window.createBills = function createBills(ctx) {
       if (!b.next || !/^\d{4}-\d{2}-\d{2}$/.test(b.next)) continue;
       if (b.status === 'cancelling' && b.next < k) { b.status = 'active'; changed = true; } // it renewed before it got cancelled
       if (b.status === 'cancelled') continue;
+      if (b.cycle === 'once' && b.next < k && (b.autopay || (b.paid || {})[b.next])) { b.status = 'cancelled'; b.endsOn = b.next; b.paidOff = true; changed = true; continue; }
       let guard = 0;
       while (b.next < k && (b.autopay || (b.paid || {})[b.next]) && guard++ < 60) { b.next = addCycle(b.next, b.cycle); changed = true; }
     }
@@ -6914,7 +6943,7 @@ window.createBills = function createBills(ctx) {
   }
   function markPaid(b, quiet) {
     (b.paid ||= {})[b.next] = true;
-    b.next = addCycle(b.next, b.cycle);
+    if (b.cycle === 'once') { b.status = 'cancelled'; b.endsOn = b.next; b.paidOff = true; } else b.next = addCycle(b.next, b.cycle);
     if (!quiet) { save(); ctx.refresh && ctx.refresh(); render(); }
   }
   function markCancelled(b, endsOn, quiet) {
@@ -6966,12 +6995,16 @@ window.createBills = function createBills(ctx) {
       if (!line || /^#/.test(line)) continue;
       const p = line.split(/\s*[|;\t]\s*/);
       if (p.length < 2) continue;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(p[0]) && (/^\+/.test(p[2] || '') || /^(income|paycheck|pay|earned|money in|borrowed)$/i.test(p[3] || ''))) { // "2026-11-04 | DailyPay | +109.70 | Income"
+        if (logIncome({ date: p[0], what: p[1], amount: Number(String(p[2]).replace(/[^0-9.]/g, '')), kind: /borrow/i.test(p[3] || '') ? 'borrowed' : 'earned' }, true)) n++;
+        continue;
+      }
       if (/^\d{4}-\d{2}-\d{2}$/.test(p[0])) { // "2026-11-03 | Wingstop (Uber Eats) | 21.69 | Food & delivery"
         if (logSpend({ date: p[0], what: p[1], amount: Number(String(p[2] || '').replace(/[^0-9.]/g, '')), cat: p[3] && (CATS.some(([c]) => c === p[3]) || p[3] === 'Other') ? p[3] : catOf(`${p[1]} ${p[3] || ''}`) }, true)) n++;
         continue;
       }
       const [name, amount, cycle = 'month', next = '', kind = 'sub', pay = ''] = p;
-      const cyc = /week/i.test(cycle) ? 'week' : /year|annual/i.test(cycle) ? 'year' : /quarter|3 ?mo/i.test(cycle) ? 'quarter' : 'month';
+      const cyc = /once|one[- ]time|single/i.test(cycle) ? 'once' : /week/i.test(cycle) ? 'week' : /year|annual/i.test(cycle) ? 'year' : /quarter|3 ?mo/i.test(cycle) ? 'quarter' : 'month';
       const status = /cancel/i.test(pay) ? 'cancelled' : 'active';
       if (state.bills.some((b) => b.name.toLowerCase() === name.trim().toLowerCase())) continue;
       const r = add({ name, amount, cycle: cyc, next: next.trim(), kind: /bill|rent|util|internet|phone/i.test(kind) ? 'bill' : 'sub', autopay: !/manual|pay myself|no auto/i.test(pay) });
@@ -7029,14 +7062,14 @@ window.createBills = function createBills(ctx) {
         main.append(el('div', 'ri-title', b.name));
         const meta = el('div', 'ri-meta');
         const add_ = (text, cls) => meta.append(el('span', cls || '', text));
-        if (b.status === 'cancelled') add_(b.endsOn && b.endsOn >= t ? `Access until ${short(b.endsOn)}` : `Ended ${b.endsOn ? short(b.endsOn) : ''}`, 'ri-sub');
+        if (b.status === 'cancelled') add_(b.paidOff ? `Paid off ${b.endsOn ? short(b.endsOn) : ''}` : b.endsOn && b.endsOn >= t ? `Access until ${short(b.endsOn)}` : `Ended ${b.endsOn ? short(b.endsOn) : ''}`, 'ri-sub');
         else {
           add_(b.next ? `${b.autopay ? (b.kind === 'bill' ? 'Autopay' : 'Renews') : 'Due'} ${when(b.next)}` : 'No date yet', late ? 'tag-chip flag warn' : 'ri-sub');
           if (b.status === 'cancelling') add_('Cancel before it renews', 'tag-chip flag warn');
           if (late) add_('Late', 'tag-chip flag warn');
         }
         const amt = el('div', 'bill-amt');
-        amt.append(el('b', '', money(b.amount)), el('small', '', `/${b.cycle === 'quarter' ? '3 mo' : b.cycle === 'month' ? 'mo' : b.cycle === 'year' ? 'yr' : 'wk'}`));
+        amt.append(el('b', '', money(b.amount)), el('small', '', b.cycle === 'once' ? ' once' : `/${b.cycle === 'quarter' ? '3 mo' : b.cycle === 'month' ? 'mo' : b.cycle === 'year' ? 'yr' : 'wk'}`));
         main.append(meta);
         row.append(main, amt);
         card.append(row);
@@ -7203,6 +7236,7 @@ window.createBills = function createBills(ctx) {
     for (const n of list) {
       state.billNotesAt = Math.max(state.billNotesAt || 0, Number(n.ts) || 0);
       if (logSpend(parseSpend(n), true)) spent++;
+      if (logIncome(parseIncome(n), true)) spent++;
       const p = parseNote(n);
       if (!p) continue;
       const b = state.bills.find((x) => sameName(x.name, p.name));
@@ -7367,26 +7401,105 @@ window.createBills = function createBills(ctx) {
     }
     const rec = $('#spend-recent');
     rec.textContent = '';
-    for (const x of list.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25)) {
-      const r = el('button', 'row-item spend-row');
-      r.type = 'button'; r.dataset.spend = x.id;
+    const ins = state.income.filter((x) => x.date.startsWith(spendMonth)).map((x) => ({ ...x, isIn: true }));
+    for (const x of list.concat(ins).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30)) {
+      const r = el('button', `row-item spend-row${x.isIn ? ' in' : ''}`);
+      r.type = 'button'; r.dataset[x.isIn ? 'income' : 'spend'] = x.id;
       const main = el('div', 'ri-main');
       main.append(el('div', 'ri-title', x.what));
-      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.cat}`));
-      const amt = el('div', 'bill-amt'); amt.append(el('b', '', money(x.amount)));
+      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.isIn ? (x.kind === 'borrowed' ? 'Borrowed' : 'Money in') : x.cat}`));
+      const amt = el('div', 'bill-amt'); amt.append(el('b', x.isIn ? (x.kind === 'borrowed' ? 'borrow' : 'gain') : '', `${x.isIn ? '+' : ''}${money(x.amount)}`));
       r.append(main, amt);
       rec.append(r);
     }
-    $('#spend-recent-wrap').hidden = !list.length;
+    $('#spend-recent-wrap').hidden = !list.length && !ins.length;
+    renderFlow();
   }
   $('#spend-prev').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m - 2, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
   $('#spend-next').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
   $('#spend-recent').addEventListener('click', async (e) => {
+    const ri = e.target.closest('[data-income]');
+    if (ri) {
+      const x = state.income.find((y) => y.id === ri.dataset.income);
+      if (x && await ctx.ask(`Remove “${x.what}” (+${money(x.amount)}, ${short(x.date)})?`)) { state.income = state.income.filter((y) => y !== x); save(); renderSpend(); }
+      return;
+    }
     const r = e.target.closest('[data-spend]');
     if (!r) return;
     const x = state.spend.find((y) => y.id === r.dataset.spend);
     if (x && await ctx.ask(`Remove “${x.what}” (${money(x.amount)}, ${short(x.date)}) from your spending?`)) { state.spend = state.spend.filter((y) => y !== x); save(); renderSpend(); }
   });
+  // ---------- money in: pay, transfers, and borrowed money ----------
+  const PAYIN = /you got paid|your money is on its way|direct deposit|payroll|paycheck|pay ?day is here|you('ve)? received|sent you|deposit(ed)? (of|into|to) your|money (has )?arrived|transfer (from|received)|extracash.{0,40}(on the way|sent|arriv)|advance.{0,30}(sent|approved|on the way|deposited|arriv)|loan (was )?(funded|disbursed|deposited)|mypay.{0,30}(sent|on the way|deposited)/i;
+  const BORROW = /extracash|advance|mypay|loan (was )?(funded|disbursed|deposited)|\b(dave|brigit|floatme|earnin|klover|cleo|empower|possible|solo ?funds|klarna|afterpay|affirm)\b/i;
+  const NOT_IN = /offer|bonus|earn a \$|\$\d+ thank you|could get|might qualify|pre-?qualif|eligible|up to \$|money misses you|funds to spend|you have (cash|funds)|repaid|has been repaid|settle/i;
+  function parseIncome(n) {
+    const title = String(n.title || ''), text = String(n.text || '');
+    const all = `${title} ${text}`;
+    if (!PAYIN.test(all) || NOT_IN.test(all)) return null;
+    const am = all.match(/\$\s?([\d,]+(?:\.\d{2})?)/);
+    const amount = am ? Number(am[1].replace(/,/g, '')) : 0;
+    if (!amount || amount > 50000) return null;
+    let what = cleanName(/gmail|mail|outlook|yahoo/i.test(`${n.pkg} ${n.app}`) ? title : (title || n.app)) || n.app || 'Money in';
+    const from = text.match(/^\W*(\w[\w&'. -]{0,25}?) sent you/m) || text.match(/(\w[\w&'.-]{1,25}(?: \w[\w&'.-]{1,25})?) sent you/);
+    if (from) what = from[1].trim();
+    return { date: dateKey(new Date(n.ts || Date.now())), amount, what: what.slice(0, 40), kind: BORROW.test(all) ? 'borrowed' : 'earned', key: n.key || '' };
+  }
+  function logIncome(x, quiet) {
+    if (!x || !x.amount) return false;
+    if (x.key && state.income.some((s) => s.key === x.key)) return false;
+    if (state.income.some((s) => s.date === x.date && Math.abs(s.amount - x.amount) < 0.005 && s.what.toLowerCase() === x.what.toLowerCase())) return false;
+    state.income.push({ id: uid(), date: x.date, amount: Math.round(x.amount * 100) / 100, what: x.what, kind: x.kind === 'borrowed' ? 'borrowed' : 'earned', key: x.key || '' });
+    if (state.income.length > 2000) state.income.splice(0, state.income.length - 2000);
+    if (!quiet) { save(); render(); }
+    return true;
+  }
+  /** { earned, borrowed, spent, net } for a month: net = earned − spent (borrowed money doesn't count as gaining). */
+  function monthFlow(m) {
+    const inc = state.income.filter((x) => x.date.startsWith(m));
+    const earned = inc.filter((x) => x.kind !== 'borrowed').reduce((a, x) => a + x.amount, 0);
+    const borrowed = inc.filter((x) => x.kind === 'borrowed').reduce((a, x) => a + x.amount, 0);
+    const spent = monthTotals(m).total;
+    return { earned, borrowed, spent, net: earned - spent };
+  }
+  const signed = (n) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
+  function renderFlow() {
+    const f = monthFlow(spendMonth);
+    $('#flow-earned').textContent = money(f.earned);
+    $('#flow-spent').textContent = money(f.spent);
+    const net = $('#flow-net');
+    net.textContent = signed(f.net);
+    net.className = f.net >= 0 ? 'gain' : 'loss';
+    const isNow = spendMonth === today().slice(0, 7);
+    $('#flow-verdict').textContent = !f.earned && !f.spent ? 'Nothing logged for this month yet.'
+      : f.net >= 0 ? `You ${isNow ? 'are' : 'were'} ahead by ${money(f.net)}${isNow ? ' so far' : ''}.`
+        : `You ${isNow ? 'are' : 'were'} short by ${money(-f.net)}${isNow ? ' so far' : ''}: more went out than you earned.`;
+    $('#flow-borrowed').hidden = !f.borrowed;
+    $('#flow-borrowed').textContent = `Borrowed ${money(f.borrowed)} this month (advances, pay-later, loans). That isn't income; it has to be paid back.`;
+    // last 6 months
+    const box = $('#flow-months');
+    box.textContent = '';
+    const months = [];
+    const [y, mo] = today().slice(0, 7).split('-').map(Number);
+    for (let i = 5; i >= 0; i--) months.push(dateKey(new Date(y, mo - 1 - i, 1)).slice(0, 7));
+    const rows = months.map((m) => [m, monthFlow(m)]).filter(([, x]) => x.earned || x.spent);
+    $('#flow-months-wrap').hidden = rows.length < 2;
+    const max = Math.max(1, ...rows.map(([, x]) => Math.abs(x.net)));
+    for (const [m, x] of rows) {
+      const r = el('div', 'flow-row');
+      r.append(el('span', 'flow-m', monthName(m).split(' ')[0].slice(0, 3)));
+      const bar = el('div', 'flow-bar');
+      const fill = el('i', x.net >= 0 ? 'gain' : 'loss'); fill.style.width = `${Math.max(3, (Math.abs(x.net) / max) * 100)}%`;
+      bar.append(fill);
+      r.append(bar, el('b', x.net >= 0 ? 'gain' : 'loss', signed(x.net)));
+      box.append(r);
+    }
+  }
+  function flowSummary(m = today().slice(0, 7)) {
+    const f = monthFlow(m);
+    if (!f.earned && !f.spent) return '';
+    return `${monthName(m)}: earned ${money(f.earned)}, spent ${money(f.spent)}, net ${signed(f.net)}${f.borrowed ? `, borrowed ${money(f.borrowed)}` : ''}.`;
+  }
   function spendSummary(m = today().slice(0, 7)) {
     const { total, cats } = monthTotals(m);
     if (!total) return '';
@@ -7399,7 +7512,7 @@ window.createBills = function createBills(ctx) {
     return state.bills.find((b) => b.name.toLowerCase() === s) || state.bills.find((b) => b.name.toLowerCase().includes(s) || s.includes(b.name.toLowerCase()));
   }
   function summary() {
-    const sp = spendSummary();
+    const sp = [flowSummary(), spendSummary()].filter(Boolean).join(' ');
     if (!state.bills.length) return sp;
     const act = active();
     return `Bills & subscriptions (${money(act.reduce((s, b) => s + monthly(b), 0))}/month): ${act.map((b) => `${b.name} ${money(b.amount)}/${b.cycle}${b.next ? `, ${b.autopay ? 'renews' : 'due'} ${b.next}` : ''}${b.status === 'cancelling' ? ', wants to cancel' : ''}${b.autopay ? '' : ', paid manually'}`).join('; ')}.${state.bills.some((b) => b.status === 'cancelled') ? ` Cancelled: ${state.bills.filter((b) => b.status === 'cancelled').map((b) => b.name).join(', ')}.` : ''}${sp ? ` ${sp}` : ''}`;
@@ -7419,6 +7532,25 @@ window.createBills = function createBills(ctx) {
       logSpend(x);
       return [`Logged ${money(x.amount)} for ${x.what} (${x.cat}). ${spendSummary()}`];
     }
+    m = t.match(/^(?:i )?(?:just )?(?:got paid|was paid|earned|made|got) \$?(\d+(?:\.\d{1,2})?)(?: dollars| bucks)?(?: (?:from|at|for) (.+?))?[.!]*$/i);
+    if (m && !/\b(spent|paid for)\b/i.test(t)) {
+      const x = { date: today(), amount: Number(m[1]), what: m[2] ? m[2].replace(/^\w/, (c) => c.toUpperCase()) : 'Pay', kind: 'earned' };
+      logIncome(x);
+      return [`Got it: +${money(x.amount)}. ${flowSummary()}`];
+    }
+    m = t.match(/^(?:i )?(?:just )?borrowed \$?(\d+(?:\.\d{1,2})?)(?: (?:from|on|with) (.+?))?[.!]*$/i);
+    if (m) {
+      const x = { date: today(), amount: Number(m[1]), what: m[2] ? m[2].replace(/^\w/, (c) => c.toUpperCase()) : 'Borrowed', kind: 'borrowed' };
+      logIncome(x);
+      return [`Logged ${money(x.amount)} borrowed${m[2] ? ` from ${x.what}` : ''}. It's tracked separately from what you earn, since it has to be paid back.`];
+    }
+    if (/\b(am i (losing|making|gaining) money|(losing|gaining|making) money|my net|cash ?flow|money in (and|vs\.?) (out|money out)|how am i doing (with|on) money|am i (ahead|behind|broke))\b/i.test(t)) {
+      const now = today().slice(0, 7), f = monthFlow(now);
+      const [y, mo] = now.split('-').map(Number);
+      const prev = dateKey(new Date(y, mo - 2, 1)).slice(0, 7), p = monthFlow(prev);
+      if (!f.earned && !f.spent && !p.earned && !p.spent) return ['I don\'t have your money in or out yet. Turn on "Watch my notifications" in More → Money, or tell me "I got paid 850" and "I spent 20 on gas".'];
+      return [`${monthName(now)} so far: earned ${money(f.earned)}, spent ${money(f.spent)}, so ${f.net >= 0 ? `you're ahead ${money(f.net)}` : `you're short ${money(-f.net)}`}.${f.borrowed ? ` You also borrowed ${money(f.borrowed)}, which isn't income.` : ''}${p.earned || p.spent ? `\nLast month (${monthName(prev)}): ${signed(p.net)} (earned ${money(p.earned)}, spent ${money(p.spent)}${p.borrowed ? `, borrowed ${money(p.borrowed)}` : ''}).` : ''}`];
+    }
     if (/\b(how much (did|have) i (spent|spend)|my (expenses|spending)|where (did|does) my money go|what (did|have) i spen[dt])\b/i.test(t)) {
       const { total, cats } = monthTotals(today().slice(0, 7));
       if (!total) return ['Nothing logged this month yet. Turn on "Watch my email notifications" in More → Money, or tell me "I spent 20 on gas".'];
@@ -7432,7 +7564,7 @@ window.createBills = function createBills(ctx) {
     return null;
   }
   roll();
-  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary };
+  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary, parseIncome, logIncome, monthFlow };
 };
 </script>
   <script>

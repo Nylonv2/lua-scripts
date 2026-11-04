@@ -99,6 +99,14 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**Money in vs. out, every month.** The top of More → Money shows *Money in*, *Money out* and *Net*: green when you
+came out ahead, red when more went out than you earned ("You were short by $411.96"). Borrowed money (cash advances
+like Dave ExtraCash, pay-later like Klarna, loan deposits) is shown separately in orange and never counted as income,
+because it has to be paid back. *Ahead or behind, month by month* lines up the last six months. Money in is picked up
+from notifications (pay apps like DailyPay, "direct deposit", "X sent you $…"; bank offers and repayments are
+skipped), or tell her: "I got paid 850", "borrowed 100 from Dave", "am I losing money?". Import takes
+`date | from | +amount | Income` (or `Borrowed`). Bills can also be **one time** (like a single repayment).
+
 **Money (More → Tools): spending, loans, bills and subscriptions.** At the top is what you've spent this month, by
 category: food & delivery, groceries, rides & gas, bills, rent, subscriptions, shopping, games, betting, and **loans &
 advances** (Flex, Klarna, Afterpay, Affirm, Dave, Brigit, FloatMe…), which get their own orange "borrowed money" line.

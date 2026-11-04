@@ -9,11 +9,12 @@ window.createBills = function createBills(ctx) {
   state.billIgnored ||= [];   // names you said no to
   state.billNotesAt ||= 0;    // newest notification already read
   state.spend ||= [];         // money going out: { id, date, amount, what, cat, key }
+  state.income ||= [];        // money coming in: { id, date, amount, what, kind: 'earned' | 'borrowed', key }
   const today = () => dateKey();
   const dayOf = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (k, n) => { const d = dayOf(k); d.setDate(d.getDate() + n); return dateKey(d); };
-  const CYCLES = { week: 'week', month: 'month', quarter: '3 months', year: 'year' };
-  const PER_MONTH = { week: 52 / 12, month: 1, quarter: 1 / 3, year: 1 / 12 };
+  const CYCLES = { week: 'week', month: 'month', quarter: '3 months', year: 'year', once: 'one time' };
+  const PER_MONTH = { week: 52 / 12, month: 1, quarter: 1 / 3, year: 1 / 12, once: 0 };
   function addCycle(k, cycle) {
     const d = dayOf(k);
     if (cycle === 'week') d.setDate(d.getDate() + 7);
@@ -77,6 +78,7 @@ window.createBills = function createBills(ctx) {
       if (!b.next || !/^\d{4}-\d{2}-\d{2}$/.test(b.next)) continue;
       if (b.status === 'cancelling' && b.next < k) { b.status = 'active'; changed = true; } // it renewed before it got cancelled
       if (b.status === 'cancelled') continue;
+      if (b.cycle === 'once' && b.next < k && (b.autopay || (b.paid || {})[b.next])) { b.status = 'cancelled'; b.endsOn = b.next; b.paidOff = true; changed = true; continue; }
       let guard = 0;
       while (b.next < k && (b.autopay || (b.paid || {})[b.next]) && guard++ < 60) { b.next = addCycle(b.next, b.cycle); changed = true; }
     }
@@ -97,7 +99,7 @@ window.createBills = function createBills(ctx) {
   }
   function markPaid(b, quiet) {
     (b.paid ||= {})[b.next] = true;
-    b.next = addCycle(b.next, b.cycle);
+    if (b.cycle === 'once') { b.status = 'cancelled'; b.endsOn = b.next; b.paidOff = true; } else b.next = addCycle(b.next, b.cycle);
     if (!quiet) { save(); ctx.refresh && ctx.refresh(); render(); }
   }
   function markCancelled(b, endsOn, quiet) {
@@ -149,12 +151,16 @@ window.createBills = function createBills(ctx) {
       if (!line || /^#/.test(line)) continue;
       const p = line.split(/\s*[|;\t]\s*/);
       if (p.length < 2) continue;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(p[0]) && (/^\+/.test(p[2] || '') || /^(income|paycheck|pay|earned|money in|borrowed)$/i.test(p[3] || ''))) { // "2026-11-04 | DailyPay | +109.70 | Income"
+        if (logIncome({ date: p[0], what: p[1], amount: Number(String(p[2]).replace(/[^0-9.]/g, '')), kind: /borrow/i.test(p[3] || '') ? 'borrowed' : 'earned' }, true)) n++;
+        continue;
+      }
       if (/^\d{4}-\d{2}-\d{2}$/.test(p[0])) { // "2026-11-03 | Wingstop (Uber Eats) | 21.69 | Food & delivery"
         if (logSpend({ date: p[0], what: p[1], amount: Number(String(p[2] || '').replace(/[^0-9.]/g, '')), cat: p[3] && (CATS.some(([c]) => c === p[3]) || p[3] === 'Other') ? p[3] : catOf(`${p[1]} ${p[3] || ''}`) }, true)) n++;
         continue;
       }
       const [name, amount, cycle = 'month', next = '', kind = 'sub', pay = ''] = p;
-      const cyc = /week/i.test(cycle) ? 'week' : /year|annual/i.test(cycle) ? 'year' : /quarter|3 ?mo/i.test(cycle) ? 'quarter' : 'month';
+      const cyc = /once|one[- ]time|single/i.test(cycle) ? 'once' : /week/i.test(cycle) ? 'week' : /year|annual/i.test(cycle) ? 'year' : /quarter|3 ?mo/i.test(cycle) ? 'quarter' : 'month';
       const status = /cancel/i.test(pay) ? 'cancelled' : 'active';
       if (state.bills.some((b) => b.name.toLowerCase() === name.trim().toLowerCase())) continue;
       const r = add({ name, amount, cycle: cyc, next: next.trim(), kind: /bill|rent|util|internet|phone/i.test(kind) ? 'bill' : 'sub', autopay: !/manual|pay myself|no auto/i.test(pay) });
@@ -212,14 +218,14 @@ window.createBills = function createBills(ctx) {
         main.append(el('div', 'ri-title', b.name));
         const meta = el('div', 'ri-meta');
         const add_ = (text, cls) => meta.append(el('span', cls || '', text));
-        if (b.status === 'cancelled') add_(b.endsOn && b.endsOn >= t ? `Access until ${short(b.endsOn)}` : `Ended ${b.endsOn ? short(b.endsOn) : ''}`, 'ri-sub');
+        if (b.status === 'cancelled') add_(b.paidOff ? `Paid off ${b.endsOn ? short(b.endsOn) : ''}` : b.endsOn && b.endsOn >= t ? `Access until ${short(b.endsOn)}` : `Ended ${b.endsOn ? short(b.endsOn) : ''}`, 'ri-sub');
         else {
           add_(b.next ? `${b.autopay ? (b.kind === 'bill' ? 'Autopay' : 'Renews') : 'Due'} ${when(b.next)}` : 'No date yet', late ? 'tag-chip flag warn' : 'ri-sub');
           if (b.status === 'cancelling') add_('Cancel before it renews', 'tag-chip flag warn');
           if (late) add_('Late', 'tag-chip flag warn');
         }
         const amt = el('div', 'bill-amt');
-        amt.append(el('b', '', money(b.amount)), el('small', '', `/${b.cycle === 'quarter' ? '3 mo' : b.cycle === 'month' ? 'mo' : b.cycle === 'year' ? 'yr' : 'wk'}`));
+        amt.append(el('b', '', money(b.amount)), el('small', '', b.cycle === 'once' ? ' once' : `/${b.cycle === 'quarter' ? '3 mo' : b.cycle === 'month' ? 'mo' : b.cycle === 'year' ? 'yr' : 'wk'}`));
         main.append(meta);
         row.append(main, amt);
         card.append(row);
@@ -386,6 +392,7 @@ window.createBills = function createBills(ctx) {
     for (const n of list) {
       state.billNotesAt = Math.max(state.billNotesAt || 0, Number(n.ts) || 0);
       if (logSpend(parseSpend(n), true)) spent++;
+      if (logIncome(parseIncome(n), true)) spent++;
       const p = parseNote(n);
       if (!p) continue;
       const b = state.bills.find((x) => sameName(x.name, p.name));
@@ -550,26 +557,105 @@ window.createBills = function createBills(ctx) {
     }
     const rec = $('#spend-recent');
     rec.textContent = '';
-    for (const x of list.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25)) {
-      const r = el('button', 'row-item spend-row');
-      r.type = 'button'; r.dataset.spend = x.id;
+    const ins = state.income.filter((x) => x.date.startsWith(spendMonth)).map((x) => ({ ...x, isIn: true }));
+    for (const x of list.concat(ins).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30)) {
+      const r = el('button', `row-item spend-row${x.isIn ? ' in' : ''}`);
+      r.type = 'button'; r.dataset[x.isIn ? 'income' : 'spend'] = x.id;
       const main = el('div', 'ri-main');
       main.append(el('div', 'ri-title', x.what));
-      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.cat}`));
-      const amt = el('div', 'bill-amt'); amt.append(el('b', '', money(x.amount)));
+      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.isIn ? (x.kind === 'borrowed' ? 'Borrowed' : 'Money in') : x.cat}`));
+      const amt = el('div', 'bill-amt'); amt.append(el('b', x.isIn ? (x.kind === 'borrowed' ? 'borrow' : 'gain') : '', `${x.isIn ? '+' : ''}${money(x.amount)}`));
       r.append(main, amt);
       rec.append(r);
     }
-    $('#spend-recent-wrap').hidden = !list.length;
+    $('#spend-recent-wrap').hidden = !list.length && !ins.length;
+    renderFlow();
   }
   $('#spend-prev').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m - 2, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
   $('#spend-next').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
   $('#spend-recent').addEventListener('click', async (e) => {
+    const ri = e.target.closest('[data-income]');
+    if (ri) {
+      const x = state.income.find((y) => y.id === ri.dataset.income);
+      if (x && await ctx.ask(`Remove “${x.what}” (+${money(x.amount)}, ${short(x.date)})?`)) { state.income = state.income.filter((y) => y !== x); save(); renderSpend(); }
+      return;
+    }
     const r = e.target.closest('[data-spend]');
     if (!r) return;
     const x = state.spend.find((y) => y.id === r.dataset.spend);
     if (x && await ctx.ask(`Remove “${x.what}” (${money(x.amount)}, ${short(x.date)}) from your spending?`)) { state.spend = state.spend.filter((y) => y !== x); save(); renderSpend(); }
   });
+  // ---------- money in: pay, transfers, and borrowed money ----------
+  const PAYIN = /you got paid|your money is on its way|direct deposit|payroll|paycheck|pay ?day is here|you('ve)? received|sent you|deposit(ed)? (of|into|to) your|money (has )?arrived|transfer (from|received)|extracash.{0,40}(on the way|sent|arriv)|advance.{0,30}(sent|approved|on the way|deposited|arriv)|loan (was )?(funded|disbursed|deposited)|mypay.{0,30}(sent|on the way|deposited)/i;
+  const BORROW = /extracash|advance|mypay|loan (was )?(funded|disbursed|deposited)|\b(dave|brigit|floatme|earnin|klover|cleo|empower|possible|solo ?funds|klarna|afterpay|affirm)\b/i;
+  const NOT_IN = /offer|bonus|earn a \$|\$\d+ thank you|could get|might qualify|pre-?qualif|eligible|up to \$|money misses you|funds to spend|you have (cash|funds)|repaid|has been repaid|settle/i;
+  function parseIncome(n) {
+    const title = String(n.title || ''), text = String(n.text || '');
+    const all = `${title} ${text}`;
+    if (!PAYIN.test(all) || NOT_IN.test(all)) return null;
+    const am = all.match(/\$\s?([\d,]+(?:\.\d{2})?)/);
+    const amount = am ? Number(am[1].replace(/,/g, '')) : 0;
+    if (!amount || amount > 50000) return null;
+    let what = cleanName(/gmail|mail|outlook|yahoo/i.test(`${n.pkg} ${n.app}`) ? title : (title || n.app)) || n.app || 'Money in';
+    const from = text.match(/^\W*(\w[\w&'. -]{0,25}?) sent you/m) || text.match(/(\w[\w&'.-]{1,25}(?: \w[\w&'.-]{1,25})?) sent you/);
+    if (from) what = from[1].trim();
+    return { date: dateKey(new Date(n.ts || Date.now())), amount, what: what.slice(0, 40), kind: BORROW.test(all) ? 'borrowed' : 'earned', key: n.key || '' };
+  }
+  function logIncome(x, quiet) {
+    if (!x || !x.amount) return false;
+    if (x.key && state.income.some((s) => s.key === x.key)) return false;
+    if (state.income.some((s) => s.date === x.date && Math.abs(s.amount - x.amount) < 0.005 && s.what.toLowerCase() === x.what.toLowerCase())) return false;
+    state.income.push({ id: uid(), date: x.date, amount: Math.round(x.amount * 100) / 100, what: x.what, kind: x.kind === 'borrowed' ? 'borrowed' : 'earned', key: x.key || '' });
+    if (state.income.length > 2000) state.income.splice(0, state.income.length - 2000);
+    if (!quiet) { save(); render(); }
+    return true;
+  }
+  /** { earned, borrowed, spent, net } for a month: net = earned − spent (borrowed money doesn't count as gaining). */
+  function monthFlow(m) {
+    const inc = state.income.filter((x) => x.date.startsWith(m));
+    const earned = inc.filter((x) => x.kind !== 'borrowed').reduce((a, x) => a + x.amount, 0);
+    const borrowed = inc.filter((x) => x.kind === 'borrowed').reduce((a, x) => a + x.amount, 0);
+    const spent = monthTotals(m).total;
+    return { earned, borrowed, spent, net: earned - spent };
+  }
+  const signed = (n) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
+  function renderFlow() {
+    const f = monthFlow(spendMonth);
+    $('#flow-earned').textContent = money(f.earned);
+    $('#flow-spent').textContent = money(f.spent);
+    const net = $('#flow-net');
+    net.textContent = signed(f.net);
+    net.className = f.net >= 0 ? 'gain' : 'loss';
+    const isNow = spendMonth === today().slice(0, 7);
+    $('#flow-verdict').textContent = !f.earned && !f.spent ? 'Nothing logged for this month yet.'
+      : f.net >= 0 ? `You ${isNow ? 'are' : 'were'} ahead by ${money(f.net)}${isNow ? ' so far' : ''}.`
+        : `You ${isNow ? 'are' : 'were'} short by ${money(-f.net)}${isNow ? ' so far' : ''}: more went out than you earned.`;
+    $('#flow-borrowed').hidden = !f.borrowed;
+    $('#flow-borrowed').textContent = `Borrowed ${money(f.borrowed)} this month (advances, pay-later, loans). That isn't income; it has to be paid back.`;
+    // last 6 months
+    const box = $('#flow-months');
+    box.textContent = '';
+    const months = [];
+    const [y, mo] = today().slice(0, 7).split('-').map(Number);
+    for (let i = 5; i >= 0; i--) months.push(dateKey(new Date(y, mo - 1 - i, 1)).slice(0, 7));
+    const rows = months.map((m) => [m, monthFlow(m)]).filter(([, x]) => x.earned || x.spent);
+    $('#flow-months-wrap').hidden = rows.length < 2;
+    const max = Math.max(1, ...rows.map(([, x]) => Math.abs(x.net)));
+    for (const [m, x] of rows) {
+      const r = el('div', 'flow-row');
+      r.append(el('span', 'flow-m', monthName(m).split(' ')[0].slice(0, 3)));
+      const bar = el('div', 'flow-bar');
+      const fill = el('i', x.net >= 0 ? 'gain' : 'loss'); fill.style.width = `${Math.max(3, (Math.abs(x.net) / max) * 100)}%`;
+      bar.append(fill);
+      r.append(bar, el('b', x.net >= 0 ? 'gain' : 'loss', signed(x.net)));
+      box.append(r);
+    }
+  }
+  function flowSummary(m = today().slice(0, 7)) {
+    const f = monthFlow(m);
+    if (!f.earned && !f.spent) return '';
+    return `${monthName(m)}: earned ${money(f.earned)}, spent ${money(f.spent)}, net ${signed(f.net)}${f.borrowed ? `, borrowed ${money(f.borrowed)}` : ''}.`;
+  }
   function spendSummary(m = today().slice(0, 7)) {
     const { total, cats } = monthTotals(m);
     if (!total) return '';
@@ -582,7 +668,7 @@ window.createBills = function createBills(ctx) {
     return state.bills.find((b) => b.name.toLowerCase() === s) || state.bills.find((b) => b.name.toLowerCase().includes(s) || s.includes(b.name.toLowerCase()));
   }
   function summary() {
-    const sp = spendSummary();
+    const sp = [flowSummary(), spendSummary()].filter(Boolean).join(' ');
     if (!state.bills.length) return sp;
     const act = active();
     return `Bills & subscriptions (${money(act.reduce((s, b) => s + monthly(b), 0))}/month): ${act.map((b) => `${b.name} ${money(b.amount)}/${b.cycle}${b.next ? `, ${b.autopay ? 'renews' : 'due'} ${b.next}` : ''}${b.status === 'cancelling' ? ', wants to cancel' : ''}${b.autopay ? '' : ', paid manually'}`).join('; ')}.${state.bills.some((b) => b.status === 'cancelled') ? ` Cancelled: ${state.bills.filter((b) => b.status === 'cancelled').map((b) => b.name).join(', ')}.` : ''}${sp ? ` ${sp}` : ''}`;
@@ -602,6 +688,25 @@ window.createBills = function createBills(ctx) {
       logSpend(x);
       return [`Logged ${money(x.amount)} for ${x.what} (${x.cat}). ${spendSummary()}`];
     }
+    m = t.match(/^(?:i )?(?:just )?(?:got paid|was paid|earned|made|got) \$?(\d+(?:\.\d{1,2})?)(?: dollars| bucks)?(?: (?:from|at|for) (.+?))?[.!]*$/i);
+    if (m && !/\b(spent|paid for)\b/i.test(t)) {
+      const x = { date: today(), amount: Number(m[1]), what: m[2] ? m[2].replace(/^\w/, (c) => c.toUpperCase()) : 'Pay', kind: 'earned' };
+      logIncome(x);
+      return [`Got it: +${money(x.amount)}. ${flowSummary()}`];
+    }
+    m = t.match(/^(?:i )?(?:just )?borrowed \$?(\d+(?:\.\d{1,2})?)(?: (?:from|on|with) (.+?))?[.!]*$/i);
+    if (m) {
+      const x = { date: today(), amount: Number(m[1]), what: m[2] ? m[2].replace(/^\w/, (c) => c.toUpperCase()) : 'Borrowed', kind: 'borrowed' };
+      logIncome(x);
+      return [`Logged ${money(x.amount)} borrowed${m[2] ? ` from ${x.what}` : ''}. It's tracked separately from what you earn, since it has to be paid back.`];
+    }
+    if (/\b(am i (losing|making|gaining) money|(losing|gaining|making) money|my net|cash ?flow|money in (and|vs\.?) (out|money out)|how am i doing (with|on) money|am i (ahead|behind|broke))\b/i.test(t)) {
+      const now = today().slice(0, 7), f = monthFlow(now);
+      const [y, mo] = now.split('-').map(Number);
+      const prev = dateKey(new Date(y, mo - 2, 1)).slice(0, 7), p = monthFlow(prev);
+      if (!f.earned && !f.spent && !p.earned && !p.spent) return ['I don\'t have your money in or out yet. Turn on "Watch my notifications" in More → Money, or tell me "I got paid 850" and "I spent 20 on gas".'];
+      return [`${monthName(now)} so far: earned ${money(f.earned)}, spent ${money(f.spent)}, so ${f.net >= 0 ? `you're ahead ${money(f.net)}` : `you're short ${money(-f.net)}`}.${f.borrowed ? ` You also borrowed ${money(f.borrowed)}, which isn't income.` : ''}${p.earned || p.spent ? `\nLast month (${monthName(prev)}): ${signed(p.net)} (earned ${money(p.earned)}, spent ${money(p.spent)}${p.borrowed ? `, borrowed ${money(p.borrowed)}` : ''}).` : ''}`];
+    }
     if (/\b(how much (did|have) i (spent|spend)|my (expenses|spending)|where (did|does) my money go|what (did|have) i spen[dt])\b/i.test(t)) {
       const { total, cats } = monthTotals(today().slice(0, 7));
       if (!total) return ['Nothing logged this month yet. Turn on "Watch my email notifications" in More → Money, or tell me "I spent 20 on gas".'];
@@ -615,5 +720,5 @@ window.createBills = function createBills(ctx) {
     return null;
   }
   roll();
-  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary };
+  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary, parseIncome, logIncome, monthFlow };
 };

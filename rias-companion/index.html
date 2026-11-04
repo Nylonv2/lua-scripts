@@ -407,10 +407,21 @@
             <div><p class="eyebrow">Spent in <span id="spend-month"></span></p><b id="spend-total">$0.00</b></div>
             <button type="button" class="icon-btn" id="spend-next" aria-label="Next month">›</button>
           </div>
+          <div class="flow">
+            <div><span>Money in</span><b id="flow-earned">$0.00</b></div>
+            <div><span>Money out</span><b id="flow-spent">$0.00</b></div>
+            <div><span>Net</span><b id="flow-net">$0.00</b></div>
+          </div>
+          <p class="flow-verdict" id="flow-verdict"></p>
+          <p class="flow-borrowed" id="flow-borrowed" hidden></p>
           <div id="spend-cats"></div>
         </div>
+        <div id="flow-months-wrap" hidden>
+          <div class="group-title"><span>Ahead or behind, month by month</span></div>
+          <div class="card flow-months" id="flow-months"></div>
+        </div>
         <div id="spend-recent-wrap" hidden>
-          <div class="group-title"><span>Recent spending</span></div>
+          <div class="group-title"><span>Recent activity</span></div>
           <div class="list-card" id="spend-recent"></div>
         </div>
         <div class="group-title"><span>Bills &amp; subscriptions</span></div>
@@ -441,7 +452,7 @@
         <p class="more-label">Tools</p>
         <div class="list-card more-list">
           <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
-          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>Spending, loans, bills and subscriptions, and help cancelling</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>In vs. out each month, spending, loans, bills and subscriptions</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
         </div>
         <p class="more-label">App</p>
@@ -1441,7 +1452,7 @@
     <div class="row">
       <label>Amount <input name="amount" inputmode="decimal" placeholder="0.00"></label>
       <label>Every
-        <select name="cycle"><option value="week">week</option><option value="month">month</option><option value="quarter">3 months</option><option value="year">year</option></select>
+        <select name="cycle"><option value="week">week</option><option value="month">month</option><option value="quarter">3 months</option><option value="year">year</option><option value="once">one time</option></select>
       </label>
     </div>
     <div class="row">
@@ -1490,7 +1501,7 @@
   <div class="stack">
     <div class="sheet-grab" aria-hidden="true"></div>
     <h2>Import a list</h2>
-    <p class="muted small">Spending: <b>date | what | amount | category</b> (e.g. <i>2026-11-03 | Wingstop | 21.69</i>). Bills: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
+    <p class="muted small">Money in: <b>date | from | +amount | Income</b> (or Borrowed). Spending: <b>date | what | amount | category</b> (e.g. <i>2026-11-03 | Wingstop | 21.69</i>). Bills: <b>Name | amount | month | next date | bill or sub | autopay</b>. Only the name and amount are needed. Example: <i>Netflix | 15.49 | month | 2026-11-12 | sub | autopay</i></p>
     <textarea id="bills-import-text" rows="9" placeholder="Paste here"></textarea>
     <div class="sheet-actions">
       <button type="button" id="bills-import-close">Close</button>
