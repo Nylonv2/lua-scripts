@@ -48,7 +48,7 @@ fetch https://github.com/k2-fsa/sherpa-onnx/releases/download/$SHERPA/sherpa-onn
 [ -f "$TOOLS/sherpa/jniLibs/arm64-v8a/libsherpa-onnx-jni.so" ] || (cd "$TOOLS/sherpa" && tar xjf android.tar.bz2 ./jniLibs/arm64-v8a/libsherpa-onnx-jni.so ./jniLibs/arm64-v8a/libonnxruntime.so)
 cp "$TOOLS/sherpa/jniLibs/arm64-v8a/libsherpa-onnx-jni.so" "$TOOLS/sherpa/jniLibs/arm64-v8a/libonnxruntime.so" "$WORK/app/lib/arm64-v8a/"
 mkdir -p "$WORK/app/res/raw" && cp ../sounds/alarm_*.ogg "$WORK/app/res/raw/"   # alarm sounds (sounds/make_sounds.py)
-(cd .. && cp -r index.html style.css app.js dialogue.js talk.js chat.js food.js work.js ai.js rias-avatar.js living-photo.js photo-cutout.js alarm-card.js natural-voice.js assistant.js biz.js translate.js alarm.html assist.html manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
+(cd .. && cp -r index.html style.css app.js dialogue.js talk.js chat.js food.js work.js planner.js ai.js rias-avatar.js living-photo.js photo-cutout.js alarm-card.js natural-voice.js assistant.js biz.js translate.js alarm.html assist.html manifest.webmanifest sw.js icons "$WORK/app/assets/www/")
 mkdir -p "$WORK/app/assets/www/vendor/mediapipe" && cp ../vendor/anthropic-sdk.js "$WORK/app/assets/www/vendor/" && cp ../vendor/mediapipe/vision_bundle.js "$WORK/app/assets/www/vendor/mediapipe/"
 java -jar "$TOOLS/apktool/apktool.jar" b "$WORK/app" -o "$WORK/unsigned.apk"
 

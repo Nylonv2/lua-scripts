@@ -32,11 +32,11 @@
   const CATEGORY_LABEL = {
     custom: 'Other', wake: 'Wake up', water: 'Water', meal: 'Meal', exercise: 'Exercise', work: 'Work / study',
     break: 'Break', hygiene: 'Hygiene', meds: 'Medication', social: 'Social', chores: 'Chores', wind: 'Wind down', sleep: 'Sleep',
-    workLeave: '💼 Work', workStart: '💼 Work', workEnd: '💼 Work', calendar: '📅 Phone calendar',
+    workLeave: '💼 Work', workStart: '💼 Work', workEnd: '💼 Work', calendar: '📅 Phone calendar', todo: 'To-do', goal: 'Goal',
   };
   const CATEGORY_ICON = {
     custom: '📌', wake: '⏰', water: '💧', meal: '🍽️', exercise: '🏃', work: '📚', break: '☕', hygiene: '🪥', meds: '💊',
-    social: '💬', chores: '🧹', wind: '🌙', sleep: '😴', workLeave: '💼', workStart: '💼', workEnd: '💼', calendar: '📅',
+    social: '💬', chores: '🧹', wind: '🌙', sleep: '😴', workLeave: '💼', workStart: '💼', workEnd: '💼', calendar: '📅', todo: '📋', goal: '🎯',
   };
   const mealFor = (nm) => (nm < 11 * 60 ? 'breakfast' : nm < 16 * 60 ? 'lunch' : nm < 21 * 60 ? 'dinner' : 'snack');
 
@@ -187,6 +187,7 @@
       && !(sh.skip || []).includes(k) && !oneOffs.some((o) => job(o) === job(sh))));
   }
   const overnight = (sh) => toMin(sh.end) <= toMin(sh.start);
+  let Planner = null; // planner.js: planned to-dos and goal sessions are items too (created further down)
   function virtualItems(d) {
     const out = [];
     const st = state.settings;
@@ -211,6 +212,7 @@
         out.push({ id: `c:${ev.id}:${ev.begin}`, time: `${pad(b.getHours())}:${pad(b.getMinutes())}`, title: ev.title || 'Calendar event', category: 'calendar', source: 'calendar', cal: ev.cal });
       }
     }
+    if (Planner) out.push(...Planner.items(d));
     return out;
   }
   // All-day calendar events are stored at UTC midnight; timed ones in local time.
@@ -712,6 +714,16 @@
       else if (d.getDay() === 1 && nm < 12 * 60 && !state.recaps[weekKey(y)]) { state.recaps[weekKey(y)] = true; riasSays(recapText(y)); }
     }
 
+    // To-dos and goal sessions fitted into today's free time; the evening check-in.
+    if (Planner) {
+      if (Planner.autoPlan()) renderToday();
+      if (Planner.checkinOn() && !state.checkedIn[today] && nm >= Planner.checkinMin() && isAwake(nm)) {
+        const c = Planner.checkIn();
+        if (c) riasSays(c.text, { action: 'checkin', todos: c.todos });
+        renderToday();
+      }
+    }
+
     // Scheduled items.
     const fired = (state.fired[today] ||= {});
     for (const item of todaysItems(d)) {
@@ -876,12 +888,13 @@
       const leave = state.settings.workReminders && state.settings.commute > 0 ? ` (leave by ${fmtTime(minToTime(toMin(shifts[0].start) - state.settings.commute))})` : '';
       parts.push(`You work ${shifts.map((sh) => `${fmtTime(sh.start)}–${fmtTime(sh.end)}`).join(' and ')}${leave}.`);
     }
-    const own = items.filter((it) => !it.source && toMin(it.time) > nm + 1);
+    const own = items.filter((it) => !it.source && toMin(it.time) > nm + 1); // to-dos and goals get their own line below
     if (own.length) parts.push(`${own.length} reminder${own.length === 1 ? '' : 's'} left today, next is ${own[0].title} at ${fmtTime(own[0].time)}.`);
     const cal = items.filter((it) => it.source === 'calendar');
     if (cal.length) parts.push(`On your calendar: ${cal.slice(0, 3).map((it) => `${it.title} at ${fmtTime(it.time)}`).join(', ')}.`);
     const allDay = allDayEvents(d);
     if (allDay.length) parts.push(`All day: ${allDay.map((ev) => ev.title).join(', ')}.`);
+    if (Planner && k === dateKey()) { Planner.autoPlan(); const pl = Planner.morningLine(); if (pl) parts.push(pl); }
     return [
       say(pick(R.greet.morning)),
       `Your ${d.toLocaleDateString([], { weekday: 'long' })}: ${parts.join(' ') || 'nothing planned. A free day, ufufu.'}`,
@@ -1137,6 +1150,20 @@
         acts.dataset.day = m.day;
         el.append(acts);
       }
+      if (m.action === 'checkin' && m.todos && m.todos.length) {
+        const left = m.todos.map((id) => state.todos.find((t) => t.id === id)).filter((t) => t && !t.done);
+        if (left.length) {
+          const acts = document.createElement('div');
+          acts.className = 'actions';
+          for (const t of left) {
+            const b = document.createElement('button');
+            b.dataset.todoDone = t.id;
+            b.textContent = `✓ I did “${t.title}”`;
+            acts.append(b);
+          }
+          el.append(acts);
+        }
+      }
       if (m.action === 'food') {
         const acts = document.createElement('div');
         acts.className = 'actions';
@@ -1305,6 +1332,7 @@
         add(fmtTime(it.time), 'ri-time');
         if (it.source === 'calendar') add(it.cal || 'Calendar', 'tag-chip cal');
         else if (it.source === 'work') add('Work shift', 'tag-chip work');
+        else if (it.source === 'plan') add(it.todoId ? '📋 To-do' : '🎯 Goal', 'tag-chip plan');
         else add([CATEGORY_LABEL[it.category] || 'Other', repeatLabel(it)].filter(Boolean).join(' · '), 'ri-sub');
         if (alarmFor(it)) add('⏰ Alarm', 'tag-chip alm');
         if (flag) add(flag, `tag-chip flag ${flag === 'Missed' ? 'warn' : ''}`);
@@ -1477,6 +1505,14 @@
         return;
       }
     }
+    // To-dos, plans and goals in plain words (her AI does this with its tools instead).
+    if (!photo && !AI.enabled()) {
+      const pl = Planner.handle(text);
+      if (pl) {
+        pl.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 450 + i * 800));
+        return;
+      }
+    }
     // Without her AI she still remembers clear facts, and "Remember that …".
     if (!photo && !AI.enabled() && noticeFacts(text) === 'explicit') {
       const typing = showTyping();
@@ -1574,6 +1610,13 @@
   feed.addEventListener('click', (e) => {
     const fb = e.target.closest('[data-food]');
     if (fb) { show('food'); Food.openAdd(fb.parentElement.dataset.meal || mealFor(nowMin())); return; }
+    const tb = e.target.closest('[data-todo-done]');
+    if (tb) {
+      const t = state.todos.find((x) => x.id === tb.dataset.todoDone);
+      if (t && !t.done) { t.plan = null; Planner.completeTodo(t); addMessage('me', `Done: ${t.title} ✓`); setTimeout(() => addMessage('rias', doneLine()), 600); }
+      renderFeed();
+      return;
+    }
     const sb = e.target.closest('[data-sleep]');
     if (sb) {
       const night = state.sleep[sb.parentElement.dataset.day];
@@ -1598,7 +1641,7 @@
     const f = (state.fired[dateKey()] ||= {});
     for (const it of todaysItems()) if (toMin(it.time) <= nowMin() && !f[it.id]) f[it.id] = 'skip';
   }
-  function refresh() { updateSummary(); renderToday(); renderStatus(); }
+  function refresh() { if (Planner) Planner.syncDone(); updateSummary(); renderToday(); renderStatus(); if (Planner) Planner.render(); }
   const modCtx = {
     state, save, $, R, dateKey, uid, fmtClock, fmtTime, toMin, shiftsOn, silencePast, refresh,
     celebrate: (title, sub) => celebrate(title, sub),
@@ -1658,6 +1701,14 @@
 
   const Food = window.createFoodDiary(modCtx);
   const Work = window.createWorkSchedule(modCtx);
+  Planner = window.createPlanner(Object.assign(modCtx, {
+    baseItems: (d) => itemsOn(d).filter((it) => it.source !== 'plan'),
+    allItems: (d) => itemsOn(d),
+    say: (t) => say(t), plain: () => !!state.settings.plain, ask: (t) => ask(t), prompt: (t) => askNumber(t),
+    noteAdded: (r) => noteAdded(r), toTrash: (r) => toTrash(r),
+    toast: (text) => { addMessage('rias', text); showToast({ text }); },
+    celebrateSmall: () => haptic([12, 60, 12]),
+  }));
 
   // What Rias's AI knows about right now. Rebuilt for every message.
   function contextText() {
@@ -1678,6 +1729,7 @@
       `All their reminders: ${state.items.slice(0, 40).map(remLabel).join('; ') || 'none'}.`,
       allDay.length ? `All-day calendar events today: ${allDay.join(', ')}.` : '',
       `Work shifts, next 7 days: ${Work.summary()}.`,
+      Planner ? Planner.summary() : '',
       `Food diary today: ${Food.summary()}`,
       Biz && Biz.summary() ? Biz.summary() : '',
       likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
@@ -1852,6 +1904,14 @@
         toTrash({ kind: 'water', date: a.date, glasses: a.glasses, label: `${a.glasses} glass${a.glasses === 1 ? '' : 'es'} of water` });
         return { ok: true, undone: `${a.glasses} glass${a.glasses === 1 ? '' : 'es'} of water` };
       }
+      if (a.kind === 'todo') {
+        const t = state.todos.find((x) => x.id === a.id);
+        if (!t) continue;
+        state.todos = state.todos.filter((x) => x !== t);
+        toTrash({ kind: 'todo', item: t, label: `“${t.title}” on your to-do list` });
+        refresh(); save();
+        return { ok: true, undone: `“${t.title}” from your to-do list` };
+      }
       if (a.kind === 'shift') {
         const sh = state.shifts.find((x) => x.id === a.id);
         if (!sh) continue;
@@ -1874,6 +1934,7 @@
     else if (t.kind === 'food') { (state.food[t.date] ||= []).push(t.entry); if (!$('#view-food').hidden) Food.render(); }
     else if (t.kind === 'water') Food.addWater(t.glasses, false, t.date);
     else if (t.kind === 'shift') state.shifts.push(t.shift);
+    else if (t.kind === 'todo') state.todos.push(t.item);
     else if (t.kind === 'shiftskip') { const sh = state.shifts.find((x) => x.id === t.id); if (sh) sh.skip = (sh.skip || []).filter((d) => d !== t.date); }
     refresh(); save();
     return { ok: true, restored: t.label };
@@ -2315,14 +2376,20 @@
 
   // ---------- month calendar (Reminders → Month) ----------
   let monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1), monthSel = dateKey();
+  // Plan tab: Today · To-do · Goals · Month
+  function setRemMode(m) {
+    for (const x of $('#rem-mode').children) x.classList.toggle('active', x.dataset.m === m);
+    $('#view-today').classList.toggle('month-mode', m !== 'today');
+    $('#month-pane').hidden = m !== 'month';
+    $('#todo-pane').hidden = m !== 'todo';
+    $('#goals-pane').hidden = m !== 'goals';
+    if (m === 'month') renderMonth();
+    if (m === 'todo') { Planner.autoPlan(); Planner.renderTodos(); }
+    if (m === 'goals') Planner.renderGoals();
+  }
   $('#rem-mode').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-m]');
-    if (!b) return;
-    for (const x of $('#rem-mode').children) x.classList.toggle('active', x === b);
-    const month = b.dataset.m === 'month';
-    $('#view-today').classList.toggle('month-mode', month);
-    $('#month-pane').hidden = !month;
-    if (month) renderMonth();
+    if (b) setRemMode(b.dataset.m);
   });
   $('#m-prev').addEventListener('click', () => { monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1); renderMonth(); });
   $('#m-next').addEventListener('click', () => { monthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1); renderMonth(); });
@@ -2524,9 +2591,19 @@
     const item = findItem(id);
     if (item && item.source === 'work') { show('work'); return; }
     if (item && item.source === 'calendar') return; // edit it in your phone's calendar
+    if (item && item.source === 'plan') { setRemMode(item.todoId ? 'todo' : 'goals'); if (item.todoId) Planner.openTodo(item.todoId); return; }
     openEditor(item && item.baseId ? state.items.find((it) => it.id === item.baseId) : item);
   });
 
+  // In-app number prompt (window.prompt is blocked in some app views). Resolves to the text, or '' if cancelled.
+  function askNumber(text) {
+    const dlg = $('#num-dlg');
+    $('#num-text').textContent = text;
+    $('#num-input').value = '';
+    dlg.returnValue = '';
+    dlg.showModal();
+    return new Promise((done) => dlg.addEventListener('close', () => done(dlg.returnValue === 'yes' ? $('#num-input').value : ''), { once: true }));
+  }
   // In-app yes/no prompt (window.confirm is blocked in some app views).
   function ask(text) {
     const dlg = $('#ask');
@@ -2648,7 +2725,8 @@
     const today = dateKey();
     // Only reschedule when something that affects the schedule changed.
     const sig = JSON.stringify([state.items, state.settings, state.profile, state.log[today], state.snoozes, today,
-      state.shifts, state.phoneEvents, (state.food[today] || []).length, state.water[today] || 0, state.sleep, state.weather && state.weather.at]);
+      state.shifts, state.phoneEvents, (state.food[today] || []).length, state.water[today] || 0, state.sleep, state.weather && state.weather.at,
+      state.todos, state.goals, state.checkedIn]);
     if (sig === lastSync) return;
     lastSync = sig;
     try { Native.schedule(JSON.stringify(upcomingEvents())); } catch { /* bridge unavailable */ }
@@ -2709,6 +2787,7 @@
       const it = findItem(sn.id);
       if (it && sn.at > now) events.push({ at: sn.at, text: say(pick(R.due[it.category] || R.due.custom), it), itemId: it.id, title: it.title, alarm: alarmFor(it), ...(it.sound ? { sound: it.sound } : {}) });
     }
+    if (Planner) events.push(...Planner.checkinEvents(days));
     // If the app isn't opened for a whole week, ask to be opened so the schedule can be refreshed.
     const last = new Date(); last.setDate(last.getDate() + days);
     events.push({ at: at(last, w + 60), text: say("I haven't seen you in days, {name}. Open the app so I can keep planning your days.") });

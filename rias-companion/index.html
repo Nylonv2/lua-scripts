@@ -136,7 +136,28 @@
       <section class="view pad" id="view-today" hidden>
         <div class="segmented rem-mode" id="rem-mode" role="tablist" aria-label="View">
           <button type="button" data-m="today" class="active" role="tab">Today</button>
+          <button type="button" data-m="todo" role="tab">To-do</button>
+          <button type="button" data-m="goals" role="tab">Goals</button>
           <button type="button" data-m="month" role="tab">Month</button>
+        </div>
+        <div class="plan-pane" id="todo-pane" hidden>
+          <div class="page-head">
+            <div><p class="eyebrow">To-do list</p><h1 class="page-title" id="todo-count"></h1></div>
+            <button type="button" class="btn-primary sm tonal" id="todo-plan-day">⏱ Plan my day</button>
+          </div>
+          <form class="todo-quick" id="todo-quick">
+            <input id="todo-quick-text" maxlength="140" placeholder="Add a to-do… e.g. Finish the edit by Friday (2h)" aria-label="New to-do" enterkeyhint="done">
+            <button type="submit" class="btn-primary" aria-label="Add">＋</button>
+          </form>
+          <p class="muted small">She fits each to-do into your free time around work, reminders and calendar events, and reminds you when it's time. Unfinished ones move to tomorrow at the evening check-in.</p>
+          <div id="todo-list"></div>
+        </div>
+        <div class="plan-pane" id="goals-pane" hidden>
+          <div class="page-head">
+            <div><p class="eyebrow">Goals &amp; habits</p><h1 class="page-title">Stay on track</h1></div>
+            <button type="button" class="btn-primary sm" id="goal-add">＋ New goal</button>
+          </div>
+          <div id="goal-list"></div>
         </div>
         <div class="month-pane" id="month-pane" hidden>
           <div class="month-nav">
@@ -691,7 +712,7 @@
     <nav class="tabs">
       <button type="button" data-view="home" class="active"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg></span><span class="tab-lbl">Home</span></button>
       <button type="button" data-view="chat"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="tab-lbl">Chat</span></button>
-      <button type="button" data-view="today"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span class="tab-lbl">Reminders</span></button>
+      <button type="button" data-view="today"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span class="tab-lbl">Plan</span></button>
       <button type="button" data-view="food"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-food"/></svg></span><span class="tab-lbl">Food</span></button>
       <button type="button" data-view="work"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-work"/></svg></span><span class="tab-lbl">Work</span></button>
       <button type="button" data-view="biz"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="tab-lbl">Assistant</span></button>
@@ -1026,6 +1047,80 @@
   </dialog>
 
   <!-- Yes / no prompt -->
+  <!-- Plan → To-do -->
+  <dialog id="todo-dlg" class="sheet">
+    <form id="todo-form" class="stack">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <h2 id="todo-dlg-title">New to-do</h2>
+      <input class="big-input" name="title" required maxlength="140" placeholder="What needs doing?" aria-label="To-do">
+      <div class="row">
+        <label>Due (optional) <input name="due" type="date"></label>
+        <label>Takes about
+          <select name="mins">
+            <option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option>
+            <option value="90">1½ hours</option><option value="120">2 hours</option><option value="180">3 hours</option><option value="240">4 hours</option>
+          </select>
+        </label>
+      </div>
+      <label class="switch"><input name="priority" type="checkbox"> Important (planned first)</label>
+      <label>Notes <textarea name="notes" rows="2" maxlength="500"></textarea></label>
+      <p class="muted small" id="todo-plan-info"></p>
+      <div class="row">
+        <button type="button" id="todo-delete" class="danger">Delete</button>
+        <button type="button" id="todo-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Plan → Goals -->
+  <dialog id="goal-dlg" class="sheet">
+    <form id="goal-form" class="stack">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <h2 id="goal-dlg-title">New goal</h2>
+      <input class="big-input" name="title" required maxlength="80" placeholder="e.g. Gym, Read, Post a video, Save money" aria-label="Goal">
+      <label>Kind
+        <select name="kind">
+          <option value="times">Do it a number of times</option>
+          <option value="amount">Reach an amount (money, pages, miles…)</option>
+        </select>
+      </label>
+      <div class="row" id="goal-times-row">
+        <label>Times <input name="times" type="number" min="1" max="50" value="3" inputmode="numeric"></label>
+        <label>Per
+          <select name="per"><option value="day">day</option><option value="week" selected>week</option><option value="month">month</option></select>
+        </label>
+      </div>
+      <div class="row" id="goal-amount-row" hidden>
+        <label>Target <input name="target" type="number" min="0" step="any" inputmode="decimal" placeholder="200"></label>
+        <label>Unit <input name="unit" maxlength="12" placeholder="$, pages, miles"></label>
+      </div>
+      <div class="row" id="goal-session-row">
+        <label>Usually around (optional) <input name="time" type="time"></label>
+        <label>Each session
+          <select name="mins"><option value="15">15 min</option><option value="30">30 min</option><option value="45" selected>45 min</option><option value="60">1 hour</option><option value="90">1½ hours</option><option value="120">2 hours</option></select>
+        </label>
+      </div>
+      <p class="muted small">She plans sessions into your free days (with rest days when there's room), reminds you, and keeps your streak. For amounts, tell her as you go: “I saved $50”.</p>
+      <div class="row">
+        <button type="button" id="goal-delete" class="danger">Delete</button>
+        <button type="button" id="goal-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="num-dlg">
+    <form method="dialog" class="stack">
+      <p id="num-text"></p>
+      <input id="num-input" type="number" step="any" inputmode="decimal" aria-label="Amount">
+      <div class="row">
+        <button value="no">Cancel</button>
+        <button value="yes" class="primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="ask">
     <form method="dialog" class="stack">
       <p id="ask-text"></p>
@@ -1064,6 +1159,7 @@
   <script src="chat.js"></script>
   <script src="food.js"></script>
   <script src="work.js"></script>
+  <script src="planner.js"></script>
   <script src="vendor/anthropic-sdk.js"></script>
   <script src="ai.js"></script>
   <script src="rias-avatar.js"></script>

@@ -1,0 +1,717 @@
+/* Planner (Plan tab → To-do and Goals): a to-do list Rias fits into your free time, goals and habits
+   with streaks, and an evening check-in that moves unfinished things to tomorrow.
+   Planned to-dos and goal sessions show up as ordinary items on the day (ids "t:<todo>" and "g:<goal>"),
+   so they get notifications, alarms, swipe Done / Snooze and the widget like any reminder. */
+window.createPlanner = function createPlanner(ctx) {
+  'use strict';
+  const { state, save, $, dateKey, uid, fmtTime, toMin } = ctx;
+  state.todos ||= [];   // [{ id, title, due: 'YYYY-MM-DD'|null, mins, priority: 'high'|'normal', notes, done, doneAt, created, plan: { date, time }|null, notOn }]
+  state.goals ||= [];   // [{ id, title, kind: 'times'|'amount', times, target, unit, per: 'day'|'week'|'month', time: 'HH:MM'|'', mins, sessions, log: { date: n }, plans: { date: 'HH:MM' }, created }]
+  state.checkedIn ||= {};
+  const pad = (n) => String(n).padStart(2, '0');
+  const minToTime = (m) => `${pad(Math.floor(((m % 1440) + 1440) % 1440 / 60))}:${pad(((m % 60) + 60) % 60)}`;
+  const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+  const addDays = (k, n) => { const d = new Date(`${k}T12:00`); d.setDate(d.getDate() + n); return dateKey(d); };
+  const dayOf = (k) => new Date(`${k}T12:00`);
+  const words = (s) => String(s).toLowerCase().match(/[a-z0-9$]+/g) || [];
+  const STOP = new Set(['the', 'a', 'an', 'my', 'to', 'for', 'and', 'of', 'on', 'in', 'at', 'by', 'with', 'do', 'go', 'get', 'it', 'i', 'me', 'this', 'that', 'times', 'week', 'day', 'month', 'per', 'a', 'x']);
+
+  // ---------- dates people say ----------
+  const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  /** "by Friday", "tomorrow", "next week", "in 3 days", "Nov 12", "11/12" → { due, rest } (rest = text without it). */
+  function parseDue(text) {
+    const today = dateKey();
+    const rules = [
+      [/\b(?:by |before |due |on )?(?:today|tonight)\b/i, () => today],
+      [/\b(?:by |before |due |on )?tomorrow\b/i, () => addDays(today, 1)],
+      [/\b(?:by |before |due )?(?:the )?end of (?:the )?week\b/i, () => addDays(today, (7 - new Date().getDay()) % 7 || 7)],
+      [/\b(?:by |before |due )?next week\b/i, () => addDays(today, 7)],
+      [/\bin (\d+) days?\b/i, (m) => addDays(today, Number(m[1]))],
+      // Full day names anywhere; short ones ("fri") only after by/on/due ("wedding" isn't Wednesday).
+      [/\b(?:(?:by|before|due|on|this|next) )*(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b|\b(?:by|before|due|on|this|next) (sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)\b/i, (m) => {
+        const want = WEEKDAYS.findIndex((w) => w.startsWith((m[1] || m[2]).toLowerCase().slice(0, 3)));
+        let n = (want - new Date().getDay() + 7) % 7;
+        if (/next/i.test(m[0]) && n === 0) n = 7;
+        return addDays(today, n);
+      }],
+      [/\b(?:by |before |due |on )?(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\.? (\d{1,2})(?:st|nd|rd|th)?\b/i, (m) => monthDay(MONTHS.indexOf(m[1].toLowerCase().slice(0, 3)), Number(m[2]))],
+      [/\b(?:by|before|due|on) (\d{1,2})\/(\d{1,2})\b/, (m) => monthDay(Number(m[1]) - 1, Number(m[2]))],
+    ];
+    for (const [re, fn] of rules) {
+      const m = text.match(re);
+      if (m) return { due: fn(m), rest: (text.slice(0, m.index) + text.slice(m.index + m[0].length)).replace(/\s{2,}/g, ' ').replace(/\s+([,.!?])/g, '$1').trim() };
+    }
+    return { due: null, rest: text.trim() };
+  }
+  function monthDay(mo, day) {
+    if (mo < 0 || mo > 11 || day < 1 || day > 31) return null;
+    const now = new Date();
+    let d = new Date(now.getFullYear(), mo, day, 12);
+    if (dateKey(d) < dateKey()) d = new Date(now.getFullYear() + 1, mo, day, 12);
+    return dateKey(d);
+  }
+  /** "(1h)", "for 2 hours", "30 min" → minutes. */
+  function parseMins(text) {
+    const m = text.match(/\(?\b(?:for |takes |about )?(\d+(?:\.\d+)?)\s*(h|hr|hrs|hours?|m|min|mins|minutes?)\b\)?/i);
+    if (!m) return { mins: null, rest: text };
+    const n = Number(m[1]) * (/^h/i.test(m[2]) ? 60 : 1);
+    return { mins: Math.max(10, Math.min(480, Math.round(n))), rest: (text.slice(0, m.index) + text.slice(m.index + m[0].length)).replace(/\s{2,}/g, ' ').trim() };
+  }
+  function dueLabel(k) {
+    if (!k) return '';
+    const diff = Math.round((dayOf(k) - dayOf(dateKey())) / 86400000);
+    if (diff < 0) return diff === -1 ? 'was due yesterday' : `overdue ${-diff} days`;
+    if (diff === 0) return 'due today';
+    if (diff === 1) return 'due tomorrow';
+    if (diff < 7) return `due ${dayOf(k).toLocaleDateString([], { weekday: 'long' })}`;
+    return `due ${dayOf(k).toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+  }
+  const dayWord = (k) => (k === dateKey() ? 'today' : k === addDays(dateKey(), 1) ? 'tomorrow' : dayOf(k).toLocaleDateString([], { weekday: 'long' }));
+
+  // ---------- finding things by name ----------
+  function match(list, query) {
+    const q = words(query).filter((w) => !STOP.has(w));
+    if (!q.length) return [];
+    const scored = list.map((x) => {
+      const t = words(x.title);
+      const score = q.filter((w) => t.some((tw) => tw === w || (w.length > 3 && (tw.startsWith(w) || w.startsWith(tw))))).length;
+      return { x, score };
+    }).filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
+    if (!scored.length) return [];
+    return scored.filter((s) => s.score === scored[0].score).map((s) => s.x);
+  }
+  const openTodos = () => state.todos.filter((t) => !t.done);
+
+  // ---------- goals: progress and streaks ----------
+  function periodRange(goal, k = dateKey()) {
+    if (goal.per === 'day') return [k, k];
+    if (goal.per === 'month') { const s = `${k.slice(0, 7)}-01`; const d = dayOf(s); d.setMonth(d.getMonth() + 1); d.setDate(0); return [s, dateKey(d)]; }
+    const d = dayOf(k); const s = addDays(k, -((d.getDay() + 6) % 7)); return [s, addDays(s, 6)]; // weeks start Monday
+  }
+  function amountOn(goal, k) {
+    return (goal.log && goal.log[k] || 0) + ((state.log[k] || {})[`g:${goal.id}`] === 'done' ? 1 : 0);
+  }
+  function progress(goal, k = dateKey()) {
+    const [s, e] = periodRange(goal, k);
+    let n = 0;
+    for (let d = s; d <= e; d = addDays(d, 1)) n += amountOn(goal, d);
+    const need = goal.kind === 'amount' ? Number(goal.target) || 0 : Number(goal.times) || 1;
+    return { n: Math.round(n * 100) / 100, need, start: s, end: e, met: n >= need };
+  }
+  function streak(goal) {
+    let k = dateKey(), count = 0;
+    let p = progress(goal, k);
+    if (!p.met) k = addDays(p.start, -1); // the current period still has time
+    for (let i = 0; i < 400; i++) {
+      p = progress(goal, k);
+      if (!p.met || p.start < dateKey(new Date(goal.created || Date.now()))) break;
+      count++;
+      k = addDays(p.start, -1);
+    }
+    return count;
+  }
+  const perWord = (g) => ({ day: 'today', week: 'this week', month: 'this month' }[g.per] || 'this week');
+  const unitFmt = (g, n) => (g.unit === '$' ? `$${n}` : `${n}${g.unit ? ` ${g.unit}` : ''}`);
+  function progressText(g) {
+    const p = progress(g);
+    return g.kind === 'amount' ? `${unitFmt(g, p.n)} of ${unitFmt(g, p.need)} ${perWord(g)}` : `${p.n} of ${p.need} ${perWord(g)}`;
+  }
+
+  // ---------- planned items on a day (pure: only reads stored plans) ----------
+  function items(d) {
+    const k = dateKey(d);
+    const out = [];
+    for (const t of state.todos) {
+      if (t.plan && t.plan.date === k && (!t.done || t.doneVia === 'plan')) {
+        out.push({ id: `t:${t.id}`, time: t.plan.time, title: t.title, category: 'todo', source: 'plan', todoId: t.id, mins: t.mins });
+      }
+    }
+    for (const g of state.goals) {
+      const tm = g.plans && g.plans[k];
+      if (tm) out.push({ id: `g:${g.id}`, time: tm, title: g.title, category: 'goal', source: 'plan', goalId: g.id, mins: g.mins });
+    }
+    return out;
+  }
+
+  // ---------- fitting things into free time ----------
+  function windowFor(k) {
+    const w = toMin(state.profile.wake), s = toMin(state.profile.sleep);
+    const end = s > w ? s - 45 : 23 * 60 + 15; // stop 45 min before bed (bedtimes after midnight: 11:15 PM)
+    let start = w + 30;
+    if (k === dateKey()) start = Math.max(start, Math.ceil((nowMin() + 10) / 15) * 15);
+    return [start, end];
+  }
+  function busyOn(k) {
+    const d = dayOf(k);
+    const busy = [];
+    // Quick reminders (water, stretch, meds) are just a ping and can land during a block; meals take real time.
+    for (const it of ctx.baseItems(d)) {
+      if (it.source || it.category !== 'meal') continue; // shifts and calendar events are added with their real length below
+      const t = toMin(it.time);
+      busy.push([t, t + 30]);
+    }
+    const commute = state.settings.workReminders ? Number(state.settings.commute) || 0 : 0;
+    for (const sh of ctx.shiftsOn(d)) {
+      const a = toMin(sh.start), b = toMin(sh.end);
+      busy.push([a - commute, (b <= a ? 1440 : b) + commute]);
+    }
+    if (state.settings.phoneCalendar) {
+      for (const ev of state.phoneEvents || []) {
+        if (ev.allDay || dateKey(new Date(ev.begin)) !== k) continue;
+        const a = new Date(ev.begin), b = new Date(ev.end || ev.begin + 3600000);
+        busy.push([a.getHours() * 60 + a.getMinutes(), dateKey(b) === k ? b.getHours() * 60 + b.getMinutes() : 1440]);
+      }
+    }
+    for (const it of items(d)) busy.push([toMin(it.time), toMin(it.time) + (it.mins || 30)]);
+    return busy.sort((x, y) => x[0] - y[0]);
+  }
+  /** Earliest free start ≥ from that fits `mins` (plus a 10-minute breather), or null. */
+  function slot(busy, from, to, mins, near) {
+    const free = (a) => a + mins <= to && !busy.some(([s, e]) => a < e + 10 && a + mins + 10 > s);
+    if (near != null) {
+      // Closest free time to the preferred one (goals like "gym at 6 PM")
+      for (let off = 0; off <= 600; off += 15) {
+        for (const a of off ? [near + off, near - off] : [near]) if (a >= from && free(a)) return a;
+      }
+      return null;
+    }
+    for (let a = from; a + mins <= to; a += 15) if (free(a)) return a;
+    return null;
+  }
+  const dailyBudget = () => (Number(state.settings.planHours) || 3) * 60; // to-do time per day at most
+
+  /**
+   * Plans day `k`: goal sessions that are due, then open to-dos by deadline and priority, into free time.
+   * `replan`: also move what's planned there but not done yet (for "plan my day"). Returns what's on the day.
+   */
+  function planDay(k = dateKey(), replan = false) {
+    if (!state.profile) return [];
+    const [from, to] = windowFor(k);
+    if (replan) {
+      for (const t of openTodos()) if (t.plan && t.plan.date === k && toMin(t.plan.time) >= from) t.plan = null;
+      for (const g of state.goals) if (g.plans && g.plans[k] && toMin(g.plans[k]) >= from && !(state.log[k] || {})[`g:${g.id}`]) delete g.plans[k];
+    }
+    // Goal sessions first: they happen at a set rhythm.
+    for (const g of state.goals) {
+      if (g.kind === 'amount' || g.sessions === false) continue;
+      g.plans ||= {};
+      if (g.plans[k] || amountOn(g, k) > 0) continue;
+      if (!sessionDue(g, k)) continue;
+      const mins = Number(g.mins) || 30;
+      const near = g.time ? toMin(g.time) : null;
+      const a = slot(busyOn(k), from, to, mins, near != null ? near : Math.max(from, 17 * 60));
+      if (a != null) g.plans[k] = minToTime(a);
+    }
+    // Then to-dos: overdue and soonest-due first, important first; spread over days by the daily budget.
+    let used = openTodos().filter((t) => t.plan && t.plan.date === k).reduce((n, t) => n + (t.mins || 30), 0);
+    const waiting = openTodos().filter((t) => (!t.plan || t.plan.date < dateKey()) && t.notOn !== k)
+      .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (b.priority === 'high') - (a.priority === 'high') || a.created - b.created);
+    for (const t of waiting) {
+      const mins = t.mins || 30;
+      const urgent = t.due && t.due <= addDays(k, 1);
+      if (!urgent && used + mins > dailyBudget()) continue;
+      const a = slot(busyOn(k), from, to, mins);
+      if (a == null) continue;
+      t.plan = { date: k, time: minToTime(a) };
+      used += mins;
+    }
+    return items(dayOf(k)).sort((a, b) => toMin(a.time) - toMin(b.time));
+  }
+  /** Should goal `g` get a session on day k? Daily: always. Weekly/monthly: when behind, with rest days if there's time. */
+  function sessionDue(g, k) {
+    const p = progress(g, k);
+    const need = p.need - p.n;
+    if (need <= 0) return false;
+    if (g.per === 'day') return true;
+    const daysLeft = Math.round((dayOf(p.end) - dayOf(k)) / 86400000) + 1;
+    if (need >= daysLeft) return true;
+    const y = addDays(k, -1);
+    return !(amountOn(g, y) > 0 || (g.plans && g.plans[y])); // a rest day after a session
+  }
+  /** Quietly keeps today (and tomorrow, in the evening) planned. Called on every heartbeat. */
+  let lastAuto = '';
+  function autoPlan() {
+    if (!state.profile) return false;
+    syncDone();
+    const today = dateKey();
+    // Planned on a past day and not done: back in the queue.
+    for (const t of openTodos()) if (t.plan && t.plan.date < today) t.plan = null;
+    const sig = JSON.stringify([today, Math.floor(nowMin() / 30), state.todos.map((t) => [t.id, t.done, t.plan, t.due, t.mins]), state.goals.map((g) => [g.id, g.plans && g.plans[today]])]);
+    if (sig === lastAuto) return false;
+    lastAuto = sig;
+    planDay(today);
+    if (nowMin() >= checkinMin() - 60) planDay(addDays(today, 1));
+    return true;
+  }
+  /** Ticking a planned item done (or skipping it) updates the to-do. */
+  function syncDone() {
+    for (const t of state.todos) {
+      if (!t.plan) continue;
+      const st = (state.log[t.plan.date] || {})[`t:${t.id}`];
+      if (st === 'done' && !t.done) { t.done = true; t.doneAt = Date.now(); t.doneVia = 'plan'; }
+      else if (!st && t.done && t.doneVia === 'plan') { t.done = false; t.doneAt = 0; t.doneVia = ''; } // undone from the list
+      else if (st === 'skipped' && !t.done) { t.notOn = t.plan.date; t.plan = null; }
+    }
+  }
+
+  // ---------- actions (UI, chat and her AI all use these) ----------
+  function addTodo({ title, due = null, mins = null, priority = 'normal', notes = '' }) {
+    title = String(title || '').trim().replace(/^to ?do:?\s*/i, '');
+    if (!title) return { error: 'empty to-do' };
+    const t = { id: uid(), title: title[0].toUpperCase() + title.slice(1), due: due || null, mins: Number(mins) || 30, priority: priority === 'high' ? 'high' : 'normal', notes, done: false, created: Date.now(), plan: null };
+    state.todos.push(t);
+    ctx.noteAdded && ctx.noteAdded({ kind: 'todo', id: t.id });
+    planDay(dateKey());
+    if (!t.plan) planDay(addDays(dateKey(), 1));
+    if (!t.plan && t.due) for (let i = 2; i < 7 && !t.plan && addDays(dateKey(), i) <= t.due; i++) planDay(addDays(dateKey(), i));
+    changed();
+    return { ok: true, todo: t, planned: t.plan ? `${dayWord(t.plan.date)} at ${fmtTime(t.plan.time)}` : null };
+  }
+  function completeTodo(query) {
+    const found = typeof query === 'object' ? [query] : match(openTodos(), query);
+    if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map((t) => t.title) };
+    const t = found[0];
+    t.done = true; t.doneAt = Date.now(); t.doneVia = 'manual';
+    if (t.plan) { (state.log[t.plan.date] ||= {})[`t:${t.id}`] = 'done'; t.doneVia = 'plan'; }
+    changed();
+    return { ok: true, done: t.title, left: openTodos().length };
+  }
+  function deleteTodo(query) {
+    const found = typeof query === 'object' ? [query] : match(state.todos, query);
+    if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map((t) => t.title) };
+    state.todos = state.todos.filter((t) => t !== found[0]);
+    ctx.toTrash && ctx.toTrash({ kind: 'todo', item: found[0] });
+    changed();
+    return { ok: true, deleted: found[0].title };
+  }
+  function addGoal({ title, kind = 'times', times = null, per = 'week', target = null, unit = '', time = '', mins = null }) {
+    title = String(title || '').trim();
+    if (!title) return { error: 'empty goal' };
+    const g = {
+      id: uid(), title: title[0].toUpperCase() + title.slice(1), kind: kind === 'amount' ? 'amount' : 'times',
+      times: Math.max(1, Math.round(Number(times) || (per === 'day' ? 1 : 3))), per: ['day', 'week', 'month'].includes(per) ? per : 'week',
+      target: Number(target) || 0, unit: unit || '', time: /^\d{2}:\d{2}$/.test(time || '') ? time : '', mins: Number(mins) || 45,
+      sessions: kind !== 'amount', log: {}, plans: {}, created: Date.now(),
+    };
+    state.goals.push(g);
+    planDay(dateKey());
+    changed();
+    const next = g.plans[dateKey()] ? `today at ${fmtTime(g.plans[dateKey()])}` : null;
+    return { ok: true, goal: g.title, rhythm: g.kind === 'amount' ? `${unitFmt(g, g.target)} per ${g.per}` : `${g.times}× per ${g.per}`, next_session: next };
+  }
+  function logGoal(query, amount = null) {
+    const found = typeof query === 'object' ? [query] : match(state.goals, query);
+    if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map((g) => g.title) };
+    const g = found[0], k = dateKey();
+    const sess = `g:${g.id}`;
+    if (g.kind !== 'amount' && g.plans && g.plans[k] && !(state.log[k] || {})[sess]) (state.log[k] ||= {})[sess] = 'done'; // ticks today's planned session
+    else (g.log ||= {})[k] = (g.log[k] || 0) + (g.kind === 'amount' ? Number(amount) || 0 : Number(amount) || 1);
+    changed();
+    const p = progress(g);
+    return { ok: true, goal: g.title, progress: progressText(g), met: p.met, streak: streak(g) };
+  }
+  function deleteGoal(query) {
+    const found = typeof query === 'object' ? [query] : match(state.goals, query);
+    if (found.length !== 1) return { error: found.length ? 'ambiguous' : 'not found', choices: found.map((g) => g.title) };
+    state.goals = state.goals.filter((g) => g !== found[0]);
+    changed();
+    return { ok: true, deleted: found[0].title };
+  }
+  function changed() {
+    save();
+    ctx.refresh();
+    render();
+  }
+
+  // ---------- what she says ----------
+  function planList(k) {
+    const list = ctx.allItems(dayOf(k)).filter((it) => !(state.log[k] || {})[it.id] && (k !== dateKey() || toMin(it.time) >= nowMin() - 5));
+    return list.map((it) => `${fmtTime(it.time)} ${it.title}${it.source === 'plan' ? (it.todoId ? ' (to-do)' : ' (goal)') : ''}`);
+  }
+  function planReply(k = dateKey(), replan = false) {
+    planDay(k, replan);
+    changed();
+    const list = planList(k);
+    const lines = [list.length ? `Here's your plan for ${dayWord(k)}:\n${list.map((l) => `• ${l}`).join('\n')}` : `Nothing left to plan for ${dayWord(k)}.`];
+    const unplanned = openTodos().filter((t) => !t.plan);
+    if (unplanned.length) lines.push(`Still on your list for later: ${unplanned.slice(0, 4).map((t) => t.title).join(', ')}${unplanned.length > 4 ? '…' : ''}.`);
+    return lines;
+  }
+  /** One paragraph for the morning briefing. */
+  function morningLine() {
+    const k = dateKey();
+    const todos = items(dayOf(k)).filter((it) => it.todoId && !(state.log[k] || {})[it.id]);
+    const goals = items(dayOf(k)).filter((it) => it.goalId && !(state.log[k] || {})[it.id]);
+    const parts = [];
+    if (todos.length) parts.push(`On your to-do list today: ${todos.map((it) => `${it.title} at ${fmtTime(it.time)}`).join(', ')}.`);
+    if (goals.length) parts.push(`For your goals: ${goals.map((it) => `${it.title} at ${fmtTime(it.time)}`).join(', ')}.`);
+    const overdue = openTodos().filter((t) => t.due && t.due < k);
+    if (overdue.length) parts.push(`Overdue: ${overdue.map((t) => t.title).join(', ')}.`);
+    return parts.join(' ');
+  }
+  /** For her AI: the to-do list and goals. */
+  function summary() {
+    const todos = openTodos().slice(0, 25).map((t) => `${t.title}${t.due ? ` (${dueLabel(t.due)})` : ''}${t.priority === 'high' ? ' [important]' : ''}${t.plan ? ` [planned ${dayWord(t.plan.date)} ${fmtTime(t.plan.time)}]` : ' [not planned yet]'}`);
+    const goals = state.goals.map((g) => `${g.title}: ${progressText(g)}${streak(g) ? `, streak ${streak(g)}` : ''}${g.plans && g.plans[dateKey()] ? `, session today ${fmtTime(g.plans[dateKey()])}` : ''}`);
+    return [`To-do list: ${todos.length ? todos.join('; ') : 'empty'}.`, goals.length ? `Goals: ${goals.join('; ')}.` : ''].filter(Boolean).join('\n');
+  }
+
+  // ---------- evening check-in ----------
+  function checkinMin() {
+    if (state.settings.checkinTime) return toMin(state.settings.checkinTime);
+    const w = toMin(state.profile.wake), s = toMin(state.profile.sleep);
+    return Math.max(19 * 60, (s > w ? s : 24 * 60) - 90);
+  }
+  const checkinOn = () => state.settings.eveningCheckin !== false && (state.todos.length > 0 || state.goals.length > 0);
+  /** Goes over today, moves what's left to tomorrow. Returns { text, todos } or null when there's nothing to say. */
+  function checkIn() {
+    const k = dateKey(), tomorrow = addDays(k, 1);
+    state.checkedIn[k] = true;
+    syncDone();
+    const doneToday = state.todos.filter((t) => t.done && t.doneAt && dateKey(new Date(t.doneAt)) === k);
+    const left = openTodos().filter((t) => t.plan && t.plan.date === k);
+    for (const t of left) { t.plan = null; t.notOn = ''; }
+    planDay(tomorrow);
+    const moved = left.map((t) => (t.plan ? `${t.title} (tomorrow ${fmtTime(t.plan.time)})` : t.title));
+    const goalBits = state.goals.map((g) => {
+      const p = progress(g);
+      return `${g.title}: ${progressText(g)}${p.met ? ' ✓' : ''}`;
+    });
+    if (!doneToday.length && !left.length && !goalBits.length) return null;
+    const parts = [ctx.plain() ? 'Evening check-in.' : ctx.say('Evening check-in, {name}~')];
+    if (doneToday.length) parts.push(`Done today: ${doneToday.map((t) => t.title).join(', ')} ✓`);
+    if (left.length) parts.push(`Not finished: ${moved.join(', ')}. I moved ${left.length === 1 ? 'it' : 'them'} to tomorrow. If you did ${left.length === 1 ? 'it' : 'any'} after all, tap below.`);
+    if (goalBits.length) parts.push(`Goals: ${goalBits.join(' · ')}`);
+    const firsts = planList(tomorrow).slice(0, 4);
+    if (firsts.length) parts.push(`Tomorrow starts with: ${firsts.join(', ')}.`);
+    save();
+    return { text: parts.join('\n\n'), todos: left.map((t) => t.id) };
+  }
+  /** For the phone's own schedule (fires even with the app closed). */
+  function checkinEvents(days = 7) {
+    if (!checkinOn()) return [];
+    const out = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      const k = dateKey(d);
+      if (state.checkedIn[k]) continue;
+      const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, checkinMin()).getTime();
+      if (at > Date.now()) out.push({ at, text: ctx.plain() ? 'Evening check-in: let’s go over today and set up tomorrow.' : ctx.say('Evening check-in time, {name}. Come tell me how today went and I’ll set up tomorrow~') });
+    }
+    return out;
+  }
+
+  // ---------- chat without her AI ----------
+  /** Plain-language commands about to-dos, plans and goals. Returns her lines, or null if it isn't one. */
+  function handle(text) {
+    const s = text.trim().replace(/[.!]+$/, '');
+    let m;
+    if (/^(?:plan|organi[sz]e|schedule) (?:out )?my (day|today|tomorrow)\b/i.test(s) || /^make (?:me )?a plan for (today|tomorrow)/i.test(s)) {
+      const k = /tomorrow/i.test(s) ? addDays(dateKey(), 1) : dateKey();
+      return planReply(k, true);
+    }
+    if (/^what(?:'s| is) (?:my |the )?plan(?: for (today|tomorrow))?\??$/i.test(s) || /^what(?:'s| is) on my (?:schedule|plan)/i.test(s)) {
+      return planReply(/tomorrow/i.test(s) ? addDays(dateKey(), 1) : dateKey(), false);
+    }
+    if (/^(?:what(?:'s| is)|show(?: me)?) (?:on )?my to-?do(?: list)?|^my to-?do(?: list)?\??$|^what do i (?:need|have) to do/i.test(s)) {
+      const open = openTodos();
+      if (!open.length) return ['Your to-do list is empty. Tell me something like “I need to finish the edit by Friday” and I’ll plan it.'];
+      return [`Your to-do list:\n${open.slice(0, 10).map((t) => `• ${t.title}${t.due ? ` (${dueLabel(t.due)})` : ''}${t.plan ? `, planned ${dayWord(t.plan.date)} ${fmtTime(t.plan.time)}` : ''}`).join('\n')}`];
+    }
+    if ((m = s.match(/^(?:add|put) (.+?) (?:to|on) my (?:to-?do|task)s?(?: list)?$/i)) || (m = s.match(/^(?:to-?do|task|add (?:a )?(?:to-?do|task))[:,]?\s+(.+)$/i))
+      || (m = s.match(/^i (?:need|have|got|gotta|must)(?: to)? (.+?\b(?:by|before|due)\b.+)$/i))) {
+      return addReply(m[1]);
+    }
+    if ((m = s.match(/^(?:i )?(?:finished|completed|done with|did|checked off|crossed off) (?:the |my )?(.+)$/i)) || (m = s.match(/^(?:mark|check off|cross off) (.+?)(?: as)? (?:done|complete|finished|off)?$/i))) {
+      const todo = match(openTodos(), m[1]);
+      if (todo.length === 1) { const r = completeTodo(todo[0]); return [ctx.say(`Crossed off: ${r.done} ✓ ${r.left ? `${r.left} left on your list.` : 'Your list is clear!'}`)]; }
+    }
+    if ((m = s.match(/^(?:delete|remove) (.+?) from my (?:to-?do|task)s?(?: list)?$/i))) {
+      const r = deleteTodo(m[1]);
+      return [r.ok ? `Removed “${r.deleted}” from your to-do list.` : r.choices && r.choices.length ? `Which one? ${r.choices.join(', ')}` : 'I couldn’t find that on your to-do list.'];
+    }
+    // "New goal: gym 4 times a week", "my goal is to read 3 times a week", "goal: save $200 a month"
+    if ((m = s.match(/^(?:new goal|goal|add (?:a )?goal|set (?:a )?goal|my goal is(?: to)?|i want to)[:,]?\s+(.+?)\s+(\d+)\s*(?:x|times?)\s*(?:a|per|every|each)\s*(day|week|month)$/i))) {
+      const r = addGoal({ title: m[1], times: Number(m[2]), per: m[3].toLowerCase() });
+      return [`New goal: ${r.goal}, ${r.rhythm}. I'll plan the sessions into your days${r.next_session ? ` (first one ${r.next_session})` : ''} and check in on your streak.`];
+    }
+    if ((m = s.match(/^(?:new goal|goal|add (?:a )?goal|set (?:a )?goal|my goal is(?: to)?|i want to)[:,]?\s+(.+?)\s+(?:every ?day|daily)$/i))) {
+      const r = addGoal({ title: m[1], times: 1, per: 'day' });
+      return [`New daily goal: ${r.goal}. I'll fit it into each day${r.next_session ? ` (today at ${r.next_session.replace('today at ', '')})` : ''}.`];
+    }
+    if ((m = s.match(/^(?:new goal|goal|add (?:a )?goal|set (?:a )?goal|my goal is(?: to)?|i want to)[:,]?\s+(save|earn|make|read|run|walk|study|post|lose)\s+\$?(\d+(?:\.\d+)?)\s*([a-z$]*)\s*(?:a|per|every|each)\s*(week|month|day)$/i))) {
+      const unit = /\$/.test(s) ? '$' : m[3] || '';
+      const r = addGoal({ title: `${m[1]} ${unit === '$' ? '$' : ''}${m[2]}${unit && unit !== '$' ? ` ${unit}` : ''} a ${m[4]}`, kind: 'amount', target: Number(m[2]), unit, per: m[4].toLowerCase() });
+      return [`New goal: ${r.goal}. Tell me as you go (“I saved $50”) and I'll keep track.`];
+    }
+    // "I went to the gym", "did my workout", "I saved $50", "read 20 pages"
+    if (state.goals.length && /\b(went|did|done|finished|completed|hit|worked out|saved|read|ran|walked|studied|posted|made|earned|practiced|practised)\b/i.test(s)) {
+      const amount = (s.match(/\$?(\d+(?:\.\d+)?)/) || [])[1];
+      const hits = match(state.goals, s.replace(/\b(went|did|done|finished|completed|hit|today|just)\b/gi, ''));
+      const byVerb = hits.length ? hits : state.goals.filter((g) => (/\bsav/i.test(s) && /sav/i.test(g.title)) || (/worked out|workout/i.test(s) && /gym|work ?out|exercise|lift/i.test(g.title)));
+      if (byVerb.length === 1) {
+        const g = byVerb[0];
+        const r = logGoal(g, g.kind === 'amount' ? amount : null);
+        if (r.ok) return [ctx.say(`${r.met ? 'Goal reached' : 'Logged'}: ${r.goal}, ${r.progress}.${r.streak > 1 ? ` That's a ${r.streak}-${g.per} streak.` : ''}`)];
+      }
+    }
+    return null;
+  }
+  function addReply(raw) {
+    let { due, rest } = parseDue(raw);
+    const mm = parseMins(rest);
+    rest = mm.rest.replace(/\b(?:by|before|due)\s*$/i, '').trim();
+    const high = /\b(important|urgent|asap|!)\b/i.test(rest) || /!$/.test(raw);
+    rest = rest.replace(/\b(?:it's |its )?(important|urgent|asap)\b/gi, '').replace(/!+/g, '').trim();
+    const r = addTodo({ title: rest, due, mins: mm.mins, priority: high ? 'high' : 'normal' });
+    if (!r.ok) return ['What should I put on your list?'];
+    return [ctx.say(`Added to your to-do list: ${r.todo.title}${due ? ` (${dueLabel(due)})` : ''}. ${r.planned ? `I set time aside ${r.planned}.` : 'No free time for it soon, so it waits on your list for now.'}`)];
+  }
+
+  // ---------- Plan tab: To-do and Goals panes ----------
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function render() {
+    if ($('#todo-pane') && !$('#todo-pane').hidden) renderTodos();
+    if ($('#goals-pane') && !$('#goals-pane').hidden) renderGoals();
+  }
+  function renderTodos() {
+    const box = $('#todo-list');
+    box.textContent = '';
+    const k = dateKey();
+    const open = openTodos().sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (b.priority === 'high') - (a.priority === 'high') || a.created - b.created);
+    const groups = [
+      ['Overdue', open.filter((t) => t.due && t.due < k)],
+      ['Today', open.filter((t) => (t.due === k) || (!(t.due && t.due < k) && t.plan && t.plan.date === k))],
+      ['Coming up', open.filter((t) => t.due && t.due > k && !(t.plan && t.plan.date === k))],
+      ['No deadline', open.filter((t) => !t.due && !(t.plan && t.plan.date === k))],
+    ];
+    $('#todo-count').textContent = open.length ? `${open.length} open` : 'All clear';
+    if (!open.length) {
+      const empty = el('div', 'empty-state');
+      empty.innerHTML = '<div class="empty-ic">✓</div><b></b><p></p>';
+      empty.querySelector('b').textContent = 'Nothing on your list';
+      empty.querySelector('p').textContent = 'Add things above, or just tell her: “I need to finish the edit by Friday”. She fits them into your free time.';
+      box.append(empty);
+    }
+    for (const [name, list] of groups) {
+      if (!list.length) continue;
+      const sec = el('section', 'group');
+      const h = el('h3', 'group-title');
+      h.innerHTML = '<span></span><span class="count"></span>';
+      h.firstChild.textContent = name;
+      h.lastChild.textContent = String(list.length);
+      const card = el('div', 'list-card');
+      for (const t of list) card.append(todoRow(t));
+      sec.append(h, card);
+      box.append(sec);
+    }
+    const done = state.todos.filter((t) => t.done).sort((a, b) => b.doneAt - a.doneAt).slice(0, 8);
+    if (done.length) {
+      const det = el('details', 'todo-done');
+      det.append(el('summary', '', `Done (${state.todos.filter((t) => t.done).length})`));
+      const card = el('div', 'list-card');
+      for (const t of done) card.append(todoRow(t));
+      det.append(card);
+      box.append(det);
+    }
+  }
+  function todoRow(t) {
+    const row = el('div', `row-item todo-row${t.done ? ' done' : ''}`);
+    row.dataset.todo = t.id;
+    row.innerHTML = `<button type="button" class="check" aria-label="">✓</button><div class="ri-main"><div class="ri-title"></div><div class="ri-meta"></div></div>`;
+    row.querySelector('.check').setAttribute('aria-label', t.done ? `Undo ${t.title}` : `Mark ${t.title} done`);
+    row.querySelector('.ri-title').textContent = t.title;
+    const meta = row.querySelector('.ri-meta');
+    const add = (text, cls) => meta.append(el('span', cls || '', text));
+    if (t.priority === 'high' && !t.done) add('Important', 'tag-chip flag warn');
+    if (t.due && !t.done) add(dueLabel(t.due), t.due < dateKey() ? 'tag-chip flag warn' : 'ri-sub');
+    if (t.plan && !t.done) add(`⏱ ${dayWord(t.plan.date)} ${fmtTime(t.plan.time)}`, 'tag-chip plan');
+    else if (!t.done) add('not planned yet', 'ri-sub');
+    if (!t.done) add(t.mins >= 60 ? `${t.mins / 60}h` : `${t.mins}m`, 'ri-sub');
+    if (t.done && t.doneAt) add(`done ${new Date(t.doneAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}`, 'ri-sub');
+    return row;
+  }
+  function renderGoals() {
+    const box = $('#goal-list');
+    box.textContent = '';
+    if (!state.goals.length) {
+      const empty = el('div', 'empty-state');
+      empty.innerHTML = '<div class="empty-ic">🎯</div><b></b><p></p>';
+      empty.querySelector('b').textContent = 'No goals yet';
+      empty.querySelector('p').textContent = 'Add one, or tell her: “New goal: gym 4 times a week” or “Goal: save $200 a month”. She plans the sessions and keeps your streak.';
+      box.append(empty);
+      return;
+    }
+    for (const g of state.goals) {
+      const p = progress(g), st = streak(g);
+      const card = el('div', 'card goal-card');
+      card.dataset.goal = g.id;
+      const top = el('div', 'goal-top');
+      const title = el('b', 'goal-title', g.title);
+      const sub = el('span', 'goal-sub', g.kind === 'amount' ? `Goal ${unitFmt(g, g.target)} per ${g.per}` : `${g.times}× per ${g.per}${g.time ? ` · around ${fmtTime(g.time)}` : ''}`);
+      const left = el('div');
+      left.append(title, sub);
+      const streakEl = el('span', 'goal-streak', st ? `🔥 ${st}` : '');
+      streakEl.title = st ? `${st} ${g.per}${st === 1 ? '' : 's'} in a row` : '';
+      top.append(left, streakEl);
+      const bar = el('div', 'goal-bar');
+      const fill = el('i');
+      fill.style.width = `${Math.min(100, p.need ? (p.n / p.need) * 100 : 0)}%`;
+      bar.append(fill);
+      const foot = el('div', 'goal-foot');
+      foot.append(el('span', p.met ? 'goal-met' : 'muted small', `${progressText(g)}${p.met ? ' ✓' : ''}`));
+      const today = g.plans && g.plans[dateKey()];
+      if (today && !(state.log[dateKey()] || {})[`g:${g.id}`]) foot.append(el('span', 'tag-chip plan', `⏱ today ${fmtTime(today)}`));
+      const btn = el('button', 'btn-primary sm', g.kind === 'amount' ? '+ Add' : '+1 Done');
+      btn.type = 'button';
+      btn.dataset.log = g.id;
+      foot.append(btn);
+      card.append(top, bar, foot);
+      box.append(card);
+    }
+  }
+
+  // To-do dialog
+  const tdlg = $('#todo-dlg'), tf = $('#todo-form');
+  let editing = null;
+  function openTodo(t) {
+    editing = t || null;
+    tf.reset();
+    $('#todo-dlg-title').textContent = t ? 'Edit to-do' : 'New to-do';
+    tf.elements.title.value = t ? t.title : '';
+    tf.elements.due.value = t && t.due ? t.due : '';
+    tf.elements.mins.value = String(t ? t.mins : 30);
+    if (!tf.elements.mins.value) tf.elements.mins.value = '30';
+    tf.elements.priority.checked = !!(t && t.priority === 'high');
+    tf.elements.notes.value = t ? t.notes || '' : '';
+    $('#todo-delete').hidden = !t;
+    $('#todo-plan-info').textContent = t && t.plan && !t.done ? `Planned ${dayWord(t.plan.date)} at ${fmtTime(t.plan.time)}.` : '';
+    tdlg.showModal();
+  }
+  tf.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = { title: tf.elements.title.value.trim(), due: tf.elements.due.value || null, mins: Number(tf.elements.mins.value) || 30, priority: tf.elements.priority.checked ? 'high' : 'normal', notes: tf.elements.notes.value.trim() };
+    if (!data.title) return;
+    if (editing) {
+      const replanNeeded = editing.mins !== data.mins || editing.due !== data.due;
+      Object.assign(editing, data);
+      if (replanNeeded && !editing.done && editing.plan && editing.plan.date >= dateKey()) { editing.plan = null; planDay(dateKey()); if (!editing.plan) planDay(addDays(dateKey(), 1)); }
+      changed();
+    } else addTodo(data);
+    tdlg.close();
+  });
+  $('#todo-cancel').addEventListener('click', () => tdlg.close());
+  $('#todo-delete').addEventListener('click', async () => {
+    if (!editing || !(await ctx.ask(`Delete “${editing.title}”?`))) return;
+    deleteTodo(editing);
+    tdlg.close();
+  });
+  $('#todo-quick').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('#todo-quick-text');
+    const text = input.value.trim();
+    if (!text) { openTodo(null); return; }
+    const [line] = addReply(text);
+    input.value = '';
+    ctx.toast(line);
+  });
+  $('#todo-plan-day').addEventListener('click', () => {
+    const lines = planReply(dateKey(), true);
+    ctx.toast(lines[0].split('\n').length > 1 ? `Planned: ${lines[0].split('\n').slice(1, 4).map((l) => l.replace('• ', '')).join(', ')}` : lines[0]);
+  });
+  $('#todo-list').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-todo]');
+    if (!row) return;
+    const t = state.todos.find((x) => x.id === row.dataset.todo);
+    if (!t) return;
+    if (e.target.closest('.check')) {
+      if (t.done) {
+        t.done = false; t.doneAt = 0; t.doneVia = '';
+        if (t.plan && state.log[t.plan.date]) delete state.log[t.plan.date][`t:${t.id}`];
+        changed();
+      } else {
+        completeTodo(t);
+        ctx.celebrateSmall && ctx.celebrateSmall();
+      }
+      return;
+    }
+    openTodo(t);
+  });
+
+  // Goal dialog
+  const gdlg = $('#goal-dlg'), gf = $('#goal-form');
+  let editingGoal = null;
+  function kindShown() {
+    const amount = gf.elements.kind.value === 'amount';
+    $('#goal-times-row').hidden = amount;
+    $('#goal-amount-row').hidden = !amount;
+    $('#goal-session-row').hidden = amount;
+  }
+  function openGoal(g) {
+    editingGoal = g || null;
+    gf.reset();
+    $('#goal-dlg-title').textContent = g ? 'Edit goal' : 'New goal';
+    gf.elements.title.value = g ? g.title : '';
+    gf.elements.kind.value = g ? g.kind : 'times';
+    gf.elements.times.value = String(g ? g.times : 3);
+    gf.elements.per.value = g ? g.per : 'week';
+    gf.elements.target.value = g && g.target ? String(g.target) : '';
+    gf.elements.unit.value = g ? g.unit || '' : '';
+    gf.elements.time.value = g && g.time ? g.time : '';
+    gf.elements.mins.value = String(g ? g.mins || 45 : 45);
+    $('#goal-delete').hidden = !g;
+    kindShown();
+    gdlg.showModal();
+  }
+  gf.elements.kind.addEventListener('change', kindShown);
+  gf.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      title: gf.elements.title.value.trim(), kind: gf.elements.kind.value, times: Number(gf.elements.times.value) || 1, per: gf.elements.per.value,
+      target: Number(gf.elements.target.value) || 0, unit: gf.elements.unit.value.trim(), time: gf.elements.time.value || '', mins: Number(gf.elements.mins.value) || 45,
+    };
+    if (!data.title) return;
+    if (editingGoal) {
+      Object.assign(editingGoal, data, { sessions: data.kind !== 'amount' });
+      if (editingGoal.plans) { const k = dateKey(); if (editingGoal.plans[k] && !(state.log[k] || {})[`g:${editingGoal.id}`]) delete editingGoal.plans[k]; }
+      planDay(dateKey());
+      changed();
+    } else addGoal(data);
+    gdlg.close();
+  });
+  $('#goal-cancel').addEventListener('click', () => gdlg.close());
+  $('#goal-delete').addEventListener('click', async () => {
+    if (!editingGoal || !(await ctx.ask(`Delete the goal “${editingGoal.title}”? Its history goes too.`))) return;
+    deleteGoal(editingGoal);
+    gdlg.close();
+  });
+  $('#goal-add').addEventListener('click', () => openGoal(null));
+  $('#goal-list').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-log]');
+    if (b) {
+      const g = state.goals.find((x) => x.id === b.dataset.log);
+      if (!g) return;
+      let amount = null;
+      if (g.kind === 'amount') {
+        amount = await ctx.prompt(`How much toward “${g.title}”?${g.unit ? ` (${g.unit})` : ''}`);
+        if (!amount || !Number(amount)) return;
+      }
+      const r = logGoal(g, amount);
+      ctx.toast(`${r.goal}: ${r.progress}${r.met ? ' ✓' : ''}`);
+      if (r.met) ctx.celebrateSmall && ctx.celebrateSmall();
+      return;
+    }
+    const card = e.target.closest('[data-goal]');
+    if (card) openGoal(state.goals.find((x) => x.id === card.dataset.goal));
+  });
+
+  return {
+    openTodo: (id) => openTodo(state.todos.find((t) => t.id === id) || null),
+    openGoal: (id) => openGoal(state.goals.find((g) => g.id === id) || null),
+    items, planDay, autoPlan, syncDone, addTodo, completeTodo, deleteTodo, addGoal, logGoal, deleteGoal, handle, addReply,
+    planReply, morningLine, summary, checkIn, checkinMin, checkinOn, checkinEvents, render, renderTodos, renderGoals,
+    parseDue, progress, streak, openTodos, match, dayWord,
+    restore(kind, item) { if (kind === 'todo') { state.todos.push(item); changed(); return true; } return false; },
+  };
+};
