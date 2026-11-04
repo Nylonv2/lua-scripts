@@ -1457,3 +1457,223 @@ html[data-plain="1"] .onboard-praise { display: none; }
 .goal-foot > :first-child { flex: 1; }
 .goal-met { color: var(--ok); font-weight: 600; font-size: .9rem; }
 .rem-mode button { padding-left: 6px; padding-right: 6px; }
+
+/* =====================================================================================
+   Clean layout (default). One neutral dark surface, one accent (the theme's color, or blue
+   in the standard look), 16px text, 44px+ tap targets, one obvious main button per screen.
+   "Classic Rias look" (html[data-scene="1"]) skips all of this and keeps the original style.
+   ===================================================================================== */
+html:not([data-scene]) {
+  --bg: #0f1014; --panel: #18191f; --panel-2: #23252d; --panel-solid: #18191f;
+  --line: rgba(255, 255, 255, .08); --line-strong: rgba(255, 255, 255, .14);
+  --text: #f3f4f6; --muted: #a1a7b3; --gold: #a1a7b3;
+  --d1: #0f1014; --d2: #0f1014; --d3: #0f1014; --glass: 24, 25, 31; --glass2: 35, 37, 45;
+  --radius: 16px; --radius-sm: 12px; --glass-blur: none;
+}
+html:not([data-scene]) body { background: var(--bg); font-size: 16px; line-height: 1.5; }
+html:not([data-scene]) .app-bg, html:not([data-scene]) .app[data-period] .app-bg { background: var(--bg); }
+html:not([data-scene]) .app-bg i, html:not([data-scene]) .scene-bg i, html:not([data-scene]) .feed-fx { display: none !important; }
+html:not([data-scene]) .scene-bg, html:not([data-scene]) .chat-view[data-period] .scene-bg { background: var(--bg); }
+
+/* Surfaces: flat cards with a hairline border, no glass, glow or foil */
+html:not([data-scene]) :is(.card, .list-card, .set-group, .tile, .summary, .sched-card, .update-card, .food-entry) {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: none;
+  backdrop-filter: none; -webkit-backdrop-filter: none; }
+html:not([data-scene]) :is(.card, .list-card, .set-group, .tile, .summary, .sched-card, .update-card, .set-tile)::before { display: none; }
+html:not([data-scene]) .holo::after { display: none; }
+html:not([data-scene]) .swipe .row-item { background: var(--panel); }
+html:not([data-scene]) .swipe .row-item.done { background: var(--panel); }
+
+/* Type: big bold titles, plain small labels */
+html:not([data-scene]) :is(.page-title, .home-greet h1) { font-family: inherit; font-weight: 700; font-size: 1.75rem; line-height: 1.2; letter-spacing: -.01em; text-shadow: none; margin: 0; }
+html:not([data-scene]) :is(.eyebrow, .section-title, .meal-head h3, .group-title, .set-group h2, .tile-label, .next-card .next-label, .ns-label, .field-label, .test-label) {
+  font-family: inherit !important; font-style: normal; font-weight: 600 !important; font-size: .82rem !important; letter-spacing: .02em !important;
+  text-transform: none; color: var(--muted) !important; text-shadow: none; }
+html:not([data-scene]) .muted.small, html:not([data-scene]) .small { font-size: .875rem; }
+html:not([data-scene]) .stack h2, html:not([data-scene]) dialog h2 { font-family: inherit; font-weight: 700; color: var(--text); font-size: 1.25rem; }
+
+/* Buttons: filled accent for the main action, soft grey for the rest, 48px tall */
+html:not([data-scene]) :is(.btn-primary, button.primary, .stack button.primary, .fab, .plan-week, .tile-btn) {
+  background: var(--g2) !important; border: 0 !important; color: #fff; box-shadow: none; border-radius: 14px; font-weight: 600; }
+html:not([data-scene]) :is(.btn-primary, button.primary, .stack button.primary) { min-height: 48px; font-size: 1rem; }
+html:not([data-scene]) .btn-primary.sm { min-height: 40px; font-size: .9rem; padding: 0 14px; }
+html:not([data-scene]) .btn-primary.sm.tonal { background: var(--panel-2) !important; color: var(--text); }
+html:not([data-scene]) .stack button:not(.primary):not(.danger):not(.btn-primary):not(.mem-del):not(.check):not(.icon-btn):not(.set-tile):not(.btn-text) {
+  background: var(--panel-2); border: 0; min-height: 48px; border-radius: 14px; font-size: 1rem; backdrop-filter: none; }
+html:not([data-scene]) .stack button.danger { background: transparent; border: 1px solid rgba(255, 99, 99, .35); color: #ff8a8a; min-height: 48px; border-radius: 14px; }
+html:not([data-scene]) .btn-text { min-height: 44px; color: var(--crimson-2); font-weight: 600; }
+html:not([data-scene]) .icon-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--panel-2); border: 0; display: grid; place-items: center; backdrop-filter: none; }
+html:not([data-scene]) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea) {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; font-size: 16px; min-height: 48px; color: var(--text); }
+html:not([data-scene]) textarea { min-height: 88px; }
+html:not([data-scene]) .chip span { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; background: var(--panel-2); border: 1px solid transparent; color: var(--text); font-size: .9rem; }
+html:not([data-scene]) .chip input:checked + span { background: var(--accent-soft); border-color: var(--g2); color: var(--text); box-shadow: none; }
+html:not([data-scene]) .segmented { background: var(--panel-2); border: 0; border-radius: 12px; padding: 4px; gap: 4px; backdrop-filter: none; }
+html:not([data-scene]) .segmented button { min-height: 40px; border-radius: 9px; font-size: .92rem; font-weight: 600; color: var(--muted); background: transparent; border: 0; box-shadow: none; }
+html:not([data-scene]) .segmented button.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+
+/* Header: only on Today, quiet */
+html:not([data-scene]) .top { background: var(--bg); border: 0; backdrop-filter: none; padding-top: calc(env(safe-area-inset-top) + 10px); padding-bottom: 6px; }
+html:not([data-scene]) .top .avatar { width: 36px; height: 36px; box-shadow: none; }
+html:not([data-scene]) .top .name { font-family: inherit; font-weight: 600; font-size: 1rem; }
+html:not([data-scene]) .app:not([data-view="home"]) > .top { display: none; }
+
+/* Bottom bar: 5 tabs, icon + label */
+html:not([data-scene]) .tabs { background: var(--bg); border-top: 1px solid var(--line); backdrop-filter: none; padding: 6px 4px calc(env(safe-area-inset-bottom) + 6px); }
+html:not([data-scene]) .tabs button { min-height: 52px; gap: 3px; font-size: .75rem; font-weight: 600; color: var(--muted); }
+html:not([data-scene]) .tabs .tab-ic { width: 52px; height: 30px; }
+html:not([data-scene]) .tabs button.active { color: var(--text); }
+html:not([data-scene]) .tabs button.active .tab-ic { background: var(--accent-soft); color: var(--crimson-2); box-shadow: none; }
+html:not([data-scene]) :is(.view.pad, #view-today, #view-settings) { padding: 20px 16px 120px; }
+
+/* Lists: 56px rows, round check on the left */
+html:not([data-scene]) .row-item { min-height: 60px; padding: 12px 16px; gap: 14px; }
+html:not([data-scene]) .ri-title { font-size: 1rem; font-weight: 500; }
+html:not([data-scene]) .ri-meta { font-size: .85rem; }
+html:not([data-scene]) .check { width: 28px; height: 28px; border: 2px solid var(--line-strong); }
+html:not([data-scene]) .row-item.done .check, html:not([data-scene]) .todo-row.done .check { background: var(--g2); border-color: var(--g2); color: #fff; }
+html:not([data-scene]) .group-title { margin: 22px 4px 8px; }
+html:not([data-scene]) .tag-chip { border-radius: 999px; font-size: .75rem; }
+
+/* Empty states: what to do next */
+html:not([data-scene]) .empty-state { padding: 40px 24px; text-align: center; }
+html:not([data-scene]) .empty-state .empty-ic { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--crimson-2); border: 0; font-size: 1.6rem; }
+html:not([data-scene]) .empty-state b { display: block; font-size: 1.125rem; margin-bottom: 6px; }
+html:not([data-scene]) .empty-state p { color: var(--muted); font-size: .95rem; margin: 0 auto; max-width: 300px; }
+
+/* The main action on Plan: a big floating "New" button */
+html:not([data-scene]) .fab.extended { height: 56px; border-radius: 18px; padding: 0 22px; font-size: 1rem; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 84px); box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+
+/* ---------- Today ---------- */
+html:not([data-scene]) .home { padding-top: 8px; }
+html:not([data-scene]) .home-greet { text-align: left; margin: 4px 0 16px; }
+html:not([data-scene]) .home-greet p { margin: 4px 0 0; font-size: .95rem; }
+html:not([data-scene]) .home-hero { flex-direction: row; align-items: center; gap: 14px; padding: 12px 16px 12px 8px; margin-bottom: 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-height: 120px; overflow: hidden; }
+html:not([data-scene]) .home-hero .stage { width: 104px; height: 128px; flex: none; margin: 0; overflow: hidden; display: flex; justify-content: center; }
+html:not([data-scene]) .home-hero .stage .circle { display: none; }
+html:not([data-scene]) .home-hero .stage-pic { width: 88px; height: 88px; flex: none; margin: 0 0 0 8px; box-shadow: none; animation: none; }
+html:not([data-scene]) .home-hero .stage-pic.living { width: 88px; height: 110px; margin: 0 0 0 8px; animation: none; }
+html:not([data-scene]) .home-hero .living::before, html:not([data-scene]) .home-hero .living::after { display: none; }
+html:not([data-scene]) .home-hero .lp-frame { border-radius: 14px; box-shadow: none; }
+html:not([data-scene]) .home-hero .bubble { order: 2; flex: 1; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; text-align: left; font-size: 1rem; line-height: 1.45; backdrop-filter: none; }
+html:not([data-scene]) .home-hero .bubble::after { display: none; }
+html:not([data-scene]) .home-hero > :is(.stage, .stage-pic) { order: 1; }
+html:not([data-scene]) .goodnight-btn { width: 100%; min-height: 48px; border-radius: 14px; margin-bottom: 14px; background: var(--panel-2); border: 0; color: var(--text); font-weight: 600; box-shadow: none; }
+html:not([data-scene]) .update-card { margin-bottom: 14px; }
+html:not([data-scene]) .next-card { flex-direction: column; align-items: stretch; gap: 14px; padding: 18px; margin-bottom: 18px; }
+html:not([data-scene]) .next-card .next-title { font-size: 1.3rem; font-weight: 700; margin-top: 4px; line-height: 1.25; }
+html:not([data-scene]) .next-card .next-time { font-size: .95rem; margin-top: 2px; }
+html:not([data-scene]) .next-card.waiting { border-color: var(--g2); box-shadow: none; }
+html:not([data-scene]) .next-actions { flex-direction: row; gap: 10px; }
+html:not([data-scene]) .next-card button { flex: 1; min-height: 52px; border-radius: 14px; font-size: 1.05rem; font-weight: 600; background: var(--panel-2); border: 0; }
+html:not([data-scene]) .next-card button.done { flex: 2; background: var(--g2); color: #fff; }
+.coming { margin-bottom: 18px; }
+.coming-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 6px; font-weight: 600; font-size: .82rem; color: var(--muted); }
+.coming-head .btn-text { min-height: 36px; padding: 0 4px; background: none; border: 0; font-size: .9rem; }
+.coming-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; padding: 0 16px; background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); text-align: left; font-size: 1rem; }
+.coming-row:first-child { border-top: 0; }
+.coming-time { flex: none; width: 76px; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.coming-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html:not([data-scene]) .tiles { gap: 12px; margin-bottom: 16px; }
+html:not([data-scene]) .tile { padding: 14px 16px; min-height: 96px; gap: 4px; }
+html:not([data-scene]) .tile b { font-size: 1.25rem; font-weight: 700; }
+html:not([data-scene]) .tile-sub { font-size: .85rem; }
+html:not([data-scene]) .tile-btn { min-height: 36px; padding: 0 14px; border-radius: 10px; margin-top: 6px; font-size: .9rem; }
+html:not([data-scene]) .quick-actions { display: none; }
+
+/* ---------- Plan ---------- */
+html:not([data-scene]) .rem-mode { margin-bottom: 18px; }
+html:not([data-scene]) .page-head { margin-bottom: 16px; align-items: flex-end; }
+html:not([data-scene]) .todo-quick input { min-height: 52px; }
+html:not([data-scene]) .todo-quick button { width: 52px; min-height: 52px; border-radius: 14px; }
+html:not([data-scene]) .goal-card { padding: 16px; }
+
+/* ---------- Chat: ordinary message bubbles ---------- */
+html:not([data-scene]) .scene-rias { position: static; height: 0; -webkit-mask-image: none; mask-image: none; }
+html:not([data-scene]) .scene-rias > :not(.scene-think) { display: none !important; }
+html:not([data-scene]) .scene-think { top: auto; bottom: 92px; left: 20px; background: var(--panel-2); }
+html:not([data-scene]) .chat-head { padding: calc(env(safe-area-inset-top) + 10px) 16px 10px; border-bottom: 1px solid var(--line); background: var(--bg); gap: 12px; }
+html:not([data-scene]) .chat-av { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; }
+html:not([data-scene]) .chat-who b { font-family: inherit; font-weight: 700; font-size: 1.05rem; letter-spacing: 0; text-shadow: none; }
+html:not([data-scene]) .chat-who span { font-style: normal; text-shadow: none; color: var(--muted); }
+html:not([data-scene]) .chat-head .gear { display: none; }
+html:not([data-scene]) .chat-view .feed { margin-top: 0; padding: 16px; -webkit-mask-image: none; mask-image: none; }
+html:not([data-scene]) .chat-view .msg { padding: 10px 14px; border-radius: 18px; text-shadow: none; max-width: 82%; }
+html:not([data-scene]) .chat-view .msg.rias { font-size: 1rem; line-height: 1.45; background: var(--panel-2); border: 0; border-bottom-left-radius: 6px; color: var(--text); }
+html:not([data-scene]) .chat-view .msg.rias.first::before { content: none; }
+html:not([data-scene]) .chat-view .msg.me { background: var(--g2); color: #fff; border: 0; padding-right: 14px; text-align: left; border-bottom-right-radius: 6px; font-size: 1rem; }
+html:not([data-scene]) .chat-view .msg .w { opacity: 1; animation: none; }
+html:not([data-scene]) .chat-view .msg .task { background: rgba(255, 255, 255, .05); border-color: var(--line); border-left-color: var(--g2); backdrop-filter: none; }
+html:not([data-scene]) .chat-view .msg .actions button { min-height: 40px; background: var(--panel); backdrop-filter: none; }
+html:not([data-scene]) .chat-view .msg .actions button.done { background: var(--g2); border-color: var(--g2); }
+html:not([data-scene]) .chat-view .day-sep::before, html:not([data-scene]) .chat-view .day-sep::after { background: var(--line); }
+html:not([data-scene]) .chat-view .day-sep span { font-family: inherit; font-style: normal; letter-spacing: .02em; text-transform: none; color: var(--muted); font-size: .8rem; }
+html:not([data-scene]) .chat-view .quick { display: none; }
+html:not([data-scene]) .chat-view.show-quick .quick { display: flex; padding: 8px 16px; }
+html:not([data-scene]) .quick button { min-height: 40px; padding: 0 14px; background: var(--panel-2); border: 0; font-size: .92rem; }
+html:not([data-scene]) .quick-toggle { font-size: 1.1rem; }
+html:not([data-scene]) .chat-view.show-quick .quick-toggle { background: var(--accent-soft); }
+html:not([data-scene]) .composer { border-top: 1px solid var(--line); background: var(--bg); padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px); }
+html:not([data-scene]) .composer-box { background: var(--panel-2); border: 0; border-radius: 24px; min-height: 52px; box-shadow: none; }
+html:not([data-scene]) .composer-box:focus-within { box-shadow: 0 0 0 2px var(--g2); }
+html:not([data-scene]) .composer .send { width: 52px; height: 52px; background: var(--g2); box-shadow: none; }
+html[data-scene] .quick-toggle, html[data-scene] .chat-av { display: none; }
+
+/* ---------- Track (Food & water | Work) ---------- */
+.track-seg { margin-bottom: 18px; }
+html[data-scene] .track-seg { margin-bottom: 14px; }
+html:not([data-scene]) .daynav b { font-size: 1.1rem; }
+html:not([data-scene]) .daynav button { width: 44px; height: 44px; border-radius: 50%; background: var(--panel-2); border: 0; }
+
+/* ---------- More ---------- */
+.more-title { margin-bottom: 18px !important; }
+.more-label { margin: 22px 4px 8px; font-size: .82rem; font-weight: 600; color: var(--muted); }
+.more-list { overflow: hidden; }
+.more-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 10px 16px; background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); text-align: left; }
+.more-row:first-child { border-top: 0; }
+.more-ic { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--crimson-2); }
+.more-ic .ic { width: 20px; height: 20px; }
+.more-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.more-txt b { font-size: 1rem; font-weight: 600; }
+.more-txt small { font-size: .85rem; color: var(--muted); }
+
+/* ---------- Settings: one grouped list ---------- */
+html:not([data-scene]) .set-menu { display: flex; flex-direction: column; gap: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+html:not([data-scene]) .set-tile { min-height: 64px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; box-shadow: none; padding: 10px 16px; }
+html:not([data-scene]) .set-tile:first-child { border-top: 0; }
+html:not([data-scene]) .set-ic { background: var(--accent-soft); border-radius: 10px; }
+html:not([data-scene]) .set-group { padding: 18px 16px; margin-bottom: 14px; }
+html:not([data-scene]) .set-group h2 { margin-bottom: 4px !important; }
+html:not([data-scene]) .switch { min-height: 44px; font-size: 1rem; }
+html:not([data-scene]) .save-bar { background: linear-gradient(180deg, transparent, var(--bg) 35%); }
+html:not([data-scene]) .save-bar button { min-height: 52px; }
+
+/* ---------- Sheets and dialogs ---------- */
+html:not([data-scene]) dialog:not(.alarm) { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 24px 60px rgba(0, 0, 0, .6); border-radius: 20px; }
+html:not([data-scene]) dialog:not(.alarm)::backdrop { background: rgba(0, 0, 0, .55); backdrop-filter: none; }
+html:not([data-scene]) dialog.sheet { border-radius: 22px 22px 0 0; }
+html:not([data-scene]) .sheet-actions { background: var(--panel); }
+html:not([data-scene]) .toast { background: var(--panel-2); border: 1px solid var(--line); box-shadow: 0 12px 30px rgba(0, 0, 0, .5); backdrop-filter: none; }
+html:not([data-scene]) .toast-head b { font-family: inherit; font-weight: 600; color: var(--text); }
+
+/* ---------- Motion: quick and quiet ---------- */
+html:not([data-scene]) .view-enter { animation: clean-in .2s ease-out; }
+@keyframes clean-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+html:not([data-scene]) :is(button, .chip span, .row-item) { transition: transform .12s ease, background-color .15s ease; }
+html:not([data-scene]) button:active { transform: scale(.97); }
+html:not([data-scene]) :is(.stage-pic, .stage-pic.talking) { animation: none; }
+@media (prefers-reduced-motion: reduce) { html:not([data-scene]) .view-enter { animation: none; } }
+html:not([data-scene]) .set-txt em { font-family: inherit; font-style: normal; color: var(--crimson-2); font-size: .8rem; }
+html:not([data-scene]) .set-txt small { font-size: .85rem; }
+html:not([data-scene]) .set-ic { width: 40px; height: 40px; font-size: 1.2rem; box-shadow: none; }
+html:not([data-scene]) .next-shift:not(.none) { background: var(--accent-soft); box-shadow: none; border: 1px solid var(--line); }
+html:not([data-scene]) .next-shift .ns-label { color: var(--crimson-2) !important; }
+html:not([data-scene]) .rem-mode { display: flex; flex-wrap: nowrap; }
+html:not([data-scene]) .rem-mode button { flex: 1; min-width: 0; padding: 0 4px; }
+html[data-plain="1"]:not([data-scene]) .home-hero { min-height: 0; padding: 16px; }
+html:not([data-scene]) #set-menu .set-tile { background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; min-height: 64px; backdrop-filter: none; }
+html:not([data-scene]) #set-menu .set-tile:first-child { border-top: 0; }
+html:not([data-scene]) #settings .btn-text, html:not([data-scene]) .stack button.btn-text:not(.primary):not(.danger):not(.btn-primary):not(.mem-del) { background: none; border: 0; backdrop-filter: none; }
+html:not([data-scene]) .biz-title { font-family: inherit; font-weight: 700; font-size: 1.4rem; letter-spacing: -.01em; text-shadow: none; }
+html:not([data-scene]) #view-biz button:not(.btn-primary):not(.primary):not(.active):not(.check) { border-color: var(--line); }

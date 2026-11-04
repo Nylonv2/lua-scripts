@@ -38,33 +38,54 @@ can't use the widgets or the phone assistant, and only notify while the browser 
 
 ## The app
 
-### Home
-An animated Rias stands in front of a turning magic circle. She breathes, blinks, talks, changes outfit with the time
-and season, waves when you arrive and reacts to your day. Tap her for something useful. Below her: a greeting, your
-**next reminder** (Done / Snooze), today's progress, water, food and work. ⚙ at the top opens Settings.
+Five tabs at the bottom: **Today**, **Plan**, **Chat**, **Track** (food & water, work) and **More** (find clients,
+translator, settings, backup).
+
+### Today
+A greeting, her line for the moment (in Rias mode next to a small animated Rias), the big **Up next** card with a
+**Done ✓** button, the next few things coming up, and today's progress, water, food and work at a glance.
 
 ### Chat
 Talk to her by typing, with 🎙, or by sending a photo (📷). Without AI she has hundreds of written lines; with AI on
 (see *Her AI*) she writes her own replies, remembers your life, and does things for you: "remind me at 5 to call mom",
 "I work Saturday 10 to 6", "I just had a burger", "set a timer for 10 minutes".
 
-### Reminders
-Today's routine grouped by morning, afternoon, evening and night, plus work shifts and phone-calendar events. Swipe right
+### Plan
+Four views at the top: **Today**, **To-do**, **Goals** and **Month**.
+
+**Today:** today's routine grouped by morning, afternoon, evening and night, plus work shifts and phone-calendar events. Swipe right
 for done, left for snooze or delete. **＋ New reminder** sets the time, repeat (once, daily, weekdays, weekends, picked
 days, or every so often during the day), type, sound and whether it pops up like an alarm. **Month** shows a calendar of
 how each day went; tap a day to see it, add a reminder for that date, or edit one.
+
+**To-do:** your to-do list. Add things with a deadline, how long they take and whether they're important ("Finish the
+edit by Friday (2h)", or just tell her in the chat). She **fits each to-do into your free time** around work, meals,
+calendar events and your goals, puts it in Today like a reminder, and pings you when it's time. **⏱ Plan my day**
+rearranges the day. To-dos due soon always get time; the rest are spread out (up to 3 hours a day, changeable).
+
+**Goals:** habits and targets, like "gym 4 times a week" (she plans the sessions into free days, with rest days when
+there's room) or "save $200 a month" (tell her as you go: "I saved $50"). Each goal shows this week's progress and your
+streak 🔥.
+
+**Evening check-in** (90 minutes before bed by default): she goes over what got done, moves unfinished to-dos to
+tomorrow (with buttons if you did one after all), sums up your goals, and tells you how tomorrow starts.
+
+**In your phone's calendar:** turn on Settings → Your day → *Add my plans to my phone's calendar* and planned to-dos,
+goal sessions, shifts and one-time reminders also appear in Google Calendar (on your computer and watch too). She only
+ever changes events she added.
 
 **Taking things back:** tell Rias "delete my gym reminder", "skip my walk today" (just that day), "cancel my alarm",
 "delete the burger I logged", "remove a glass of water", or with her AI on, "remove my Saturday shift" and anything
 else in your own words. "Undo that" removes the last thing she added for you, and "bring it back" restores the last
 thing deleted. If more than one reminder matches, she asks which one.
 
-### Food
-A food diary with calories and macros against your goals (set them under **Goals**), a 7-day chart, recent foods, and a
+### Track
+**Food & water** and **Work**, switched at the top (Track remembers which one you used last).
+
+**Food:** a food diary with calories and macros against your goals (set them under **Goals**), a 7-day chart, recent foods, and a
 water tracker. Tell Rias what you ate, or send a photo of your plate, and she logs it with estimated nutrition.
 
-### Work
-Your week at a glance, the next shift with a countdown, and reminders to leave, start and finish. **Plan my week** sets
+**Work:** your week at a glance, the next shift with a countdown, and reminders to leave, start and finish. **Plan my week** sets
 a whole week in one screen (or paste "Mon 9-5, Tue off…"). With AI on, send a **photo of your schedule** and she adds
 every shift.
 
@@ -78,8 +99,8 @@ A **morning briefing** (shifts, reminders, calendar, weather, how you slept), ch
 at bedtime, "goodnight" to log your sleep, and a **weekly recap** on Sunday evening. Connect your **phone calendar** to see
 its events and be reminded of them. **Share → Rias** from any app turns a note or screenshot into a reminder.
 
-### Assistant
-Two sections at the top: **Clients** and **Translate**.
+### More: Find clients and Translator
+Open them from **More**.
 
 **Translate (live, face to face).** Pick your language and theirs (about 35, from Spanish and Chinese to Tagalog,
 Arabic, Haitian Creole and Somali) and tap *Start translating*. The screen splits in two: the top half faces the other
@@ -114,6 +135,9 @@ voice and personality change:
   screen and home-button pop-up use that name. With AI on it answers as a friendly, neutral assistant. You can also
   keep or drop the plain home-screen icon.
 - **Rias mode:** the animated Rias, her pictures, the full-art alarm card, her voice and her personality.
+
+Both use the same clean layout. In Rias mode, **Classic Rias look** (Look & pictures) brings back the original style:
+Rias full-screen on Home and in the chat, glass cards and gold lettering.
 
 Changing the home-screen icon can take a few seconds, and you may need to add the icon to your home screen again from
 the app drawer. If you used Rias before this option existed, you keep Rias mode until you turn it off.
@@ -154,9 +178,9 @@ requires a small silent "listening" notification while the microphone is on.
 |---|---|
 | **You** | Your name, wake-up and bedtime, what she calls you, how your emails are signed |
 | **Her voice** | Speaking out loud, phone voice or natural AI voice, pitch and speed |
-| **Look & pictures** | Rias mode on/off, assistant name, theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
+| **Look & pictures** | Rias mode on/off, Classic Rias look, assistant name, theme (Crimson, Amethyst, Midnight, Gold), outfit, little vibrations, and **every picture of her**: Home & Chat, the alarm card (with an optional pop-out cutout), and the assistant pop-up |
 | **Reminders & alarms** | Check-ins, notifications, the pop-up check, which reminders pop up, alarm sound, test buttons |
-| **Your day** | Briefing, weather city, recap, wind-down, phone calendar, food & water goals |
+| **Your day** | Planning (calendar sync, evening check-in, to-do time per day), briefing, weather city, recap, wind-down, phone calendar, food & water goals |
 | **Rias's mind** | AI on/off and service, monthly cost (Claude), what she remembers |
 | **Phone assistant** | Home-button setup, pop-up style, permissions, hands-free “Hey …” and your wake word |
 | **Backup & data** | Save / restore a backup, weekly auto backup, updates, reset |
@@ -216,6 +240,8 @@ Plain HTML/CSS/JS (no build step) in this folder, wrapped by a small Java WebVie
 | `android/src/…/KokoroVoice.java`, `TarBz2.java`, `com/k2fsa/…` | Kokoro on-phone voice (sherpa-onnx engine) and its model download |
 | `android/src/…/WakeService.java`, `Wake.java`, `WakeModel.java` | Hands-free "Hey …" (Vosk offline wake word) |
 | `food.js`, `work.js` | Food diary, work schedule |
+| `planner.js` | Plan → To-do and Goals: fitting to-dos and goal sessions into free time, streaks, the evening check-in |
+| `android/src/…/CalendarSync.java` | Copies the plan into the phone's calendar |
 | `rias-avatar.js`, `living-photo.js`, `alarm-card.js`, `photo-cutout.js` | Animated Rias, living photo, alarm card, on-device cutout |
 | `alarm.html`, `assist.html` | The Android alarm screen and assistant pop-up |
 | `android/src/…` | Native shell: scheduling, alarms, widgets, assistant, voice, reply service |

@@ -284,6 +284,8 @@
     const on = !!state.settings.plain;
     const root = document.documentElement;
     if (on) root.dataset.plain = '1'; else delete root.dataset.plain;
+    // The original full-screen, glass-and-gold style (Rias mode only); everyone else gets the clean layout.
+    if (!on && state.settings.classicLook) root.dataset.scene = '1'; else delete root.dataset.scene;
     const name = on ? plainName() : 'Rias Gremory';
     renameStatic(on ? plainName() : null);
     root.style.setProperty('--plain-name', JSON.stringify(on ? plainName() : 'Rias'));
@@ -291,7 +293,7 @@
     if (top) top.textContent = name;
     const chatWho = document.querySelector('.chat-who b');
     if (chatWho) chatWho.lastChild.textContent = name;
-    for (const img of document.querySelectorAll('.top .avatar')) img.src = on ? 'icons/plain.svg' : (loadPictureSafe() || 'icons/icon.svg');
+    for (const img of document.querySelectorAll('.top .avatar, .chat-av')) img.src = on ? 'icons/plain.svg' : (loadPictureSafe() || 'icons/icon.svg');
     const gn = document.getElementById('home-goodnight');
     if (gn) gn.textContent = on ? '🌙 Goodnight' : '🌙 Goodnight, Rias';
     document.title = on ? plainName() : 'Rias';
@@ -1322,7 +1324,7 @@
         if (st === 'done') row.classList.add('done');
         else if (st === 'skipped') { row.classList.add('skipped'); flag = 'Skipped'; }
         else if (fired[it.id] && fired[it.id] !== 'skip' && toMin(it.time) <= nm && nm - toMin(it.time) > FIRE_WINDOW_MIN) { row.classList.add('missed'); flag = 'Missed'; }
-        else if (fired[it.id] && toMin(it.time) <= nm) { row.classList.add('now'); flag = 'Now'; }
+        else if (fired[it.id] && fired[it.id] !== 'skip' && toMin(it.time) <= nm) { row.classList.add('now'); flag = 'Now'; } // 'skip': added after its time had passed
         else if (it.id === nextId) { row.classList.add('next'); flag = 'Up next'; }
         row.innerHTML = `<button type="button" class="check" aria-label="Mark done">${ICON('check')}</button>`
           + '<div class="ri-main"><div class="ri-title"></div><div class="ri-meta"></div></div>'
@@ -1412,6 +1414,7 @@
   // ---------- navigation ----------
   // ---------- pop-up banner ----------
   let currentView = 'home';
+  let trackPane = 'food'; // Track tab: Food & water or Work, whichever was open last
   let toastTimer = 0, toastMsg = null;
   const toast = $('#toast');
   function showToast(m) {
@@ -1476,7 +1479,9 @@
     const next = $(`#view-${view}`);
     if (next && next.hidden) { next.classList.remove('view-enter'); void next.offsetWidth; next.classList.add('view-enter'); }
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
-    for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === view);
+    if (view === 'food' || view === 'work') trackPane = view;
+    const tab = { work: 'food', biz: 'more', settings: 'more' }[view] || view; // the tab each screen lives under
+    for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === tab);
     if (view === 'today') renderToday();
     if (view === 'settings') fillSettings();
     if (view === 'food') Food.render();
@@ -1485,7 +1490,27 @@
     if (view === 'biz' && Biz) { if (bizPane === 'tr') Translator.render(); else Biz.render(); }
     if (view === 'chat') { renderChatHead(); feed.scrollTop = feed.scrollHeight; }
   }
-  $('.tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
+  $('.tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    // Track remembers whether you were on Food or Work.
+    if (b.dataset.view === 'food' && trackPane === 'work') { show('work'); return; }
+    if (b.dataset.view === 'more' && currentView === 'settings') openSetCat(null);
+    show(b.dataset.view);
+  });
+  // Track: Food & water | Work
+  for (const seg of document.querySelectorAll('.track-seg')) {
+    seg.addEventListener('click', (e) => { const b = e.target.closest('[data-track]'); if (b) show(b.dataset.track); });
+  }
+  // More: tools and settings
+  $('#view-more').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-more]');
+    if (!b) return;
+    const m = b.dataset.more;
+    if (m === 'clients') { show('biz'); setBizPane('clients'); }
+    else if (m === 'translate') { show('biz'); setBizPane('tr'); }
+    else { show('settings'); openSetCat(m === 'settings' ? null : m); }
+  });
 
   // ---------- chat events ----------
   // `photo` = { full: base64 JPEG for the AI, thumb: small data URL kept in the chat }.
@@ -2231,6 +2256,22 @@
       card.append(info);
     }
 
+    // Coming up: the next few things after it
+    const later = todaysItems().filter((it) => it !== next && it.id !== (next && next.id) && toMin(it.time) > nm && !statusOf(it.id)).slice(0, 3);
+    $('#home-coming').hidden = !later.length;
+    const cl = $('#home-coming-list');
+    cl.textContent = '';
+    for (const it of later) {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'coming-row';
+      row.dataset.go = 'today';
+      row.innerHTML = '<span class="coming-time"></span><span class="coming-title"></span>';
+      row.firstChild.textContent = fmtTime(it.time);
+      row.lastChild.textContent = it.title;
+      cl.append(row);
+    }
+
     // Tiles
     const list = todaysItems();
     const done = list.filter((it) => statusOf(it.id) === 'done').length;
@@ -2256,6 +2297,7 @@
       $('#tile-work-sub').textContent = nextShift || (state.shifts.length ? 'No shifts this week' : 'Tap to add shifts');
     }
   }
+  $('#home-coming').addEventListener('click', (e) => { if (e.target.closest('[data-go]')) show('today'); });
   $('#next-card').addEventListener('click', (e) => {
     const b = e.target.closest('[data-next]');
     if (!b) { show('today'); return; }
@@ -2638,7 +2680,7 @@
   const DEFAULT_PIC = 'icons/icon.svg';
   function loadPicture() { try { return localStorage.getItem(PIC_KEY) || ''; } catch { return ''; } }
   function applyPicture(dataUrl) {
-    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar')) ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
+    for (const img of document.querySelectorAll('img.avatar')) img.src = state.settings.plain && (img.closest('.top') || img.classList.contains('big-avatar') || img.classList.contains('chat-av')) ? 'icons/plain.svg' : dataUrl || DEFAULT_PIC;
     if (Living) Living.setSrc(dataUrl || DEFAULT_PIC);
   }
   function setPicture(dataUrl) {
@@ -2990,6 +3032,8 @@
     sf.elements.voiceKey.value = state.ai.geminiKey;
     fillNaturalVoices();
     voiceStyleShown();
+    sf.elements.classicLook.checked = !!state.settings.classicLook;
+    $('#classic-opts').hidden = !!state.settings.plain;
     sf.elements.calendarWrite.checked = !!state.settings.calendarWrite;
     sf.elements.eveningCheckin.checked = state.settings.eveningCheckin !== false;
     sf.elements.checkinTime.value = state.settings.checkinTime || (state.profile ? minToTime(Planner.checkinMin()) : '21:30');
@@ -3254,6 +3298,7 @@
       voiceStyle: sf.elements.voiceStyle.value, naturalVoice: sf.elements.naturalVoice.value, kokoroVoice: Number(sf.elements.kokoroVoice.value),
       wakeMode: sf.elements.wakeMode.value,
       calendarWrite: sf.elements.calendarWrite.checked,
+      classicLook: sf.elements.classicLook.checked,
       eveningCheckin: sf.elements.eveningCheckin.checked,
       planHours: Number(sf.elements.planHours.value) || 3,
       wakeName: sf.elements.wakeName.value.trim(),
@@ -3384,7 +3429,14 @@
     renderKokoro();
   });
   sf.elements.voiceStyle.addEventListener('change', voiceStyleShown);
-  sf.elements.rias.addEventListener('change', () => { $('#plain-opts').hidden = sf.elements.rias.checked; });
+  sf.elements.rias.addEventListener('change', () => { $('#plain-opts').hidden = sf.elements.rias.checked; $('#classic-opts').hidden = !sf.elements.rias.checked; });
+  // Chat: suggestion chips stay tucked away until you ask for them.
+  $('#quick-toggle').addEventListener('click', () => {
+    const on = !$('#view-chat').classList.contains('show-quick');
+    $('#view-chat').classList.toggle('show-quick', on);
+    $('#quick-toggle').setAttribute('aria-expanded', String(on));
+  });
+  $('#quick').addEventListener('click', () => { $('#view-chat').classList.remove('show-quick'); $('#quick-toggle').setAttribute('aria-expanded', 'false'); });
   sf.elements.calendarWrite.addEventListener('change', () => {
     const d = window.RiasDevice;
     if (sf.elements.calendarWrite.checked && d && d.requestPermission) {

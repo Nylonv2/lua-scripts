@@ -46,6 +46,11 @@
       <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></symbol>
       <symbol id="i-alarm" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+      <symbol id="i-track" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.5 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.5-3.5-8.5s1-6 3.5-8.5z"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 4 2.4 5 5.4.6-4 3.7 1.1 5.3L12 16l-4.9 2.6 1.1-5.3-4-3.7 5.4-.6z"/></symbol>
     </defs>
   </svg>
 
@@ -64,14 +69,14 @@
     <main>
       <!-- Home -->
       <section class="view pad home" id="view-home">
+        <div class="home-greet">
+          <h1 id="home-hello"></h1>
+          <p class="muted" id="home-date"></p>
+        </div>
         <div class="home-hero">
           <div class="bubble" id="home-bubble" aria-live="polite"></div>
           <div class="stage" id="stage" title="Tap Rias"></div>
           <div class="stage-pic" id="stage-pic" title="Tap Rias" hidden></div>
-        </div>
-        <div class="home-greet">
-          <h1 id="home-hello"></h1>
-          <p class="muted" id="home-date"></p>
         </div>
         <button type="button" class="goodnight-btn" id="home-goodnight" hidden>🌙 Goodnight, Rias</button>
         <div class="update-card" id="update-card" hidden>
@@ -79,6 +84,10 @@
           <button type="button" class="btn-primary sm" id="update-get">Update</button>
         </div>
         <div class="card next-card holo" id="next-card"></div>
+        <div class="coming" id="home-coming" hidden>
+          <div class="coming-head"><span>Coming up</span><button type="button" class="btn-text" data-go="today">See all</button></div>
+          <div class="list-card" id="home-coming-list"></div>
+        </div>
         <div class="tiles">
           <button type="button" class="tile" data-go="today"><span class="tile-label">Today</span><b id="tile-today"></b><span class="tile-sub" id="tile-today-sub"></span></button>
           <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
@@ -97,10 +106,12 @@
       <section class="view chat-view" id="view-chat" hidden>
         <div class="scene-bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="chat-head">
+          <img class="avatar chat-av" src="icons/icon.svg" alt="">
           <div class="chat-who">
             <b><span class="presence" aria-hidden="true"></span>Rias Gremory</b>
             <span id="chat-activity"></span>
           </div>
+          <button type="button" class="icon-btn quick-toggle" id="quick-toggle" aria-label="Show suggestions" aria-expanded="false">💡</button>
           <button type="button" class="gear icon-btn" id="chat-settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></button>
         </div>
         <!-- She stands here: the Home screen's Rias moves in while you talk. -->
@@ -197,6 +208,10 @@
 
       <!-- Food diary -->
       <section class="view pad" id="view-food" hidden>
+        <div class="segmented track-seg" role="tablist" aria-label="Track">
+          <button type="button" role="tab" data-track="food" class="active">Food &amp; water</button>
+          <button type="button" role="tab" data-track="work">Work</button>
+        </div>
         <div class="daynav">
           <button type="button" id="food-prev" aria-label="Previous day">‹</button>
           <b id="food-date">Today</b>
@@ -230,6 +245,10 @@
 
       <!-- Work schedule -->
       <section class="view pad" id="view-work" hidden>
+        <div class="segmented track-seg" role="tablist" aria-label="Track">
+          <button type="button" role="tab" data-track="food">Food &amp; water</button>
+          <button type="button" role="tab" data-track="work" class="active">Work</button>
+        </div>
         <section class="sched-card" aria-labelledby="sched-title">
           <div class="sched-head">
             <div>
@@ -320,6 +339,22 @@
         <div class="biz-snack" id="biz-snack" role="status" hidden></div>
       </section>
       <!-- Settings -->
+      <!-- More: the tools and settings that aren't needed every day -->
+      <section class="view pad" id="view-more" hidden>
+        <h1 class="page-title more-title">More</h1>
+        <p class="more-label">Tools</p>
+        <div class="list-card more-list">
+          <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+        </div>
+        <p class="more-label">App</p>
+        <div class="list-card more-list">
+          <button type="button" class="more-row" data-more="settings"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></span><span class="more-txt"><b>Settings</b><small>You, voice, reminders, AI, look, phone assistant</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="look"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg></span><span class="more-txt"><b>Look &amp; app style</b><small>App style, pictures and theme</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="data"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg></span><span class="more-txt"><b>Backup &amp; data</b><small>Save or restore everything, updates</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+        </div>
+      </section>
+
       <section class="view" id="view-settings" hidden>
         <form id="settings" class="stack settings">
           <h1 class="page-title" id="set-title">Settings</h1>
@@ -418,6 +453,10 @@
             <label>Assistant name <input name="plainName" maxlength="24" placeholder="Assistant"></label>
             <label class="switch"><input name="plainIcon" type="checkbox"> Plain icon and the name “Assistant” on my home screen</label>
             <p class="muted small">Android may take a few seconds to swap the icon, and you might need to add it to your home screen again from the app drawer.</p>
+          </div>
+          <div id="classic-opts">
+            <label class="switch"><input name="classicLook" type="checkbox"> Classic Rias look</label>
+            <p class="muted small">The original style: Rias full-screen on Home and in the chat, glowing glass cards and gold lettering. Off keeps her in a simple, clean layout.</p>
           </div>
           </section>
           <section class="set-group" data-cat="look">
@@ -724,12 +763,11 @@
     </main>
 
     <nav class="tabs">
-      <button type="button" data-view="home" class="active"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg></span><span class="tab-lbl">Home</span></button>
-      <button type="button" data-view="chat"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="tab-lbl">Chat</span></button>
+      <button type="button" data-view="home" class="active"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg></span><span class="tab-lbl">Today</span></button>
       <button type="button" data-view="today"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg></span><span class="tab-lbl">Plan</span></button>
-      <button type="button" data-view="food"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-food"/></svg></span><span class="tab-lbl">Food</span></button>
-      <button type="button" data-view="work"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-work"/></svg></span><span class="tab-lbl">Work</span></button>
-      <button type="button" data-view="biz"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="tab-lbl">Assistant</span></button>
+      <button type="button" data-view="chat"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="tab-lbl">Chat</span></button>
+      <button type="button" data-view="food"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-track"/></svg></span><span class="tab-lbl">Track</span></button>
+      <button type="button" data-view="more"><span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></span><span class="tab-lbl">More</span></button>
     </nav>
   </div>
 
