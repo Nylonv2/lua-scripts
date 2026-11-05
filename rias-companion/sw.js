@@ -1,5 +1,5 @@
 // Caches the app so it opens offline, and focuses the app when a notification is tapped.
-const CACHE = 'rias-v51';
+const CACHE = 'rias-v52';
 const FILES = ['./', 'index.html', 'style.css', 'ios.css', 'ios.js', 'vendor/motion.js', 'vendor/fonts/inter-var.woff2', 'app.js', 'dialogue.js', 'talk.js', 'chat.js', 'food.js', 'work.js', 'planner.js', 'bills.js', 'ai.js', 'rias-avatar.js', 'vendor/anthropic-sdk.js', 'manifest.webmanifest',
   'living-photo.js', 'photo-cutout.js', 'vendor/mediapipe/vision_bundle.js', 'alarm-card.js', 'natural-voice.js', 'assistant.js', 'biz.js', 'translate.js', 'icons/icon.svg', 'icons/plain.svg', 'icons/icon-192.png', 'icons/icon-512.png',
   'sounds/alarm_chime.ogg', 'sounds/alarm_harp.ogg', 'sounds/alarm_musicbox.ogg', 'sounds/alarm_magic.ogg', 'sounds/alarm_classic.ogg', 'sounds/alarm_pulse.ogg'];

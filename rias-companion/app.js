@@ -1621,6 +1621,12 @@
         return;
       }
     }
+    // A pasted money list loads straight into Money.
+    if (!photo && Bills && Bills.looksLikeList(text)) {
+      const line = Bills.importShared(text);
+      setTimeout(() => addMessage('rias', say(line)), HEADLESS ? 30 : 400);
+      return;
+    }
     // Bills & subscriptions: "cancel netflix", "what subscriptions do I have" (works with or without AI).
     if (!photo && Bills) {
       const bl = Bills.handle(text);
@@ -2507,6 +2513,15 @@
     showToast({ text: 'Your week is planned. Tap a day to see it.' });
   }
   $('#bills-back').addEventListener('click', () => show('more'));
+  // Pasting a money list into the chat box (a one-line box would squash it): load it right away.
+  $('#say').addEventListener('paste', (e) => {
+    const t = (e.clipboardData || window.clipboardData || { getData: () => '' }).getData('text');
+    if (!Bills || !Bills.looksLikeList(t)) return;
+    e.preventDefault();
+    addMessage('me', `(pasted a money list, ${t.split(/\n+/).filter((l) => l.includes('|')).length} lines)`);
+    const line = Bills.importShared(t);
+    setTimeout(() => addMessage('rias', say(line)), HEADLESS ? 30 : 400);
+  });
   $('#home-plan-day').addEventListener('click', () => planMyDay(dateKey()));
   $('#today-plan-day').addEventListener('click', () => planMyDay(viewKey()));
   $('#next-card').addEventListener('click', (e) => {
@@ -2563,6 +2578,13 @@
     }
     const text = String(item.text || '').trim();
     if (!text) return;
+    // A money list (bills | amounts | dates…), e.g. the one Claude made from your email: load it all at once.
+    if (Bills && Bills.looksLikeList(text)) {
+      const line = Bills.importShared(text);
+      show('bills'); Bills.showPane('overview'); Bills.render();
+      addMessage('rias', line); showToast({ text: line });
+      return;
+    }
     if (AI.enabled()) {
       show('chat');
       userSays(`Please add this as a reminder for me: “${text}”`);

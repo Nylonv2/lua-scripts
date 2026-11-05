@@ -1771,3 +1771,16 @@ html[data-appearance="dark"] .gain { color: #30d158; } html[data-appearance="dar
 .flow-bar i { display: block; height: 100%; border-radius: 4px; }
 .flow-bar i.gain { background: #34c759; } .flow-bar i.loss { background: #ff3b30; }
 .flow-row b { font-variant-numeric: tabular-nums; font-size: .95rem; }
+/* Money: month switcher + three tabs */
+.money-month { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 12px; }
+.money-month b { font-size: 1.15rem; }
+.money-month .icon-btn:disabled { opacity: .3; }
+.money-seg { margin-bottom: 14px; display: flex; }
+.money-seg button { flex: 1; }
+.flow-card { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.spend-card .spend-total { font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.due-row { width: 100%; text-align: left; background: none; border: 0; color: inherit; display: flex; align-items: center; position: relative; }
+html:not([data-scene]) .list-card > .due-row + .due-row::before { left: 16px; }
+.money-empty { padding: 16px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.money-empty b { font-size: 1.1rem; }
+.ri-meta.loss { color: #ff3b30; }

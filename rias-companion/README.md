@@ -99,6 +99,15 @@ back the next day, earlier each time it's skipped, and the evening check-in call
 it's done. Say "I did the dishes" or tap ✓. For one you've let slide, open it and turn on *Haven't done it in a while:
 put it on today*.
 
+**Money is split into three tabs** under one month switcher: **Overview** (money in / out / net, borrowed money,
+what's due in the next 7 days, ahead-or-behind by month, notification watching), **Spending** (by category, plus all
+activity) and **Bills** (bills & loans, subscriptions, cancelled). **Loading a list takes one step:** share it to Rias
+from any app, or paste it into the chat box, and everything loads (bills, pay, purchases), with duplicates skipped.
+**Cash advances** (Dave, Brigit, FloatMe, EarnIn, MoneyLion, Chime MyPay…): borrowing and paying it back cancel out, so
+neither counts as money in or out. Only the fee does (Dave's $426 settlement on a $400 advance is $400 paid back and
+a $26 fee), and the Overview shows what's still owed. Real loans and payment plans (car, Upstart, Klarna) and Flex
+rent still count as spending.
+
 **Money in vs. out, every month.** The top of More → Money shows *Money in*, *Money out* and *Net*: green when you
 came out ahead, red when more went out than you earned ("You were short by $411.96"). Borrowed money (cash advances
 like Dave ExtraCash, pay-later like Klarna, loan deposits) is shown separately in orange and never counted as income,
