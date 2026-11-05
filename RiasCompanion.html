@@ -1799,6 +1799,15 @@ html:not([data-scene]) .list-card > .due-row + .due-row::before { left: 16px; }
 .flow-pay { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
 .pay-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
 .pay-card b { font-size: 1.05rem; }
+.money-plan { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.plan-sum { display: flex; flex-direction: column; gap: 6px; }
+.plan-line { display: flex; justify-content: space-between; font-size: .95rem; }
+.plan-line.total { border-top: 1px solid var(--line, rgba(127,127,127,.25)); padding-top: 8px; font-size: 1.05rem; }
+.plan-line.gain b { color: var(--good, #34c759); }
+.plan-line.loss b, .plan-budget .loss { color: var(--bad, #ff3b30); }
+.plan-sub { font-weight: 600; margin-top: 6px; }
+.plan-tip { margin: 0; }
+.spend-bar i.over { background: var(--bad, #ff3b30); }
 </style>
   <style>
 /* =====================================================================================
@@ -2572,6 +2581,10 @@ html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px
             <p class="flow-borrowed" id="flow-borrowed" hidden></p>
           </div>
           <div id="bills-suggest"></div>
+          <div id="money-plan-wrap" hidden>
+            <div class="group-title"><span>Your monthly plan</span></div>
+            <div class="card money-plan" id="money-plan"></div>
+          </div>
           <div id="money-due-wrap" hidden>
             <div class="group-title"><span>Due in the next 7 days</span></div>
             <div class="list-card" id="money-due"></div>
@@ -3643,7 +3656,7 @@ html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px
     <div class="row">
       <label>Next charge / due <input name="next" type="date"></label>
       <label>Type
-        <select name="kind"><option value="sub">Subscription</option><option value="bill">Bill</option></select>
+        <select name="kind"><option value="sub">Subscription</option><option value="bill">Bill, loan or card</option><option value="debt">Debt to pay off (one time)</option></select>
       </label>
     </div>
     <label class="switch"><input name="autopay" type="checkbox"> Paid automatically (autopay)</label>
@@ -6913,6 +6926,7 @@ window.createBills = function createBills(ctx) {
   state.billNotesAt ||= 0;    // newest notification already read
   state.spend ||= [];         // money going out: { id, date, amount, what, cat, key }
   state.income ||= [];
+  state.budgets ||= [];       // monthly spending plan: { id, name, amount, cat }
   const today = () => dateKey();
   const dayOf = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (k, n) => { const d = dayOf(k); d.setDate(d.getDate() + n); return dateKey(d); };
@@ -6930,7 +6944,7 @@ window.createBills = function createBills(ctx) {
     return dateKey(d);
   }
   const money = (n) => (Number(n) || 0).toLocaleString(undefined, { style: 'currency', currency: state.settings.currency || 'USD' });
-  const monthly = (b) => (Number(b.amount) || 0) * (PER_MONTH[b.cycle] || 1);
+  const monthly = (b) => (b.kind === 'debt' ? 0 : (Number(b.amount) || 0) * (PER_MONTH[b.cycle] ?? 1));
   const short = (k) => dayOf(k).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   const daysTo = (k) => Math.round((dayOf(k) - dayOf(today())) / 86400000);
   const when = (k) => { const n = daysTo(k); return n === 0 ? 'today' : n === 1 ? 'tomorrow' : n === -1 ? 'yesterday' : n < 0 ? `${-n} days ago` : n < 7 ? dayOf(k).toLocaleDateString([], { weekday: 'long' }) : short(k); };
@@ -6978,12 +6992,15 @@ window.createBills = function createBills(ctx) {
     const k = today();
     let changed = false;
     for (const b of state.bills) {
+      if (b.ends && b.status !== 'cancelled' && k > b.ends) { b.status = 'cancelled'; b.endsOn = b.ends; b.paidOff = true; changed = true; continue; }
       if (!b.next || !/^\d{4}-\d{2}-\d{2}$/.test(b.next)) continue;
       if (b.status === 'cancelling' && b.next < k) { b.status = 'active'; changed = true; } // it renewed before it got cancelled
       if (b.status === 'cancelled') continue;
+      if (b.ends && (k > b.ends || (b.next && b.next > b.ends))) { b.status = 'cancelled'; b.endsOn = b.ends; b.paidOff = true; changed = true; continue; }
       if (b.cycle === 'once' && b.next < k && (b.autopay || (b.paid || {})[b.next])) { b.status = 'cancelled'; b.endsOn = b.next; b.paidOff = true; changed = true; continue; }
       let guard = 0;
       while (b.next < k && (b.autopay || (b.paid || {})[b.next]) && guard++ < 60) { b.next = addCycle(b.next, b.cycle); changed = true; }
+      if (b.ends && b.next > b.ends) { b.status = 'cancelled'; b.endsOn = b.ends; b.paidOff = true; changed = true; }
     }
     if (changed) save();
   }
@@ -7034,12 +7051,15 @@ window.createBills = function createBills(ctx) {
   }
 
   // ---------- add / edit / import ----------
-  function add({ name, amount, cycle = 'month', next = '', kind = 'sub', autopay = null, notes = '' }) {
+  function add({ name, amount, cycle = 'month', next = '', kind = 'sub', autopay = null, notes = '', ends = '', group = '' }) {
     name = String(name || '').trim();
     if (!name) return { error: 'no name' };
     const b = { id: uid(), name: /^[a-z][A-Z]/.test(name) ? name : name[0].toUpperCase() + name.slice(1), amount: Math.round((Number(String(amount).replace(/[^0-9.]/g, '')) || 0) * 100) / 100,
-      cycle: CYCLES[cycle] ? cycle : 'month', next: /^\d{4}-\d{2}-\d{2}$/.test(next || '') ? next : '', kind: kind === 'bill' ? 'bill' : 'sub',
-      autopay: autopay == null ? kind !== 'bill' : !!autopay, status: 'active', paid: {}, notes: String(notes || ''), created: Date.now() };
+      cycle: CYCLES[cycle] ? cycle : 'month', next: /^\d{4}-\d{2}-\d{2}$/.test(next || '') ? next : '', kind: kind === 'bill' || kind === 'debt' ? kind : 'sub',
+      autopay: autopay == null ? kind === 'sub' : !!autopay, status: 'active', paid: {}, notes: String(notes || ''), created: Date.now() };
+    if (kind === 'debt') b.cycle = 'once';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ends || '')) b.ends = ends;
+    if (group) b.group = String(group);
     state.bills.push(b);
     roll();
     save();
@@ -7050,14 +7070,43 @@ window.createBills = function createBills(ctx) {
   /** Does this text look like a money list (several "a | b | c" lines)? */
   const looksLikeList = (text) => String(text || '').split(/\n+/).filter((l) => /^[^#].*\S\s*\|\s*\S.*\|/.test(l.trim())).length >= 3;
   let lastImport = { bills: 0, ins: 0, spends: 0 };
+  /** "ends 2027-01", "ends in 3 months", "last 2027-01-20" → the last payment date, or ''. */
+  function endsOf(fields, next) {
+    const f = fields.find((x) => /^(ends?|last|until)\b/i.test(x || ''));
+    if (!f) return '';
+    let m = f.match(/(\d{4})-(\d{2})(?:-(\d{2}))?/);
+    if (m) return m[3] ? m[0] : dateKey(new Date(Number(m[1]), Number(m[2]), 0));
+    m = f.match(/in (\d+) months?/i);
+    if (!m) return '';
+    const left = Number(m[1]);
+    if (next) { let k = next; for (let i = 1; i < left; i++) k = addCycle(k, 'month'); return k; }
+    const d = new Date(); return dateKey(new Date(d.getFullYear(), d.getMonth() + left, 0));
+  }
   function importText(text) {
     let n = 0;
-    lastImport = { bills: 0, ins: 0, spends: 0 };
+    lastImport = { bills: 0, ins: 0, spends: 0, budgets: 0, updated: 0, removed: 0 };
+    let group = '';
+    const seenGroups = [];
     for (const raw of String(text || '').split(/\n+/)) {
       const line = raw.trim().replace(/^[-•*]\s*/, '');
+      if (/^##\s*\S/.test(line)) { group = line.replace(/^##\s*/, '').trim(); if (!seenGroups.includes(group)) seenGroups.push(group); continue; }
       if (!line || /^#/.test(line)) continue;
       const p = line.split(/\s*[|;\t]\s*/);
       if (p.length < 2) continue;
+      if (/^remove$/i.test(p[0])) { // "REMOVE | Water bill"
+        const before = state.bills.length;
+        state.bills = state.bills.filter((b) => b.name.toLowerCase() !== p[1].toLowerCase());
+        if (state.bills.length < before) { n++; lastImport.removed++; }
+        continue;
+      }
+      if (/^budget$/i.test(p[0])) { // "BUDGET | Groceries (Meijer) | 240 | Groceries"
+        const amount = Number(String(p[2] || '').replace(/[^0-9.]/g, '')) || 0;
+        const cat = p[3] && (CATS.some(([c]) => c === p[3]) || p[3] === 'Other') ? p[3] : catOf(`${p[1]} ${p[3] || ''}`);
+        const old = state.budgets.find((x) => x.name.toLowerCase() === p[1].toLowerCase());
+        if (old) { if (old.amount !== amount || old.cat !== cat || (group && old.group !== group)) { Object.assign(old, { amount, cat }, group ? { group } : {}); n++; lastImport.updated++; } }
+        else { state.budgets.push({ id: uid(), name: p[1], amount, cat, group }); n++; lastImport.budgets++; }
+        continue;
+      }
       if (/^(pay|take[- ]home pay|salary)$/i.test(p[0])) { // "PAY | 2748 | biweekly | 2026-10-10"
         const monthly = Number(String(p[1]).replace(/[^0-9.]/g, ''));
         const every = /semi|twice/i.test(p[2] || '') ? 'semimonthly' : /^week/i.test(p[2] || '') ? 'weekly' : /month/i.test(p[2] || '') ? 'monthly' : 'biweekly';
@@ -7080,10 +7129,23 @@ window.createBills = function createBills(ctx) {
       const [name, amount, cycle = 'month', next = '', kind = 'sub', pay = ''] = p;
       const cyc = /once|one[- ]time|single/i.test(cycle) ? 'once' : /week/i.test(cycle) ? 'week' : /year|annual/i.test(cycle) ? 'year' : /quarter|3 ?mo/i.test(cycle) ? 'quarter' : 'month';
       const status = /cancel/i.test(pay) ? 'cancelled' : 'active';
-      if (state.bills.some((b) => b.name.toLowerCase() === name.trim().toLowerCase())) continue;
-      const r = add({ name, amount, cycle: cyc, next: next.trim(), kind: /bill|rent|util|internet|phone/i.test(kind) ? 'bill' : 'sub', autopay: !/manual|pay myself|no auto/i.test(pay) });
+      const knd = /debt|owe|collection|pay off/i.test(kind) ? 'debt' : /bill|rent|util|internet|phone|loan|card|car/i.test(kind) ? 'bill' : 'sub';
+      const ends = endsOf(p.slice(3), /^\d{4}-\d{2}-\d{2}$/.test(next.trim()) ? next.trim() : '');
+      const old = state.bills.find((b) => b.name.toLowerCase() === name.trim().toLowerCase());
+      if (old) { // same name: bring it up to date instead of adding it twice
+        const amt = Math.round((Number(String(amount).replace(/[^0-9.]/g, '')) || 0) * 100) / 100;
+        const upd = { amount: amt, kind: knd, cycle: knd === 'debt' ? 'once' : cyc };
+        if (old.status === 'cancelled' && status === 'cancelled') continue;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(next.trim()) && (!old.next || next.trim() > old.next)) upd.next = next.trim(); // never wind a date back that already rolled forward
+        if (ends) upd.ends = ends;
+        if (group) upd.group = group;
+        if (Object.entries(upd).some(([k2, v]) => old[k2] !== v)) { Object.assign(old, upd); n++; lastImport.updated++; }
+        continue;
+      }
+      const r = add({ name, amount, cycle: cyc, next: next.trim(), kind: knd, autopay: knd === 'debt' ? false : !/manual|pay myself|no auto/i.test(pay), ends, group });
       if (r.ok) { if (status === 'cancelled') { markCancelled(r.bill, next.trim() || today(), true); delete r.bill.cancelledOn; } n++; lastImport.bills++; } // cancelled before it was tracked: not counted as savings
     }
+    if (seenGroups.length) state.billGroups = seenGroups;
     save();
     render();
     return n;
@@ -7111,10 +7173,17 @@ window.createBills = function createBills(ctx) {
     $('#bills-saving').textContent = `Saving ${money(saving)} a month from what you cancelled`;
     box.textContent = '';
     const t = today();
+    // Your own sections (from "## Housing and utilities" in an imported list) come first, in your order.
+    const named = [...new Set(act.filter((b) => b.group && b.kind !== 'debt').map((b) => b.group))];
+    const order = state.billGroups || [];
+    named.sort((x, y) => (order.indexOf(x) + 1 || 99) - (order.indexOf(y) + 1 || 99));
+    const debts = act.filter((b) => b.kind === 'debt');
     const groups = [
-      ['Bills & loans', act.filter((b) => b.kind === 'bill')],
-      ['Subscriptions', act.filter((b) => b.kind !== 'bill')],
-      ['Cancelled', state.bills.filter((b) => b.status === 'cancelled')],
+      ...named.map((g) => [g, act.filter((b) => b.group === g && b.kind !== 'debt')]),
+      ['Bills & loans', act.filter((b) => !b.group && b.kind === 'bill')],
+      ['Subscriptions', act.filter((b) => !b.group && b.kind === 'sub')],
+      [`Debts to pay off · ${money(debts.reduce((s2, b) => s2 + b.amount, 0))} left`, debts],
+      ['Paid off & cancelled', state.bills.filter((b) => b.status === 'cancelled')],
     ];
     if (!state.bills.length && !state.billSuggest.length) {
       if (state.spend.length) return;
@@ -7138,12 +7207,14 @@ window.createBills = function createBills(ctx) {
         const add_ = (text, cls) => meta.append(el('span', cls || '', text));
         if (b.status === 'cancelled') add_(b.paidOff ? `Paid off ${b.endsOn ? short(b.endsOn) : ''}` : b.endsOn && b.endsOn >= t ? `Access until ${short(b.endsOn)}` : `Ended ${b.endsOn ? short(b.endsOn) : ''}`, 'ri-sub');
         else {
-          add_(b.next ? `${b.autopay ? (b.kind === 'bill' ? 'Autopay' : 'Renews') : 'Due'} ${when(b.next)}` : 'No date yet', late ? 'tag-chip flag warn' : 'ri-sub');
+          if (b.kind === 'debt') add_(b.next ? `Pay by ${short(b.next)}` : 'One-time: tap when it\'s paid off', 'ri-sub');
+          else add_(b.next ? `${b.autopay ? (b.kind === 'bill' ? 'Autopay' : 'Renews') : 'Due'} ${when(b.next)}` : 'No date yet', late ? 'tag-chip flag warn' : 'ri-sub');
+          if (b.ends) add_(`Last payment ${dayOf(b.ends).toLocaleDateString([], { month: 'short', year: 'numeric' })}`, 'tag-chip');
           if (b.status === 'cancelling') add_('Cancel before it renews', 'tag-chip flag warn');
           if (late) add_('Late', 'tag-chip flag warn');
         }
         const amt = el('div', 'bill-amt');
-        amt.append(el('b', '', money(b.amount)), el('small', '', b.cycle === 'once' ? ' once' : `/${b.cycle === 'quarter' ? '3 mo' : b.cycle === 'month' ? 'mo' : b.cycle === 'year' ? 'yr' : 'wk'}`));
+        amt.append(el('b', '', money(b.amount)), el('small', '', b.kind === 'debt' ? ' owed' : b.cycle === 'once' ? ' once' : `/${b.cycle === 'quarter' ? '3 mo' : b.cycle === 'month' ? 'mo' : b.cycle === 'year' ? 'yr' : 'wk'}`));
         main.append(meta);
         row.append(main, amt);
         card.append(row);
@@ -7152,6 +7223,51 @@ window.createBills = function createBills(ctx) {
     }
   }
 
+  /** Overview: the monthly plan. Pay − bills − subscriptions − spending budgets = left over; budgets show this month's spending against them. */
+  function renderPlan() {
+    const box = $('#money-plan');
+    if (!box) return;
+    const act = active();
+    const pc = payCfg();
+    $('#money-plan-wrap').hidden = !state.budgets.length && !pc;
+    box.textContent = '';
+    const bills = act.filter((b) => b.kind === 'bill').reduce((s2, b) => s2 + monthly(b), 0);
+    const subs = act.filter((b) => b.kind === 'sub').reduce((s2, b) => s2 + monthly(b), 0);
+    const budg = state.budgets.reduce((s2, x) => s2 + x.amount, 0);
+    const pay = pc ? pc.monthly : 0;
+    const left = pay - bills - subs - budg;
+    const sum = el('div', 'plan-sum');
+    const line = (label, v, cls) => { const r = el('div', `plan-line${cls ? ` ${cls}` : ''}`); r.append(el('span', '', label), el('b', '', v)); sum.append(r); };
+    if (pay) line('Take-home pay', money(pay), 'gain');
+    line('Bills, loans & cards', `−${money(bills)}`);
+    if (subs) line('Subscriptions', `−${money(subs)}`);
+    if (budg) line('Spending money (below)', `−${money(budg)}`);
+    if (pay) line(left >= 0 ? 'Left over' : 'Short', money(Math.abs(left)), left >= 0 ? 'gain total' : 'loss total');
+    box.append(sum);
+    const debts = act.filter((b) => b.kind === 'debt');
+    const owed = debts.reduce((s2, b) => s2 + b.amount, 0);
+    if (pay && left > 0 && owed) box.append(el('p', 'muted small plan-tip', `Put the ${money(left)} left over toward your debts (${money(owed)}) and they're gone in about ${Math.ceil(owed / left)} month${Math.ceil(owed / left) > 1 ? 's' : ''}.`));
+    if (!state.budgets.length) return;
+    const m = spendMonth;
+    const { cats } = monthTotals(m);
+    const spentIn = Object.fromEntries(cats);
+    const shared = {};
+    for (const x of state.budgets) shared[x.cat] = (shared[x.cat] || 0) + 1;
+    box.append(el('div', 'plan-sub', `Spending money · ${monthName(m)}`));
+    for (const x of state.budgets) {
+      const spent = shared[x.cat] > 1 ? null : spentIn[x.cat] || 0;
+      const row = el('div', 'spend-cat plan-budget');
+      const top = el('div', 'spend-cat-top');
+      top.append(el('span', '', x.name), el('b', spent != null && spent > x.amount ? 'loss' : '', spent == null ? money(x.amount) : `${money(spent)} of ${money(x.amount)}`));
+      const bar = el('div', 'spend-bar'); const fill = el('i');
+      fill.style.width = `${spent == null ? 0 : Math.min(100, Math.max(2, (spent / (x.amount || 1)) * 100))}%`;
+      if (spent != null && spent > x.amount) fill.className = 'over';
+      bar.append(fill);
+      row.append(top, bar);
+      if (spent != null && spent > x.amount) row.append(el('small', 'loss', `${money(spent - x.amount)} over`));
+      box.append(row);
+    }
+  }
   /** Overview: what's due in the next 7 days (and anything late). */
   function renderDue() {
     const box = $('#money-due');
@@ -7289,7 +7405,7 @@ window.createBills = function createBills(ctx) {
   // Import
   const idlg = $('#bills-import');
   $('#bills-import-btn').addEventListener('click', () => { $('#bills-import-text').value = ''; idlg.showModal(); });
-  $('#bills-import-go').addEventListener('click', () => { const n = importText($('#bills-import-text').value); idlg.close(); ctx.toast(n ? `Added ${n} to Bills & subscriptions.` : 'Nothing new to add (check the format: Name | amount | month | YYYY-MM-DD).'); });
+  $('#bills-import-go').addEventListener('click', () => { const msg = importShared($('#bills-import-text').value); idlg.close(); ctx.toast(/^Loaded/.test(msg) ? msg.split('. ')[0] + '.' : 'Nothing new to add (check the format: Name | amount | month | YYYY-MM-DD).'); });
   $('#bills-import-close').addEventListener('click', () => idlg.close());
   $('#bills-add').addEventListener('click', () => open(null));
   $('#bills-list').addEventListener('click', (e) => { const r = e.target.closest('[data-bill]'); if (r) open(state.bills.find((b) => b.id === r.dataset.bill)); });
@@ -7298,7 +7414,7 @@ window.createBills = function createBills(ctx) {
   function importShared(text) {
     const n = importText(text);
     const r = lastImport;
-    const parts = [r.pay && 'your take-home pay', r.bills && `${r.bills} bill${r.bills === 1 ? '' : 's'} & subscription${r.bills === 1 ? '' : 's'}`, r.ins && `${r.ins} payment${r.ins === 1 ? '' : 's'} in`, r.spends && `${r.spends} purchase${r.spends === 1 ? '' : 's'}`].filter(Boolean);
+    const parts = [r.pay && 'your take-home pay', r.budgets && `${r.budgets} spending budget${r.budgets > 1 ? 's' : ''}`, r.updated && `${r.updated} update${r.updated > 1 ? 's' : ''}`, r.removed && `${r.removed} old entr${r.removed > 1 ? 'ies' : 'y'} removed`, r.bills && `${r.bills} bill${r.bills === 1 ? '' : 's'} & subscription${r.bills === 1 ? '' : 's'}`, r.ins && `${r.ins} payment${r.ins === 1 ? '' : 's'} in`, r.spends && `${r.spends} purchase${r.spends === 1 ? '' : 's'}`].filter(Boolean);
     return n ? `Loaded into Money: ${parts.join(', ')}. ${flowSummary()}`.trim() : 'That list is already in Money; nothing new to add.';
   }
 
@@ -7465,6 +7581,8 @@ window.createBills = function createBills(ctx) {
     ['Rides & gas', /\blyft\b|uber (trip|ride)|your (trip|ride)|parking|\bgas\b|fuel|gas station|speedway|marathon|shell|circle k|car wash/i],
     ['Subscriptions', /subscription|membership|renew|claude|anthropic|netflix|spotify|iracing|coach dave|switch online|game pass|patreon|prime|hinge|refuseless/i],
     ['Games', /nintendo|playstation|xbox|steam|epic games|eshop|v-?bucks/i],
+    ['Pets', /cat food|cat litter|\blitter\b|petsmart|petco|chewy|pet supplies|tractor supply/i],
+    ['Household', /household|toilet paper|paper towels|cleaning|detergent|dollar general|dollar tree|family dollar/i],
     ['Shopping', /amazon|best buy|micro ?center|walmart|target|ebay|vitamin shoppe|sell\.?app|stripe/i],
   ];
   const catOf = (text) => (CATS.find(([, re]) => re.test(text)) || ['Other'])[0];
@@ -7578,6 +7696,7 @@ window.createBills = function createBills(ctx) {
     }
     $('#spend-recent-wrap').hidden = !list.length && !ins.length;
     renderFlow();
+    renderPlan();
   }
   $('#spend-prev').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m - 2, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
   $('#spend-next').addEventListener('click', () => { const [y, m] = spendMonth.split('-').map(Number); const d = new Date(y, m, 1); spendMonth = dateKey(d).slice(0, 7); renderSpend(); });
@@ -7722,7 +7841,8 @@ window.createBills = function createBills(ctx) {
   }
   function summary() {
     const pc = payCfg();
-    const sp = [pc ? `Take-home pay: ${money(pc.monthly)}/month, ${PAY_EVERY[pc.every]} (${money(perCheck(pc))} per paycheck).` : '', flowSummary(), spendSummary()].filter(Boolean).join(' ');
+    const owed = state.bills.filter((b) => b.kind === 'debt' && b.status !== 'cancelled');
+    const sp = [state.budgets.length ? `Monthly spending budgets: ${state.budgets.map((x) => `${x.name} ${money(x.amount)}`).join(', ')}.` : '', owed.length ? `Debts to pay off: ${owed.map((b) => `${b.name} ${money(b.amount)}`).join(', ')}.` : '', pc ? `Take-home pay: ${money(pc.monthly)}/month, ${PAY_EVERY[pc.every]} (${money(perCheck(pc))} per paycheck).` : '', flowSummary(), spendSummary()].filter(Boolean).join(' ');
     if (!state.bills.length) return sp;
     const act = active();
     return `Bills & subscriptions (${money(act.reduce((s, b) => s + monthly(b), 0))}/month): ${act.map((b) => `${b.name} ${money(b.amount)}/${b.cycle}${b.next ? `, ${b.autopay ? 'renews' : 'due'} ${b.next}` : ''}${b.status === 'cancelling' ? ', wants to cancel' : ''}${b.autopay ? '' : ', paid manually'}`).join('; ')}.${state.bills.some((b) => b.status === 'cancelled') ? ` Cancelled: ${state.bills.filter((b) => b.status === 'cancelled').map((b) => b.name).join(', ')}.` : ''}${sp ? ` ${sp}` : ''}`;

@@ -430,6 +430,10 @@
             <p class="flow-borrowed" id="flow-borrowed" hidden></p>
           </div>
           <div id="bills-suggest"></div>
+          <div id="money-plan-wrap" hidden>
+            <div class="group-title"><span>Your monthly plan</span></div>
+            <div class="card money-plan" id="money-plan"></div>
+          </div>
           <div id="money-due-wrap" hidden>
             <div class="group-title"><span>Due in the next 7 days</span></div>
             <div class="list-card" id="money-due"></div>
@@ -1501,7 +1505,7 @@
     <div class="row">
       <label>Next charge / due <input name="next" type="date"></label>
       <label>Type
-        <select name="kind"><option value="sub">Subscription</option><option value="bill">Bill</option></select>
+        <select name="kind"><option value="sub">Subscription</option><option value="bill">Bill, loan or card</option><option value="debt">Debt to pay off (one time)</option></select>
       </label>
     </div>
     <label class="switch"><input name="autopay" type="checkbox"> Paid automatically (autopay)</label>

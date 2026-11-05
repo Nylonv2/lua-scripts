@@ -103,6 +103,15 @@ put it on today*.
 what's due in the next 7 days, ahead-or-behind by month, notification watching), **Spending** (by category, plus all
 activity) and **Bills** (bills & loans, subscriptions, cancelled). **Loading a list takes one step:** share it to Rias
 from any app, or paste it into the chat box, and everything loads (bills, pay, purchases), with duplicates skipped.
+**Monthly plan (10.8).** Money → Overview has *Your monthly plan*: take-home pay minus bills, loans & cards,
+subscriptions and your spending money, and what's left over. If you have debts, it says how many months the left
+over would take to clear them. Spending budgets (groceries, gas, eating out, pets, household) show this month's
+spending against each one and turn red when you go over. Bills keep your own sections (Housing and utilities, Car,
+Loans, Credit cards…), one-time *Debts to pay off* get their own list with a total, and payment plans with an end
+("ends in 3 months") mark themselves paid off after the last payment. In an import list: `## Section` starts a
+section, `BUDGET | Groceries | 240 | Groceries` adds a budget, `REMOVE | Old name` drops an old entry, the kind
+`debt` makes a one-time debt, and a line with the same name as an existing bill updates it instead of adding a copy.
+
 **Take-home pay (10.7).** Most of a paycheck never shows up in email: payroll and bank alerts usually say "you got
 paid" with no amount. So Money → Overview has a *Take-home pay* card: your monthly pay after taxes, how often you're
 paid (weekly, every 2 weeks, twice a month, monthly) and one payday. Each payday then counts as money in

@@ -1787,3 +1787,12 @@ html:not([data-scene]) .list-card > .due-row + .due-row::before { left: 16px; }
 .flow-pay { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
 .pay-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
 .pay-card b { font-size: 1.05rem; }
+.money-plan { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.plan-sum { display: flex; flex-direction: column; gap: 6px; }
+.plan-line { display: flex; justify-content: space-between; font-size: .95rem; }
+.plan-line.total { border-top: 1px solid var(--line, rgba(127,127,127,.25)); padding-top: 8px; font-size: 1.05rem; }
+.plan-line.gain b { color: var(--good, #34c759); }
+.plan-line.loss b, .plan-budget .loss { color: var(--bad, #ff3b30); }
+.plan-sub { font-weight: 600; margin-top: 6px; }
+.plan-tip { margin: 0; }
+.spend-bar i.over { background: var(--bad, #ff3b30); }
