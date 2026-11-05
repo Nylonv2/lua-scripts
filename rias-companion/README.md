@@ -103,6 +103,15 @@ put it on today*.
 what's due in the next 7 days, ahead-or-behind by month, notification watching), **Spending** (by category, plus all
 activity) and **Bills** (bills & loans, subscriptions, cancelled). **Loading a list takes one step:** share it to Rias
 from any app, or paste it into the chat box, and everything loads (bills, pay, purchases), with duplicates skipped.
+**Take-home pay (10.7).** Most of a paycheck never shows up in email: payroll and bank alerts usually say "you got
+paid" with no amount. So Money → Overview has a *Take-home pay* card: your monthly pay after taxes, how often you're
+paid (weekly, every 2 weeks, twice a month, monthly) and one payday. Each payday then counts as money in
+(e.g. $2,748 a month every 2 weeks = $1,268.31 per check), and the overview lists this month's paydays, which have
+come (✓) and what's still expected. Early-pay pulls (DailyPay, Payactiv, …) are treated as part of the paycheck,
+not extra money, so nothing is counted twice; before a payday arrives, what you've already pulled early is what
+counts. You can also just tell Rias "I make 2748 a month after taxes", or put `PAY | 2748 | biweekly | 2026-10-23`
+at the top of an import list. Paydays only count from the month you started tracking.
+
 **Cash advances** (Dave, Brigit, FloatMe, EarnIn, MoneyLion, Chime MyPay…): borrowing and paying it back cancel out, so
 neither counts as money in or out. Only the fee does (Dave's $426 settlement on a $400 advance is $400 paid back and
 a $26 fee), and the Overview shows what's still owed. Real loans and payment plans (car, Upstart, Klarna) and Flex

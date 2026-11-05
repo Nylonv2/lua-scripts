@@ -426,6 +426,7 @@
               <div><span>Net</span><b id="flow-net">$0.00</b></div>
             </div>
             <p class="flow-verdict" id="flow-verdict"></p>
+            <p class="flow-pay" id="flow-pay"></p>
             <p class="flow-borrowed" id="flow-borrowed" hidden></p>
           </div>
           <div id="bills-suggest"></div>
@@ -436,6 +437,18 @@
           <div id="flow-months-wrap" hidden>
             <div class="group-title"><span>Ahead or behind, month by month</span></div>
             <div class="card flow-months" id="flow-months"></div>
+          </div>
+          <div class="card pay-card">
+            <b>Take-home pay</b>
+            <p class="muted small" id="pay-summary"></p>
+            <div class="row">
+              <label>Per month, after taxes <input id="pay-monthly" inputmode="decimal" placeholder="e.g. 2748"></label>
+              <label>Paid
+                <select id="pay-every"><option value="weekly">every week</option><option value="biweekly">every 2 weeks</option><option value="semimonthly">twice a month</option><option value="monthly">once a month</option></select>
+              </label>
+            </div>
+            <label>One payday <input id="pay-anchor" type="date"></label>
+            <button type="button" class="btn-primary sm" id="pay-save">Save pay</button>
           </div>
           <div class="card bills-watch">
             <label class="switch"><input type="checkbox" id="bills-watch"> Watch my notifications for pay, receipts and bills</label>

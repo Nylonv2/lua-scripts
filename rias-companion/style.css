@@ -1784,3 +1784,6 @@ html:not([data-scene]) .list-card > .due-row + .due-row::before { left: 16px; }
 .money-empty { padding: 16px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .money-empty b { font-size: 1.1rem; }
 .ri-meta.loss { color: #ff3b30; }
+.flow-pay { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
+.pay-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.pay-card b { font-size: 1.05rem; }

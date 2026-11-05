@@ -155,8 +155,17 @@ window.createBills = function createBills(ctx) {
       if (!line || /^#/.test(line)) continue;
       const p = line.split(/\s*[|;\t]\s*/);
       if (p.length < 2) continue;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(p[0]) && (/^\+/.test(p[2] || '') || /^(income|paycheck|pay|earned|money in|borrowed)$/i.test(p[3] || ''))) { // "2026-11-04 | DailyPay | +109.70 | Income"
-        if (logIncome({ date: p[0], what: p[1], amount: Number(String(p[2]).replace(/[^0-9.]/g, '')), kind: /borrow/i.test(p[3] || '') ? 'borrowed' : 'earned' }, true)) { n++; lastImport.ins++; }
+      if (/^(pay|take[- ]home pay|salary)$/i.test(p[0])) { // "PAY | 2748 | biweekly | 2026-10-10"
+        const monthly = Number(String(p[1]).replace(/[^0-9.]/g, ''));
+        const every = /semi|twice/i.test(p[2] || '') ? 'semimonthly' : /^week/i.test(p[2] || '') ? 'weekly' : /month/i.test(p[2] || '') ? 'monthly' : 'biweekly';
+        if (monthly && /^\d{4}-\d{2}-\d{2}$/.test(p[3] || '')) {
+          const old = state.settings.pay || {};
+          if (old.monthly !== monthly || old.every !== every || old.anchor !== p[3]) { state.settings.pay = { monthly, every, anchor: p[3] }; n++; lastImport.pay = true; }
+        }
+        continue;
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(p[0]) && (/^\+/.test(p[2] || '') || /^(income|paycheck|pay|earned|money in|borrowed|early pay)$/i.test(p[3] || ''))) { // "2026-11-04 | DailyPay | +109.70 | Early pay"
+        if (logIncome({ date: p[0], what: p[1], amount: Number(String(p[2]).replace(/[^0-9.]/g, '')), kind: /borrow/i.test(p[3] || '') ? 'borrowed' : /early/i.test(p[3] || '') ? 'early' : 'earned' }, true)) { n++; lastImport.ins++; }
         continue;
       }
       if (/^\d{4}-\d{2}-\d{2}$/.test(p[0])) { // "2026-11-03 | Wingstop (Uber Eats) | 21.69 | Food & delivery"
@@ -189,6 +198,7 @@ window.createBills = function createBills(ctx) {
     renderSuggest();
     renderSpend();
     renderDue();
+    renderPay();
     watchStatus();
     $('#bills-month').textContent = money(total);
     $('#bills-year').textContent = `${money(total * 12)} a year · ${act.length} active`;
@@ -262,6 +272,21 @@ window.createBills = function createBills(ctx) {
     $('#money-empty').hidden = !empty;
   }
   $('#money-due').addEventListener('click', (e) => { const r = e.target.closest('[data-bill]'); if (r) open(state.bills.find((b) => b.id === r.dataset.bill)); });
+  // Take-home pay card
+  function renderPay() {
+    const p = state.settings.pay || {};
+    $('#pay-monthly').value = p.monthly ? String(p.monthly) : '';
+    $('#pay-every').value = p.every || 'biweekly';
+    $('#pay-anchor').value = p.anchor || '';
+    $('#pay-summary').textContent = payCfg() ? `${money(p.monthly)} a month, ${PAY_EVERY[p.every || 'biweekly']}: ${money(perCheck(p))} per paycheck. Early pay from DailyPay is treated as part of your paycheck, not extra.` : 'Your take-home pay after taxes, how often you get paid, and one payday.';
+  }
+  $('#pay-save').addEventListener('click', () => {
+    const monthly = Number(String($('#pay-monthly').value).replace(/[^0-9.]/g, ''));
+    const anchor = $('#pay-anchor').value;
+    if (!monthly || !anchor) { ctx.toast('Put in your monthly take-home pay and one payday date.'); return; }
+    state.settings.pay = { monthly, every: $('#pay-every').value, anchor };
+    save(); render(); ctx.toast(`Pay set: ${money(monthly)} a month. Paydays now count as money in.`);
+  });
   // Tabs
   function showPane(name) {
     for (const b of document.querySelectorAll('#money-seg [data-mp]')) b.classList.toggle('active', b.dataset.mp === name);
@@ -370,7 +395,7 @@ window.createBills = function createBills(ctx) {
   function importShared(text) {
     const n = importText(text);
     const r = lastImport;
-    const parts = [r.bills && `${r.bills} bill${r.bills === 1 ? '' : 's'} & subscription${r.bills === 1 ? '' : 's'}`, r.ins && `${r.ins} payment${r.ins === 1 ? '' : 's'} in`, r.spends && `${r.spends} purchase${r.spends === 1 ? '' : 's'}`].filter(Boolean);
+    const parts = [r.pay && 'your take-home pay', r.bills && `${r.bills} bill${r.bills === 1 ? '' : 's'} & subscription${r.bills === 1 ? '' : 's'}`, r.ins && `${r.ins} payment${r.ins === 1 ? '' : 's'} in`, r.spends && `${r.spends} purchase${r.spends === 1 ? '' : 's'}`].filter(Boolean);
     return n ? `Loaded into Money: ${parts.join(', ')}. ${flowSummary()}`.trim() : 'That list is already in Money; nothing new to add.';
   }
 
@@ -643,7 +668,7 @@ window.createBills = function createBills(ctx) {
       r.type = 'button'; r.dataset[x.isIn ? 'income' : 'spend'] = x.id;
       const main = el('div', 'ri-main');
       main.append(el('div', 'ri-title', x.what));
-      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.isIn ? (x.kind === 'borrowed' ? 'Borrowed' : 'Money in') : x.repaid ? 'Advance paid back (not counted)' : x.cat}`));
+      main.append(el('div', 'ri-meta', `${short(x.date)} · ${x.isIn ? (x.kind === 'borrowed' ? 'Borrowed' : x.kind === 'early' ? 'Early pay (part of a paycheck)' : 'Money in') : x.repaid ? 'Advance paid back (not counted)' : x.cat}`));
       const amt = el('div', 'bill-amt'); amt.append(el('b', x.isIn ? (x.kind === 'borrowed' ? 'borrow' : 'gain') : x.repaid ? 'muted' : '', `${x.isIn ? '+' : x.repaid ? '↩ ' : ''}${money(x.amount)}`));
       r.append(main, amt);
       rec.append(r);
@@ -685,20 +710,52 @@ window.createBills = function createBills(ctx) {
     if (!x || !x.amount) return false;
     if (x.key && state.income.some((s) => s.key === x.key)) return false;
     if (state.income.some((s) => s.date === x.date && Math.abs(s.amount - x.amount) < 0.005 && s.what.toLowerCase() === x.what.toLowerCase())) return false;
-    state.income.push({ id: uid(), date: x.date, amount: Math.round(x.amount * 100) / 100, what: x.what, kind: x.kind === 'borrowed' ? 'borrowed' : 'earned', key: x.key || '' });
+    state.income.push({ id: uid(), date: x.date, amount: Math.round(x.amount * 100) / 100, what: x.what, kind: x.kind === 'borrowed' ? 'borrowed' : x.kind === 'early' || EARLY.test(x.what) ? 'early' : 'earned', key: x.key || '' });
     if (state.income.length > 2000) state.income.splice(0, state.income.length - 2000);
     if (!quiet) { save(); render(); }
     return true;
   }
+  // ---------- take-home pay: paydays are income; early-pay pulls (DailyPay…) are part of the paycheck ----------
+  const PAY_EVERY = { weekly: 'every week', biweekly: 'every 2 weeks', semimonthly: 'twice a month (15th & last day)', monthly: 'once a month' };
+  const payCfg = () => { const p = state.settings.pay; return p && Number(p.monthly) > 0 && p.anchor ? p : null; };
+  const perCheck = (p) => (p.every === 'weekly' ? (p.monthly * 12) / 52 : p.every === 'semimonthly' ? p.monthly / 2 : p.every === 'monthly' ? p.monthly : (p.monthly * 12) / 26);
+  /** Payday dates in month m (YYYY-MM). */
+  function paydaysIn(m) {
+    const p = payCfg();
+    if (!p) return [];
+    // Only from when you started tracking (first logged money or the payday you gave), never into earlier blank months.
+    const start = [p.anchor, ...state.income.map((x) => x.date), ...state.spend.map((x) => x.date)].sort()[0].slice(0, 7);
+    if (m < start) return [];
+    const [y, mo] = m.split('-').map(Number);
+    const first = dateKey(new Date(y, mo - 1, 1)), last = dateKey(new Date(y, mo, 0));
+    if (p.every === 'semimonthly') return [dateKey(new Date(y, mo - 1, 15)), last];
+    if (p.every === 'monthly') { const d = Math.min(Number(p.anchor.slice(8, 10)), Number(last.slice(8, 10))); return [`${m}-${String(d).padStart(2, '0')}`]; }
+    const step = p.every === 'weekly' ? 7 : 14;
+    let k = p.anchor;
+    while (k > first) k = addDays(k, -step);
+    while (k < first) k = addDays(k, step);
+    const out = [];
+    for (; k <= last; k = addDays(k, step)) out.push(k);
+    return out;
+  }
+  const EARLY = /dailypay|daily pay|payactiv|earned wage|instant pay|branch app|even app|rain app|clair|tapcheck|zayzoon/i;
   /** { earned, borrowed, spent, net } for a month: net = earned − spent (borrowed money doesn't count as gaining). */
   function monthFlow(m) {
     const inc = state.income.filter((x) => x.date.startsWith(m));
-    const earned = inc.filter((x) => x.kind !== 'borrowed').reduce((a, x) => a + x.amount, 0);
+    const p = payCfg();
+    const days = paydaysIn(m), t = today();
+    const earlyIn = inc.filter((x) => x.kind === 'early' || EARLY.test(x.what)).reduce((a, x) => a + x.amount, 0);
+    const paid = days.filter((d) => d <= t);
+    // With take-home pay set, paydays are the income and early-pay pulls are just part of them (not added twice).
+    const other = inc.filter((x) => x.kind !== 'borrowed' && !(p && (x.kind === 'early' || EARLY.test(x.what)))).reduce((a, x) => a + x.amount, 0);
+    const earned = p ? Math.max(paid.length * perCheck(p), earlyIn) + other : inc.filter((x) => x.kind !== 'borrowed').reduce((a, x) => a + x.amount, 0);
+    const expected = p ? days.length * perCheck(p) + other : 0;
+    const early = inc.filter((x) => x.kind === 'early' || (p && EARLY.test(x.what))).reduce((a, x) => a + x.amount, 0);
     const borrowed = inc.filter((x) => x.kind === 'borrowed').reduce((a, x) => a + x.amount, 0);
     const spent = monthTotals(m).total;
     const repaid = state.spend.filter((x) => x.repaid && x.date.startsWith(m)).reduce((a, x) => a + x.amount, 0);
     const fees = state.spend.filter((x) => !x.repaid && x.cat === 'Advance & app fees' && x.date.startsWith(m)).reduce((a, x) => a + x.amount, 0);
-    return { earned, borrowed, repaid, fees, spent, net: earned - spent };
+    return { earned, borrowed, repaid, fees, spent, net: earned - spent, expected, paydays: days, paid, early };
   }
   const signed = (n) => `${n >= 0 ? '+' : '−'}${money(Math.abs(n))}`;
   function renderFlow() {
@@ -712,7 +769,13 @@ window.createBills = function createBills(ctx) {
     $('#flow-verdict').textContent = !f.earned && !f.spent ? 'Nothing logged for this month yet.'
       : f.net >= 0 ? `You ${isNow ? 'are' : 'were'} ahead by ${money(f.net)}${isNow ? ' so far' : ''}.`
         : `You ${isNow ? 'are' : 'were'} short by ${money(-f.net)}${isNow ? ' so far' : ''}: more went out than you earned.`;
+    const left = f.paydays.length - f.paid.length;
+    if (isNow && left > 0) $('#flow-verdict').textContent += ` ${left} payday${left > 1 ? 's' : ''} still to come this month.`;
     const owed = ['dave', 'brigit', 'floatme', 'earnin', 'cleo', 'empower', 'klover', 'moneylion', 'mypay', 'albert'].reduce((a, p) => a + owedTo(p), 0);
+    const pc = payCfg();
+    $('#flow-pay').textContent = pc
+      ? `Paydays this month: ${f.paydays.map((d) => `${short(d)}${d <= today() ? ' ✓' : ''}`).join(', ')} (${money(perCheck(pc))} each).${f.paydays.length > f.paid.length ? ` Expected by month end: ${money(f.expected)}.` : ''}${f.early ? ` ${money(f.early)} of it came early through DailyPay.` : ''}`
+      : 'Set your take-home pay below so paydays count as money in.';
     $('#flow-borrowed').hidden = !f.borrowed && !f.repaid && !f.fees;
     $('#flow-borrowed').textContent = [
       f.borrowed || f.repaid ? `Advances & borrowing: ${money(f.borrowed)} borrowed, ${money(f.repaid)} paid back. Neither counts as money in or out.` : '',
@@ -755,7 +818,8 @@ window.createBills = function createBills(ctx) {
     return state.bills.find((b) => b.name.toLowerCase() === s) || state.bills.find((b) => b.name.toLowerCase().includes(s) || s.includes(b.name.toLowerCase()));
   }
   function summary() {
-    const sp = [flowSummary(), spendSummary()].filter(Boolean).join(' ');
+    const pc = payCfg();
+    const sp = [pc ? `Take-home pay: ${money(pc.monthly)}/month, ${PAY_EVERY[pc.every]} (${money(perCheck(pc))} per paycheck).` : '', flowSummary(), spendSummary()].filter(Boolean).join(' ');
     if (!state.bills.length) return sp;
     const act = active();
     return `Bills & subscriptions (${money(act.reduce((s, b) => s + monthly(b), 0))}/month): ${act.map((b) => `${b.name} ${money(b.amount)}/${b.cycle}${b.next ? `, ${b.autopay ? 'renews' : 'due'} ${b.next}` : ''}${b.status === 'cancelling' ? ', wants to cancel' : ''}${b.autopay ? '' : ', paid manually'}`).join('; ')}.${state.bills.some((b) => b.status === 'cancelled') ? ` Cancelled: ${state.bills.filter((b) => b.status === 'cancelled').map((b) => b.name).join(', ')}.` : ''}${sp ? ` ${sp}` : ''}`;
@@ -774,6 +838,15 @@ window.createBills = function createBills(ctx) {
       x.cat = catOf(x.what);
       logSpend(x);
       return [`Logged ${money(x.amount)} for ${x.what} (${x.cat}). ${spendSummary()}`];
+    }
+    m = t.match(/^(?:i )?(?:make|take home|bring home|earn) \$?([\d,]+(?:\.\d{1,2})?)(?: dollars| bucks)? (?:a|per|every) month(?: after taxes)?(?:,? (?:paid )?(weekly|every week|every (?:two|2) weeks|biweekly|twice a month|monthly))?/i);
+    if (m) {
+      const monthly = Number(m[1].replace(/,/g, ''));
+      const every = !m[2] ? (state.settings.pay && state.settings.pay.every) || 'biweekly' : /twice/i.test(m[2]) ? 'semimonthly' : /two|2|bi/i.test(m[2]) ? 'biweekly' : /month/i.test(m[2]) ? 'monthly' : 'weekly';
+      const anchor = (state.settings.pay && state.settings.pay.anchor) || '';
+      state.settings.pay = { monthly, every, anchor };
+      save(); render();
+      return [anchor ? `Got it: ${money(monthly)} a month take-home, ${PAY_EVERY[every]}. Paydays now count as money in.` : `Got it: ${money(monthly)} a month. One more thing: open More → Money → Overview and put in one payday date, so I know which days you get paid.`];
     }
     m = t.match(/^(?:i )?(?:just )?(?:got paid|was paid|earned|made|got) \$?(\d+(?:\.\d{1,2})?)(?: dollars| bucks)?(?: (?:from|at|for) (.+?))?[.!]*$/i);
     if (m && !/\b(spent|paid for)\b/i.test(t)) {
