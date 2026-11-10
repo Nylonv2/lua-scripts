@@ -26,10 +26,13 @@
     bar.textContent = t.textContent.trim();
     bar.classList.toggle('show', gone);
   }
+  const fab = document.getElementById('add');
   document.addEventListener('scroll', (e) => {
     const v = e.target && e.target.closest ? e.target.closest('.view') : null;
     if (v) update(v);
-  }, true);
+    // The "New reminder" button shrinks to a round + once the list is scrolled (any style).
+    if (fab && v && v.id === 'view-today') fab.classList.toggle('compact', e.target.scrollTop > 60);
+  }, { capture: true, passive: true });
   const app = document.querySelector('.app');
   if (app) new MutationObserver(() => { bar.classList.remove('show'); const v = document.querySelector('.view:not([hidden])'); if (v) { update(v); enter(v); } })
     .observe(app, { attributes: true, attributeFilter: ['data-view'] });
@@ -75,8 +78,15 @@
   // Rows rise in one after another when a screen opens (a CSS animation, so it can never get stuck half-way).
   function enter(view) {
     if (!on() || reduce) return;
-    const els = [...view.querySelectorAll('.row-item, .more-row, .coming-row, .tile, .next-card, .set-tile, .goal-card')].filter(visible).slice(0, 14);
-    els.forEach((el, i) => { el.classList.remove('ios-in'); void el.offsetWidth; el.style.setProperty('--i', i); el.classList.add('ios-in'); });
+    const els = [];
+    for (const el of view.querySelectorAll('.row-item, .more-row, .coming-row, .tile, .next-card, .set-tile, .goal-card')) {
+      if (visible(el)) { els.push(el); if (els.length === 14) break; }
+    }
+    // Reset them all, let the browser take that in once, then start them all (not once per row).
+    let restart = false;
+    for (const el of els) if (el.classList.contains('ios-in')) { el.classList.remove('ios-in'); restart = true; }
+    if (restart) void view.offsetWidth;
+    els.forEach((el, i) => { el.style.setProperty('--i', i); el.classList.add('ios-in'); });
   }
   // A satisfying little pop when something gets ticked off.
   document.addEventListener('click', (e) => {

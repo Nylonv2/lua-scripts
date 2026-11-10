@@ -92,10 +92,22 @@ window.createLivingPhoto = function createLivingPhoto(host, options) {
   window.addEventListener('deviceorientation', onOrient);
   host.addEventListener('pointermove', onPointer);
 
+  // The loop only runs while the picture is actually on screen and the app is in front; otherwise it stops
+  // completely instead of waking up every frame to check.
+  let onScreen = false;
+  const sync = () => {
+    const want = !dead && onScreen && !document.hidden && host.isConnected;
+    if (want && !raf) raf = requestAnimationFrame(frameLoop);
+    else if (!want && raf) { cancelAnimationFrame(raf); raf = 0; }
+  };
+  const io = window.IntersectionObserver ? new IntersectionObserver((es) => { onScreen = es[es.length - 1].isIntersecting; sync(); }) : null;
+  if (io) io.observe(host); else onScreen = true;
+  document.addEventListener('visibilitychange', sync);
   function frameLoop(now) {
+    raf = 0;
     if (dead) return;
+    if (!io && (!host.isConnected || host.offsetParent === null)) { raf = requestAnimationFrame(frameLoop); return; }
     raf = requestAnimationFrame(frameLoop);
-    if (!host.isConnected || host.offsetParent === null || document.hidden) return; // off screen: skip the work
     if (now - lastInput > 2500) { gx = Math.sin(now / 2100) * .55; gy = Math.cos(now / 2900) * .35; }
     tx += (gx - tx) * .08; ty += (gy - ty) * .08;
     const s = host.style;
@@ -118,7 +130,7 @@ window.createLivingPhoto = function createLivingPhoto(host, options) {
     gl.uniform1i(loc.img, 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-  raf = requestAnimationFrame(frameLoop);
+  sync();
 
   return {
     setSrc,

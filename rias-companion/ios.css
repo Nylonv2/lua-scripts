@@ -351,3 +351,19 @@ html:not([data-scene]) .view-enter { animation: ios-push .32s cubic-bezier(.2, .
 html:not([data-scene]) .list-card > .bill-row + .bill-row::before { left: 16px; }
 html:not([data-scene]) .list-card > .spend-row + .spend-row::before { left: 16px; }
 .list-card > .spend-row { position: relative; }
+
+/* Chat rows size themselves to the screen, and the bubble to its text (short replies used to break mid-word). */
+html:not([data-scene]) .chat-view .msg-row { max-width: 78%; }
+html:not([data-scene]) .chat-view .msg-row .msg { max-width: 100%; width: fit-content; }
+
+/* Settings: line icons on colored squares, like the More screen */
+html:not([data-scene]) .set-ic .set-emo { display: none; }
+html:not([data-scene]) .set-ic .ic { display: block; width: 19px; height: 19px; }
+html:not([data-scene]) .set-tile[data-cat="voice"] .set-ic { background: var(--ios-red); }
+html:not([data-scene]) .set-tile[data-cat="look"] .set-ic { background: var(--ios-purple); }
+html:not([data-scene]) .set-tile[data-cat="alerts"] .set-ic { background: var(--ios-orange); }
+html:not([data-scene]) .set-tile[data-cat="day"] .set-ic { background: var(--ios-teal); }
+html:not([data-scene]) .set-tile[data-cat="mind"] .set-ic { background: #5856d6; }
+html:not([data-scene]) .set-tile[data-cat="assist"] .set-ic { background: var(--ios-green); }
+html:not([data-scene]) .set-tile[data-cat="data"] .set-ic { background: #8e8e93; }
+html:not([data-scene]) .fab.extended.compact { padding: 0; width: 50px; min-width: 50px; }

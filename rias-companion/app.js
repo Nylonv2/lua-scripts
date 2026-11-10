@@ -1111,19 +1111,38 @@
   const seenMsgs = new Set();
   let skipAnimNext = false;
   let feedPrimed = false;
+  const dayLabels = new Map(); // day → label, rebuilt when the date changes
+  let dayLabelsFor = '';
   function dayLabel(ts) {
-    const d = new Date(ts), t = new Date();
-    const y = new Date(); y.setDate(y.getDate() - 1);
-    if (d.toDateString() === t.toDateString()) return 'Today';
-    if (d.toDateString() === y.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+    const d = new Date(ts);
+    const k = dateKey(d), t = dateKey();
+    if (dayLabelsFor !== t) { dayLabels.clear(); dayLabelsFor = t; }
+    let label = dayLabels.get(k);
+    if (!label) {
+      label = k === t ? 'Today' : k === addDays(t, -1) ? 'Yesterday' : d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+      dayLabels.set(k, label);
+    }
+    return label;
   }
+  // Only the recent part of the conversation is built; "Earlier messages" brings back more.
+  const FEED_PAGE = 50;
+  let feedShown = FEED_PAGE;
   function renderFeed() {
     const wasNearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 120;
     feed.textContent = '';
     const pic = loadPicture() || DEFAULT_PIC;
     const msgs = state.messages;
+    const from = Math.max(0, msgs.length - feedShown);
+    if (from > 0) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'feed-more';
+      more.textContent = 'Earlier messages';
+      more.addEventListener('click', () => { const h = feed.scrollHeight; feedShown += FEED_PAGE; renderFeed(); feed.scrollTop = feed.scrollHeight - h; });
+      feed.append(more);
+    }
     msgs.forEach((m, i) => {
+      if (i < from) { seenMsgs.add(m.id); return; }
       const prev = msgs[i - 1], next = msgs[i + 1];
       if (!prev || dayLabel(prev.ts) !== dayLabel(m.ts)) {
         const sep = document.createElement('div');
@@ -2442,6 +2461,10 @@
     $('#tile-water').textContent = `${state.water[dateKey()] || 0} / ${state.settings.waterGoal} 💧`;
     const meals = state.food[dateKey()] || [];
     const t = Food.totals(dateKey());
+    // Money at a glance: ahead or behind this month, the next bill, and any budget that's gone over.
+    const mg = Bills && Bills.glance ? Bills.glance() : null;
+    $('#tile-money-wrap').hidden = !mg;
+    if (mg) { $('#tile-money').textContent = mg.title; $('#tile-money').className = mg.cls; $('#tile-money-sub').textContent = mg.sub; }
     $('#tile-food').textContent = t.counted ? `${Math.round(t.kcal).toLocaleString()} kcal` : `${meals.length} logged`;
     $('#tile-food-sub').textContent = t.counted ? `of ${Food.goals().kcal.toLocaleString()} · P ${Math.round(t.p)}g` : meals.length ? meals[meals.length - 1].text : 'Tap to log a meal';
     const shifts = shiftsOn(new Date());
@@ -3262,14 +3285,14 @@
   }
   // Settings opens on a short menu of categories; each one shows just its sections.
   const SET_CATS = [
-    { k: 'you', icon: '👤', title: 'You', sub: 'Your name, wake-up and bedtime, what she calls you' },
-    { k: 'voice', icon: '🗣️', title: 'Her voice', sub: 'Speaking out loud, voice type, pitch and speed' },
-    { k: 'look', icon: '🎨', title: 'Look & pictures', sub: 'Theme, outfit, and every picture of her' },
-    { k: 'alerts', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
-    { k: 'day', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
-    { k: 'mind', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
-    { k: 'assist', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, hands-free “Hey …”' },
-    { k: 'data', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
+    { k: 'you', ic: 'user', icon: '👤', title: 'You', sub: 'Your name, wake-up and bedtime, what she calls you' },
+    { k: 'voice', ic: 'mic', icon: '🗣️', title: 'Her voice', sub: 'Speaking out loud, voice type, pitch and speed' },
+    { k: 'look', ic: 'swatch', icon: '🎨', title: 'Look & pictures', sub: 'Theme, outfit, and every picture of her' },
+    { k: 'alerts', ic: 'bell', icon: '🔔', title: 'Reminders & alarms', sub: 'Check-ins, pop-ups, alarm sound, tests' },
+    { k: 'day', ic: 'calendar', icon: '📅', title: 'Your day', sub: 'Briefing, weather, recap, sleep, calendar, food & water' },
+    { k: 'mind', ic: 'sparkle', icon: '🧠', title: 'Rias\'s mind', sub: 'AI replies, monthly cost, what she remembers' },
+    { k: 'assist', ic: 'chat', icon: '🎙', title: 'Phone assistant', sub: 'Home-button pop-up, phone controls, hands-free “Hey …”' },
+    { k: 'data', ic: 'save', icon: '💾', title: 'Backup & data', sub: 'Backups, updates, reset' },
   ];
   let setCat = null;
   function renderSetMenu() {
@@ -3292,7 +3315,8 @@
       b.className = 'set-tile';
       b.dataset.cat = c.k;
       b.innerHTML = '<span class="set-ic"></span><span class="set-txt"><b></b><small></small><em></em></span><span class="set-chev">›</span>';
-      b.querySelector('.set-ic').textContent = c.icon;
+      b.querySelector('.set-ic').innerHTML = `<span class="set-emo"></span>${ICON(c.ic)}`; // picture themes show the emoji, the clean style the line icon
+      b.querySelector('.set-emo').textContent = c.icon;
       b.querySelector('b').textContent = c.title;
       b.querySelector('small').textContent = c.sub;
       b.querySelector('em').textContent = extra[c.k] || '';

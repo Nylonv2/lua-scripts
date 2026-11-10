@@ -1796,3 +1796,23 @@ html:not([data-scene]) .list-card > .due-row + .due-row::before { left: 16px; }
 .plan-sub { font-weight: 600; margin-top: 6px; }
 .plan-tip { margin: 0; }
 .spend-bar i.over { background: var(--bad, #ff3b30); }
+.feed-more { align-self: center; margin: 4px 0 10px; padding: 7px 14px; border: 0; border-radius: 999px; background: var(--panel-2, rgba(127,127,127,.14)); color: var(--muted); font: inherit; font-size: .82rem; }
+/* Swipe actions stay out of sight until a row is actually being swiped (they used to flash through while rows faded in). */
+.swipe-acts, .swipe-done { visibility: hidden; transition: visibility 0s .22s; }
+.swipe:has(.row-item.dragging, .row-item.open) .swipe-acts, .swipe:has(.row-item.dragging) .swipe-done { visibility: visible; transition-delay: 0s; }
+.swipe.right .swipe-acts { visibility: hidden; }
+/* Settings menu icons: emoji in the picture themes, line icons in the clean style */
+.set-ic .ic { display: none; }
+/* Home: money at a glance */
+.tile-wide { grid-column: 1 / -1; }
+.tile b.gain { color: var(--good, #34c759); }
+.tile b.loss { color: var(--bad, #ff3b30); }
+/* The "New reminder" button shrinks to a round + once you scroll, so it stops covering the list. */
+.fab.extended { transition: padding .2s ease, width .2s ease; }
+.fab.extended.compact { padding: 0; width: 56px; justify-content: center; }
+.fab.extended.compact span { display: none; }
+/* Sheet buttons reach the bottom edge instead of letting the form show underneath them. */
+dialog.sheet .sheet-actions { bottom: calc(-1 * (env(safe-area-inset-bottom) + 18px)); padding-bottom: calc(env(safe-area-inset-bottom) + 18px); margin-bottom: calc(-1 * (env(safe-area-inset-bottom) + 18px)); z-index: 2; }
+/* Advances note: a quiet callout instead of a block of orange text */
+.flow-borrowed { text-align: left; font-size: .8rem; line-height: 1.4; color: var(--muted); padding: 10px 12px; border-radius: 10px; background: rgba(255, 149, 0, .12); border-left: 3px solid #ff9500; }
+.flow-pay { font-size: .8rem; line-height: 1.4; }

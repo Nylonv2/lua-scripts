@@ -907,6 +907,25 @@ window.createBills = function createBills(ctx) {
       box.append(r);
     }
   }
+  /** For the home screen: { title, sub, cls } or null when there's no money data yet. */
+  function glance() {
+    if (!state.bills.length && !state.spend.length && !state.income.length) return null;
+    const m = today().slice(0, 7);
+    const f = monthFlow(m);
+    const next = active().filter((b) => b.next && b.kind !== 'debt' && b.next >= today()).sort((a, b) => a.next.localeCompare(b.next))[0];
+    const spentIn = Object.fromEntries(monthTotals(m).cats);
+    const shared = {};
+    for (const x of state.budgets) shared[x.cat] = (shared[x.cat] || 0) + 1;
+    const over = state.budgets.filter((x) => shared[x.cat] === 1 && (spentIn[x.cat] || 0) > x.amount).sort((a, b) => (spentIn[b.cat] - b.amount) - (spentIn[a.cat] - a.amount))[0];
+    const bits = [];
+    if (next) bits.push(`Next: ${next.name} ${money(next.amount)} ${when(next.next)}`);
+    if (over) bits.push(`${over.name} ${money(spentIn[over.cat] - over.amount)} over`);
+    return {
+      title: !f.earned && !f.spent ? 'Nothing logged yet' : `${f.net >= 0 ? '+' : '−'}${money(Math.abs(f.net))} ${f.net >= 0 ? 'ahead' : 'behind'}`,
+      cls: !f.earned && !f.spent ? '' : f.net >= 0 ? 'gain' : 'loss',
+      sub: bits.join(' · ') || 'Tap to see where it went',
+    };
+  }
   function flowSummary(m = today().slice(0, 7)) {
     const f = monthFlow(m);
     if (!f.earned && !f.spent) return '';
@@ -999,5 +1018,5 @@ window.createBills = function createBills(ctx) {
     return null;
   }
   roll();
-  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary, parseIncome, logIncome, monthFlow, looksLikeList, importShared, showPane };
+  return { items, sync, render, add, importText, cancelHelp, summary, handle, open, match, markPaid, poll, parseNote, readNotes, parseSpend, logSpend, spendSummary, parseIncome, logIncome, monthFlow, looksLikeList, glance, importShared, showPane };
 };

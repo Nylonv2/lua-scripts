@@ -103,6 +103,15 @@ put it on today*.
 what's due in the next 7 days, ahead-or-behind by month, notification watching), **Spending** (by category, plus all
 activity) and **Bills** (bills & loans, subscriptions, cancelled). **Loading a list takes one step:** share it to Rias
 from any app, or paste it into the chat box, and everything loads (bills, pay, purchases), with duplicates skipped.
+**Faster and tidier (10.9).** Measured on a slowed-down phone with six months of data: ticking a task went from
+about 117 ms to 28 ms, opening Chat from 83 to 48, opening Money from 62 to 36. What changed: date, time and money
+formatting reuse one formatter instead of building a new one per call (`perf.js`); Chat builds only the latest 50
+messages, with an *Earlier messages* button for the rest; the living-photo animation stops completely when her
+picture isn't on screen; row entrance animations take one layout pass instead of one per row. Looks: short chat
+replies no longer break mid-word, swipe actions no longer flash through rows as a list opens, the *New reminder*
+button shrinks to a round + once you scroll, sheet buttons reach the bottom edge, Settings has proper line icons,
+and Home has a *Money this month* tile (ahead or behind, next bill, any budget that's over).
+
 **Monthly plan (10.8).** Money → Overview has *Your monthly plan*: take-home pay minus bills, loans & cards,
 subscriptions and your spending money, and what's left over. If you have debts, it says how many months the left
 over would take to clear them. Spending budgets (groceries, gas, eating out, pets, household) show this month's

@@ -135,6 +135,7 @@
           <div class="tile" role="group" aria-label="Water"><span class="tile-label">Water</span><b id="tile-water"></b><button type="button" class="tile-btn" id="tile-water-add">＋ Glass</button></div>
           <button type="button" class="tile" data-go="food"><span class="tile-label">Calories</span><b id="tile-food"></b><span class="tile-sub" id="tile-food-sub"></span></button>
           <button type="button" class="tile" data-go="work"><span class="tile-label">Work</span><b id="tile-work"></b><span class="tile-sub" id="tile-work-sub"></span></button>
+          <button type="button" class="tile tile-wide" data-go="bills" id="tile-money-wrap" hidden><span class="tile-label">Money this month</span><b id="tile-money"></b><span class="tile-sub" id="tile-money-sub"></span></button>
         </div>
         <div class="quick-actions">
           <button type="button" id="qa-talk"><span class="qa-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span>Talk</button>
@@ -1171,7 +1172,7 @@
     <form method="dialog" id="edit-form" class="stack">
       <div class="sheet-grab" aria-hidden="true"></div>
       <h2 id="edit-title">New reminder</h2>
-      <input class="big-input" name="title" required maxlength="60" placeholder="What should Rias remind you about?" aria-label="Reminder">
+      <input class="big-input" name="title" required maxlength="60" placeholder="Remind me to…" aria-label="Reminder">
       <div class="row">
         <label>Time <input name="time" type="time" required></label>
         <label id="date-wrap">Date <input name="date" type="date"></label>
@@ -1557,6 +1558,7 @@
   </div>
 </dialog>
 
+  <script src="perf.js"></script>
   <script src="dialogue.js"></script>
   <script src="talk.js"></script>
   <script src="chat.js"></script>
