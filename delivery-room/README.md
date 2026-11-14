@@ -3,8 +3,12 @@
 A small phone app for a shoe-store delivery: photograph the **Delivery Notifications** screen (SKU Summary tab)
 and it builds a plan of what's arriving and what needs room.
 
-- **Scan a delivery**: pick up to 8 photos (scroll and shoot until every row is covered). Claude reads every row,
-  merges rows that appear in more than one photo, and shows what it found before anything is replaced.
+- **Scan a delivery**: pick up to 12 photos, several at once or one at a time with *Add more photos* (scroll and
+  shoot until every row is covered; overlap is fine). A photo picked twice is dropped, and a row that appears in
+  more than one photo is counted once. Claude reads them together and shows what it found before anything changes.
+- **Add to the current list**: a later scan can be merged in instead of replacing. SKUs already on the list aren't
+  added twice and keep their ticks; if the two reads disagree on a count the newest numbers are used and the row is
+  marked *Check count*.
 - **The plan**: units arriving, already in store and total after; the five styles that need the most room;
   department filters; one card per SKU with a *Room made* tick.
 - **Flags**: *New, needs a spot* (none in store now) and *Check count* (a number the scan couldn't read).

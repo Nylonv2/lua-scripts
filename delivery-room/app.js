@@ -373,49 +373,120 @@ Finish with only this, and nothing after it: <result>[{"sku":"114716","pages":["
   $('findstop').addEventListener('click', () => { if (findCtl) findCtl.abort(); });
 
   // ---------- scan flow ----------
-  const MAX_PHOTOS = 8;
+  // Photos are collected first (pick several at once, or keep adding one at a time), then read together.
+  // The same photo picked twice is dropped; the same row seen in two photos counts once.
+  const MAX_PHOTOS = 12;
+  let staged = [];   // { key, name, data } waiting to be read
   let found = null, ctl = null;
   const scanFile = $('scanfile');
-  function scanUI(msg, { use, again, stop, key } = {}) {
+  function scanUI(msg, { use, merge, again, stop, key, more, read } = {}) {
     $('scan').hidden = false; $('scanm').textContent = msg;
-    $('scanuse').hidden = !use; $('scanagain').hidden = !again; $('scanstop').hidden = !stop; $('scankey').hidden = !key;
+    const show = { scanuse: use, scanmerge: merge, scanagain: again, scanstop: stop, scankey: key, scanmore: more, scanread: read };
+    for (const id in show) $(id).hidden = !show[id];
     $('scanbtn').disabled = !!stop;
+    if (!read) $('thumbs').hidden = true;
     if (!stop) $('scan').scrollIntoView({ block: 'nearest' });
+  }
+  function showStaged(note) {
+    const n = staged.length;
+    if (!n) { $('scan').hidden = true; return; }
+    scanUI(`${note ? `${note} ` : ''}${n} photo${n > 1 ? 's' : ''} ready. Add more until every row of the delivery screen is covered (it's fine if photos overlap: a row seen twice is counted once), then read them.`,
+      { more: n < MAX_PHOTOS, read: true });
+    $('scanread').textContent = `Read ${n} photo${n > 1 ? 's' : ''}`;
+    const box = $('thumbs');
+    box.hidden = false; box.textContent = '';
+    staged.forEach((ph, k) => {
+      const b = el('button', 'thumb'); b.type = 'button'; b.dataset.drop = String(k); b.setAttribute('aria-label', `Remove photo ${k + 1}`);
+      const im = el('img'); im.src = ph.data; im.alt = '';
+      b.append(im, el('span', '', '×')); box.append(b);
+    });
   }
   function startScan() {
     if (!cfg.key.trim()) { scanUI('Reading photos uses your own Claude key. Add it once in Settings and it stays on this phone.', { key: true }); return; }
+    if (staged.length >= MAX_PHOTOS) { showStaged(`That's the most photos (${MAX_PHOTOS}) one read can take.`); return; }
     scanFile.click();
   }
-  $('scanbtn').addEventListener('click', startScan);
-  $('scanagain').addEventListener('click', startScan);
+  $('scanbtn').addEventListener('click', () => { if (staged.length && !ctl) showStaged(); else startScan(); });
+  $('scanmore').addEventListener('click', startScan);
+  $('scanagain').addEventListener('click', () => { staged = []; found = null; startScan(); });
   $('scankey').addEventListener('click', openSettings);
   $('scanstop').addEventListener('click', () => { if (ctl) ctl.abort(); });
-  $('scanx').addEventListener('click', () => { if (ctl) ctl.abort(); $('scan').hidden = true; $('scanbtn').disabled = false; });
+  $('scanx').addEventListener('click', () => { if (ctl) ctl.abort(); staged = []; found = null; $('scan').hidden = true; $('scanbtn').disabled = false; });
+  $('thumbs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-drop]');
+    if (!b) return;
+    staged.splice(Number(b.dataset.drop), 1); showStaged();
+  });
   scanFile.addEventListener('change', async () => {
-    const all = [...(scanFile.files || [])];
+    const picked = [...(scanFile.files || [])];
     scanFile.value = '';
-    if (!all.length) return;
-    const files = all.slice(0, MAX_PHOTOS);
+    if (!picked.length) return;
+    let dupes = 0, unread = 0, over = 0;
+    for (const f of picked) {
+      if (staged.length >= MAX_PHOTOS) { over++; continue; }
+      let data;
+      try { data = await shrink(f, 2000, 0.85); } catch { unread++; continue; }
+      // The same picture picked twice (same file, or the same pixels under another name) is only kept once.
+      let h = 5381;
+      for (let c = 0; c < data.length; c++) h = ((h << 5) + h + data.charCodeAt(c)) | 0;
+      const key = `${data.length}:${h}`;
+      if (staged.some((x) => x.key === key)) { dupes++; continue; }
+      staged.push({ key, name: f.name, data });
+    }
+    const notes = [dupes && `${dupes} duplicate photo${dupes > 1 ? 's were' : ' was'} skipped.`, unread && `${unread} file${unread > 1 ? 's' : ''} couldn't be read as a picture.`,
+      over && `${over} left out: ${MAX_PHOTOS} photos is the most one read can take.`].filter(Boolean).join(' ');
+    if (!staged.length) { scanUI(notes || 'No photos were picked.', { again: true }); return; }
+    showStaged(notes);
+  });
+  /** How a freshly read set of rows would combine with the list already here. */
+  function mergePlan(rows) {
+    const have = new Map(D.items.map((r) => [r.sku, r]));
+    let added = 0, same = 0, changed = 0, fixed = 0;
+    const out = D.items.map((r) => ({ ...r }));
+    const at = new Map(out.map((r, k) => [r.sku, k]));
+    for (const r of rows) {
+      const old = have.get(r.sku);
+      if (!old) { out.push(r); added++; continue; }
+      const k = at.get(r.sku);
+      if (r.check) { same++; continue; }                       // the new read couldn't see the counts: keep what's here
+      if (old.check) { out[k] = { ...r }; fixed++; continue; }   // the old read couldn't: the new one settles it
+      if (old.arriving === r.arriving && old.onHand === r.onHand) { same++; continue; }
+      out[k] = { ...r, check: true }; changed++;               // two reads disagree: newest numbers, flagged to check
+    }
+    return { out, added, same, changed, fixed };
+  }
+  $('scanread').addEventListener('click', async () => {
+    if (!staged.length || ctl) return;
+    const n = staged.length;
     found = null; ctl = new AbortController();
-    scanUI(`Reading ${files.length} photo${files.length > 1 ? 's' : ''}${all.length > files.length ? ` (only the first ${MAX_PHOTOS} are used)` : ''}… this can take a minute.`, { stop: true });
+    scanUI(`Reading ${n} photo${n > 1 ? 's' : ''}… this can take a minute.`, { stop: true });
     try {
-      const images = await Promise.all(files.map((f) => shrink(f, 2000, 0.85)));
-      const rows = await readPhotos(images, ctl.signal);
-      if (!rows.length) { scanUI('No delivery rows were found in those photos. Make sure the SKU Summary table is in the picture and readable.', { again: true }); return; }
+      const rows = await readPhotos(staged.map((x) => x.data), ctl.signal);
+      ctl = null;
+      if (!rows.length) { showStaged('No delivery rows were found. Make sure the SKU Summary table is in the picture and readable.'); return; }
       found = rows;
       const bad = rows.filter((r) => r.check).length;
-      scanUI(`Found ${rows.length} SKUs and ${sum(rows, 'arriving')} units arriving.${bad ? ` ${bad} row${bad > 1 ? 's have' : ' has'} a count that couldn't be read and will be marked “Check count”.` : ''}`
-        + (D.items.length ? ' Using it replaces the current list and clears the “Room made” ticks. Shoe photos you added stay.' : ''), { use: true, again: true });
+      let msg = `Found ${rows.length} SKUs and ${sum(rows, 'arriving')} units arriving in ${n} photo${n > 1 ? 's' : ''}.${bad ? ` ${bad} row${bad > 1 ? 's have' : ' has'} a count that couldn't be read and will be marked “Check count”.` : ''}`;
+      if (!D.items.length) { scanUI(msg, { use: true, again: true }); return; }
+      const m = mergePlan(rows);
+      msg += ` Compared with your current list: ${m.added} new, ${m.same + m.changed + m.fixed} already on it`
+        + `${m.changed ? ` (${m.changed} with different counts, which would take the new numbers and be marked “Check count”)` : ''}${m.fixed ? ` (${m.fixed} whose count can now be read)` : ''}.`
+        + ' “Add to current list” keeps your ticks; “Replace the list” starts over with just these and clears the ticks. Shoe photos stay either way.';
+      scanUI(msg, { use: true, merge: true, again: true });
+      $('scanuse').textContent = 'Replace the list';
     } catch (e) {
-      if (e && e.stopped) scanUI('Stopped. Nothing was changed.', { again: true });
-      else scanUI((e && e.message) || 'One of those files couldn\'t be read as a picture.', { again: !(e && e.needKey), key: !!(e && e.needKey) });
+      ctl = null;
+      if (e && e.stopped) showStaged('Stopped. Nothing was changed.');
+      else if (e && e.needKey) scanUI(e.message, { key: true });
+      else showStaged((e && e.message) || 'The photos couldn\'t be read just now.');
     }
   });
-  $('scanuse').addEventListener('click', () => {
+  const scanDone = () => { found = null; staged = []; $('scan').hidden = true; $('scanuse').textContent = 'Use this delivery'; window.scrollTo(0, 0); };
+  $('scanuse').addEventListener('click', () => { if (found) { adopt(found); scanDone(); } });
+  $('scanmerge').addEventListener('click', () => {
     if (!found) return;
-    adopt(found); found = null;
-    $('scan').hidden = true;
-    window.scrollTo(0, 0);
+    D.items = mergePlan(found).out; D.at = Date.now(); D.filter = 'All'; findNote = '';
+    saveData(); render(); scanDone();
   });
 
   // ---------- list interactions ----------

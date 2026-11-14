@@ -37,6 +37,10 @@ h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height
 .gear svg { width: 22px; height: 22px; }
 .scanbtn { align-self: flex-start; font-weight: 700; font-size: 16px; color: var(--band); background: #fff; border: 0; border-radius: 12px; padding: 12px 18px; }
 .scanbtn:disabled { opacity: .6; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { position: relative; width: 64px; height: 64px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.thumb span { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(10, 12, 24, .75); color: #fff; font-size: 13px; line-height: 18px; text-align: center; }
 .scanbtn.ghost { background: rgba(255, 255, 255, .14); color: #fff; }
 .auto { position: absolute; left: 3px; bottom: 3px; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; background: rgba(10, 12, 24, .72); color: #fff; border-radius: 4px; padding: 1px 4px; }
 .vsrc { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
@@ -133,9 +137,13 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   <section class="panel scan" id="scan" role="status" hidden>
     <h2>Scan a delivery</h2>
     <p id="scanm"></p>
+    <div class="thumbs" id="thumbs" hidden></div>
     <div class="acts">
+      <button class="btn pri" type="button" id="scanread" hidden>Read photos</button>
+      <button class="btn" type="button" id="scanmore" hidden>Add more photos</button>
+      <button class="btn pri" type="button" id="scanmerge" hidden>Add to current list</button>
       <button class="btn pri" type="button" id="scanuse" hidden>Use this delivery</button>
-      <button class="btn" type="button" id="scanagain" hidden>Pick photos again</button>
+      <button class="btn" type="button" id="scanagain" hidden>Start over</button>
       <button class="btn" type="button" id="scankey" hidden>Add my Claude key</button>
       <button class="btn" type="button" id="scanstop" hidden>Stop</button>
       <button class="btn" type="button" id="scanx">Close</button>
@@ -143,7 +151,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   </section>
   <section class="panel empty" id="empty">
     <b>No delivery yet</b>
-    <p class="foot">Take photos of the Delivery Notifications screen, on the SKU Summary tab. Scroll and shoot until every row is covered, then tap “Scan a delivery” and pick them (up to 8). Claude reads the rows and builds your room plan.</p>
+    <p class="foot">Take photos of the Delivery Notifications screen, on the SKU Summary tab. Scroll and shoot until every row is covered, then tap “Scan a delivery” and pick them: several at once, or one at a time with “Add more photos” (up to 12). Overlapping photos are fine. Claude reads the rows and builds your room plan.</p>
     <p class="foot">Already have the delivery as text? Tap “Paste a list”.</p>
   </section>
   <div id="plan" hidden style="display:contents">
