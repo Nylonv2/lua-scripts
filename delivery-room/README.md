@@ -12,10 +12,11 @@ and it builds a plan of what's arriving and what needs room.
 - **The plan**: units arriving, already in store and total after; the five styles that need the most room;
   department filters; one card per SKU with a *Room made* tick.
 - **Flags**: *New, needs a spot* (none in store now) and *Check count* (a number the scan couldn't read).
-- **Find shoe photos**: Claude searches the web (the API's web search tool) for each shoe's product page, and the
-  app saves the picture that page names for link previews. Pictures found this way are marked *AI* with a link to
-  the page they came from, since a look-alike is possible; replace or remove any that don't match. In the Android
-  app the phone fetches the product page itself; in a plain browser most sites refuse, so it works best in the app.
+- **Find shoe photos**: the app asks Rack Room Shoes' own picture server for each SKU
+  (`assets.rackroomshoes.com/image/upload/.../US_01_<SKU>_01`) and saves the picture, linked to that shoe's page on
+  rackroomshoes.com. No Claude key and no search are needed, and the match is exact because it is by SKU. Only
+  shoes the site has no picture for fall back to Claude's web search (needs your key); those are marked *AI* with a
+  link to the page they came from, since a look-alike is possible.
 - **Your own photos**: tap a drawing to add a photo; *See photos* opens an image search.
 - **Paste a list** (button on the main screen) instead of scanning: paste text, read the clipboard, or open a
   text file. One shoe per line: `Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store`.
@@ -25,7 +26,7 @@ and it builds a plan of what's arriving and what needs room.
 
 Photos are read with **your own Claude API key** (Settings; get one at console.anthropic.com). The app calls the
 Claude Messages API directly from the phone through the official SDK (`vendor/anthropic-sdk.js`), streamed, with
-adaptive thinking; photo lookups add the web search tool, five shoes per request. Default model `claude-opus-5-5`; Sonnet and Haiku can be chosen for cheaper scans. The key, the
+adaptive thinking; the fallback photo search adds the web search tool, five shoes per request. Default model `claude-opus-5-5`; Sonnet and Haiku can be chosen for cheaper scans. The key, the
 list, the ticks and the photos are stored on the phone only; the key is sent only to Anthropic.
 
 ## Install

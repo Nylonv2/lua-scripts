@@ -82,7 +82,7 @@
     const sw = el('button', `sw${photos[r.sku] ? ' has' : ''}`);
     sw.type = 'button'; sw.dataset.photo = r.sku;
     sw.setAttribute('aria-label', `${photos[r.sku] ? 'View photo of' : 'Add a photo of'} ${r.brand} ${r.style}`);
-    if (photos[r.sku]) { const im = el('img'); im.src = photos[r.sku]; im.alt = ''; sw.append(im); if (auto[r.sku]) sw.append(el('span', 'auto', 'AI')); }
+    if (photos[r.sku]) { const im = el('img'); im.src = photos[r.sku]; im.alt = ''; sw.append(im); if (auto[r.sku] && !isRR(auto[r.sku])) sw.append(el('span', 'auto', 'AI')); }
     else sw.innerHTML = `${drawing(r)}<span class="plus" aria-hidden="true">+</span>`;
     const who = el('div', 'who');
     who.append(el('div', 'brand', r.brand), el('div', 'style', r.style), el('div', 'meta', `${r.color} · ${r.cat}`));
@@ -155,10 +155,11 @@
 
   // ---------- pictures ----------
   /** A picked file → a JPEG data URL no larger than `max` on its long side. */
-  function shrink(file, max, q) {
+  function shrink(file, max, q, min) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file), im = new Image();
       im.onload = () => {
+        if (min && Math.max(im.naturalWidth, im.naturalHeight) < min) { URL.revokeObjectURL(url); reject(new Error('too small')); return; }
         const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas');
         c.width = Math.max(1, Math.round(im.naturalWidth * s)); c.height = Math.max(1, Math.round(im.naturalHeight * s));
         const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
@@ -169,6 +170,7 @@
     });
   }
   const say = (m) => { $('pstat').textContent = m; $('pstat').hidden = !m; };
+  function isRR(u) { return /^https:\/\/www\.rackroomshoes\.com\/p\/x\//.test(u || ''); }
   let cur = null;
   const view = $('view'), fileIn = $('file');
   function openView() {
@@ -180,7 +182,8 @@
     if (auto[cur]) {
       let host = ''; try { host = new URL(auto[cur]).hostname.replace(/^www\./, ''); } catch { host = 'the web'; }
       const a = el('a', '', host); a.href = auto[cur]; a.target = '_blank'; a.rel = 'noopener';
-      src.append('Found by AI on ', a, '. Check it\'s the right shoe; replace or remove it if not.');
+      if (isRR(auto[cur])) src.append('From ', a, ', matched by SKU.');
+      else src.append('Found by AI on ', a, '. Check it\'s the right shoe; replace or remove it if not.');
     }
     view.showModal();
   }
@@ -247,16 +250,28 @@ Reply with only a JSON array, one object per row, in this shape:
     return toRows(list);
   }
 
-  // ---------- finding shoe pictures on the web ----------
-  // Claude searches the web for each shoe's product page; the app then takes the picture that page names for
-  // link previews. In the Android app the phone fetches the page itself; in a browser, sites usually refuse.
+  // ---------- finding shoe pictures ----------
+  // First stop is Rack Room Shoes itself: its picture server answers by SKU, so no search and no Claude key is
+  // needed. Only shoes it has no picture for go to Claude's web search (below), and only when a key is set.
+  const RR_IMG = (sku) => `https://assets.rackroomshoes.com/image/upload/w_600,c_limit/f_jpg/q_auto/US_01_${sku}_01`;
+  const RR_PAGE = (sku) => `https://www.rackroomshoes.com/p/x/${sku}`;
+  /** → { data, from }, or null when Rack Room has no picture for that SKU. Throws when the site can't be reached. */
+  async function rackRoomPicture(sku, signal) {
+    if (!/^\d{4,8}$/.test(sku)) return null;
+    const res = await fetch(RR_IMG(sku), { signal });
+    if (!res.ok) return null;
+    // For a SKU it doesn't know the server sends a small "no image" card (200×138); real pictures are 600 wide.
+    try { return { data: await shrink(await res.blob(), 480, 0.8, 300), from: RR_PAGE(sku) }; } catch { return null; }
+  }
+  // Claude searches the web for each remaining shoe's product page; the app then takes the picture that page
+  // names for link previews. In the Android app the phone fetches the page itself; in a browser, sites usually refuse.
   const FIND_PROMPT = (rows) => `Find a product page for each of these shoes, which a US shoe store is receiving on a delivery, so the store team can see what each one looks like.
 
 ${rows.map((r) => `- SKU ${r.sku}: brand "${r.brand}", style "${r.style}", color "${r.color}", type "${r.cat}", department "${r.dept}", pattern/vendor number "${r.pattern}"`).join('\n')}
 
 Text ending in "…" was cut off on the store's screen, so the full name is longer; the pattern number is often the manufacturer's style code and is the most reliable thing to search for. Brands such as Lauren Blakwell, Bjorndal, Xappeal, Limelight, Michael by Michael Shannon and Restoration are sold by Rack Room Shoes and Off Broadway Shoes.
 
-For each shoe, search the web and pick up to three pages that each show that exact shoe in that color: prefer rackroomshoes.com, then the brand's own site, then another large retailer. Use a single product's own page, never a search-results or category page. If you can't find a page for the right shoe and color, give an empty list for it rather than a near match.
+For each shoe, search the web and pick up to three pages that each show that exact shoe in that color: prefer the brand's own site, then a large retailer (rackroomshoes.com has no picture under these SKUs, so its page for the same shoe would be under a different number). Use a single product's own page, never a search-results or category page. If you can't find a page for the right shoe and color, give an empty list for it rather than a near match.
 
 Finish with only this, and nothing after it: <result>[{"sku":"114716","pages":["https://..."]}]</result> with one entry per SKU listed above.`;
   const searchTool = () => (model() === 'claude-haiku-5-5'
@@ -331,42 +346,52 @@ Finish with only this, and nothing after it: <result>[{"sku":"114716","pages":["
     if (!box) return;
     const left = missing().length, busy = !!findCtl;
     box.hidden = !D.items.length || (!left && !findNote && !busy);
-    if (!busy) $('findm').textContent = findNote || `${left} shoe${left === 1 ? ' has' : 's have'} no photo yet. Claude can search the web for each one and save the product picture it finds.`;
+    if (!busy) $('findm').textContent = findNote || `${left} shoe${left === 1 ? ' has' : 's have'} no photo yet. The app can pull each one's picture from rackroomshoes.com by SKU.`;
     $('findgo').hidden = busy || !left;
     $('findgo').textContent = findNote && left ? 'Try the rest again' : 'Find shoe photos';
     $('findstop').hidden = !busy;
   }
   async function findPhotos() {
     if (findCtl) return;
-    if (!cfg.key.trim()) { findNote = 'Finding photos uses your own Claude key. Add it in Settings (the gear, top right), then try again.'; renderFind(); return; }
     const todo = missing();
     if (!todo.length) return;
     findCtl = new AbortController(); findNote = '';
-    let found = 0, tried = 0, failed = '';
+    const sig = findCtl.signal;
+    let found = 0, ai = 0, failed = '', offline = 0;
+    const keep = (r, got) => { if (!got || photos[r.sku]) return false; photos[r.sku] = got.data; auto[r.sku] = got.from; found++; return true; };   // skip if you added your own meanwhile
+    const save = () => { if (!store.set(K.photos, photos)) { failed = 'This phone has no room left to keep more photos.'; return false; } store.set(K.auto, auto); render(); return true; };
     renderFind();
     try {
-      for (let i = 0; i < todo.length && !findCtl.signal.aborted; i += BATCH) {
+      // 1. Rack Room by SKU, a few at a time.
+      for (let i = 0; i < todo.length && !sig.aborted && !failed; i += BATCH) {
         const rows = todo.slice(i, i + BATCH);
-        $('findm').textContent = `Looking up shoes ${i + 1}–${Math.min(i + BATCH, todo.length)} of ${todo.length}… found ${found} so far. This takes a while; you can keep using the list.`;
-        const pages = await findPages(rows, findCtl.signal);
-        const got = await Promise.all(rows.map((r) => (pages[r.sku] ? grabPicture(r.sku, pages[r.sku], findCtl.signal) : null)));
-        rows.forEach((r, k) => {
-          tried++;
-          if (!got[k] || photos[r.sku]) return;   // nothing found, or you added your own meanwhile
-          photos[r.sku] = got[k].data; auto[r.sku] = got[k].from; found++;
-        });
-        if (!store.set(K.photos, photos)) { failed = 'This phone has no room left to keep more photos.'; break; }
-        store.set(K.auto, auto);
-        render();
+        $('findm').textContent = `Getting pictures from Rack Room… ${Math.min(i + BATCH, todo.length)} of ${todo.length}, found ${found} so far.`;
+        const got = await Promise.all(rows.map((r) => rackRoomPicture(r.sku, sig).catch(() => { offline++; return null; })));
+        rows.forEach((r, k) => keep(r, got[k]));
+        if (!save()) break;
+        if (offline && offline === i + rows.length) break;   // nothing is getting through: don't hammer on
+      }
+      // 2. Whatever Rack Room doesn't have: Claude's web search, when a key is set.
+      const rest = missing();
+      if (rest.length && !sig.aborted && !failed && !offline && cfg.key.trim()) {
+        for (let i = 0; i < rest.length && !sig.aborted; i += BATCH) {
+          const rows = rest.slice(i, i + BATCH);
+          $('findm').textContent = `Rack Room has no picture for ${rest.length}. Claude is searching the web for ${i + 1}–${Math.min(i + BATCH, rest.length)}… This takes a while; you can keep using the list.`;
+          const pages = await findPages(rows, sig);
+          const got = await Promise.all(rows.map((r) => (pages[r.sku] ? grabPicture(r.sku, pages[r.sku], sig) : null)));
+          rows.forEach((r, k) => { if (keep(r, got[k])) ai++; });
+          if (!save()) break;
+        }
       }
     } catch (e) { failed = e && e.stopped ? '' : (e && e.message) || 'The lookup stopped unexpectedly.'; }
-    const stopped = findCtl.signal.aborted;
+    const stopped = sig.aborted;
     findCtl = null;
-    const left = missing().length;
-    findNote = `${stopped ? 'Stopped. ' : ''}Found photos for ${found} of ${tried || todo.length} shoe${(tried || todo.length) === 1 ? '' : 's'}.`
+    const left = missing().length, n = todo.length;
+    findNote = `${stopped ? 'Stopped. ' : ''}Found photos for ${found} of ${n} shoe${n === 1 ? '' : 's'}.`
       + (failed ? ` ${failed}` : '')
-      + (left && !failed ? ` ${left} still ${left === 1 ? 'has' : 'have'} no photo: the search found no page for the exact shoe, or the site wouldn't share its picture${window.DeliveryNative ? '' : ' (this works best in the Android app)'}. Add ${left === 1 ? 'that one' : 'those'} yourself with the “+”.` : '')
-      + (found ? ' Photos marked “AI” came from the web, so check they match.' : '');
+      + (offline && !failed ? ` Couldn't reach rackroomshoes.com for ${offline === n ? 'any of them' : offline}: check the connection and try again.` : '')
+      + (left && !failed && !offline ? ` ${left} still ${left === 1 ? 'has' : 'have'} no photo: Rack Room's site has no picture under ${left === 1 ? 'that SKU' : 'those SKUs'}${cfg.key.trim() ? ' and the web search found no page for the exact shoe' : ''}. Add ${left === 1 ? 'that one' : 'those'} yourself with the “+”.` : '')
+      + (ai ? ' Photos marked “AI” came from a web search, so check they match.' : '');
     render();
   }
   $('findgo').addEventListener('click', findPhotos);
