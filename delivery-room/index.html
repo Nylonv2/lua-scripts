@@ -42,6 +42,10 @@ h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height
 .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .thumb span { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(10, 12, 24, .75); color: #fff; font-size: 13px; line-height: 18px; text-align: center; }
 .scanbtn.ghost { background: rgba(255, 255, 255, .14); color: #fff; }
+.weekbar { display: flex; gap: 8px; align-items: stretch; }
+.weekbar select { flex: 1; min-width: 0; font: inherit; font-weight: 600; font-size: 15px; color: #fff; background: rgba(255, 255, 255, .14); border: 0; border-radius: 12px; padding: 11px 12px; text-overflow: ellipsis; }
+.weekbar select option { color: #161a2b; background: #fff; }
+.wk { flex: none; width: 44px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .14); color: #fff; font-size: 22px; line-height: 1; }
 .auto { position: absolute; left: 3px; bottom: 3px; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; background: rgba(10, 12, 24, .72); color: #fff; border-radius: 4px; padding: 1px 4px; }
 .vsrc { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 .vsrc a { color: var(--accent); }
@@ -129,6 +133,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   <div class="acts">
     <button class="scanbtn" type="button" id="scanbtn">Scan a delivery</button>
     <button class="scanbtn ghost" type="button" id="pastebtn">Paste a list</button>
+    <button class="scanbtn ghost" type="button" id="clearbtn" hidden>Clear list</button>
+  </div>
+  <div class="weekbar">
+    <button class="wk" type="button" id="wkprev" aria-label="Earlier week">‹</button>
+    <select id="wksel" aria-label="Week"></select>
+    <button class="wk" type="button" id="wknext" aria-label="Later week">›</button>
   </div>
   <div class="totals" id="totals" hidden></div>
 </div></div>
@@ -150,7 +160,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
     </div>
   </section>
   <section class="panel empty" id="empty">
-    <b>No delivery yet</b>
+    <b id="emptyt">No delivery yet</b>
     <p class="foot">Take photos of the Delivery Notifications screen, on the SKU Summary tab. Scroll and shoot until every row is covered, then tap “Scan a delivery” and pick them: several at once, or one at a time with “Add more photos” (up to 12). Overlapping photos are fine. Claude reads the rows and builds your room plan.</p>
     <p class="foot">Already have the delivery as text? Tap “Paste a list”.</p>
   </section>
@@ -210,7 +220,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
     </select>
   </label>
   <div class="acts"><button class="btn" type="button" id="keytest">Test the key</button><span class="foot" id="keymsg" role="status"></span></div>
-  <div class="acts end"><button class="btn danger" type="button" id="wipe">Clear the delivery</button><button class="btn pri" type="button" id="setsave">Done</button></div>
+  <div class="acts end"><button class="btn danger" type="button" id="wipe">Clear this week</button><button class="btn pri" type="button" id="setsave">Done</button></div>
 </dialog>
 
 <script src="vendor/anthropic-sdk.js"></script>

@@ -11,6 +11,11 @@ and it builds a plan of what's arriving and what needs room.
   marked *Check count*.
 - **The plan**: units arriving, already in store and total after; the five styles that need the most room;
   department filters; one card per SKU with a *Room made* tick.
+- **Weeks**: every week (Sunday to Saturday) keeps its own list and ticks. The bar under the buttons shows the
+  week on screen; the arrows and the menu move between weeks, and a scan or pasted list goes into the week showing.
+  Opening the app in a new calendar week starts on that week.
+- **Clear list**: empties the week on screen (after asking) so you can start it over. Other weeks and your own
+  photos stay; pictures the app fetched for shoes on no other week are dropped, since they can be fetched again.
 - **Flags**: *New, needs a spot* (none in store now) and *Check count* (a number the scan couldn't read).
 - **Find shoe photos**: the app asks Rack Room Shoes' own picture server for each SKU
   (`assets.rackroomshoes.com/image/upload/.../US_01_<SKU>_01`) and saves the picture, linked to that shoe's page on

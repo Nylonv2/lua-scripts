@@ -7,13 +7,63 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
   };
-  const K = { data: 'drp-delivery', photos: 'drp-photos', cfg: 'drp-settings', auto: 'drp-photo-sources' };
+  const K = { data: 'drp-delivery', photos: 'drp-photos', cfg: 'drp-settings', auto: 'drp-photo-sources', weeks: 'drp-weeks' };
   let D = Object.assign({ items: [], at: 0, done: {}, filter: 'All' }, store.get(K.data, {}));
+  let findNote = '';
   let photos = store.get(K.photos, {});
   let auto = store.get(K.auto, {});   // sku → the page an AI-found picture came from
   let cfg = Object.assign({ key: '', model: 'claude-opus-5-5' }, store.get(K.cfg, {}));
   const MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'];
   const saveData = () => store.set(K.data, D);
+
+  // ---------- weeks ----------
+  // Each week (Sunday to Saturday) keeps its own list and ticks. The week on screen lives in K.data, as before;
+  // the others wait in K.weeks. Opening the app in a new calendar week starts on that week.
+  const BLANK = () => ({ items: [], at: 0, done: {}, filter: 'All' });
+  const p2 = (n) => String(n).padStart(2, '0');
+  const weekKey = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay()); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+  const keyDate = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12); };
+  const shiftKey = (k, n) => { const d = keyDate(k); d.setDate(d.getDate() + 7 * n); return weekKey(d); };
+  const md = (d, month) => d.toLocaleDateString([], month ? { month: 'short', day: 'numeric' } : { day: 'numeric' });
+  function weekName(k) {
+    const a = keyDate(k), b = keyDate(k); b.setDate(b.getDate() + 6);
+    const now = weekKey(Date.now()), tag = k === now ? 'This week' : k === shiftKey(now, -1) ? 'Last week' : k === shiftKey(now, 1) ? 'Next week' : '';
+    const span = `${md(a, true)} – ${md(b, a.getMonth() !== b.getMonth())}`;
+    return tag ? `${tag} · ${span}` : span;
+  }
+  let W = store.get(K.weeks, null);
+  if (!W || typeof W !== 'object' || !W.weeks) W = { cur: weekKey(D.at || Date.now()), seen: '', weeks: {} };
+  const saveWeeks = () => store.set(K.weeks, W);
+  function openWeek(k) {
+    if (k === W.cur) return;
+    if (D.items.length) W.weeks[W.cur] = D; else delete W.weeks[W.cur];
+    D = Object.assign(BLANK(), W.weeks[k] || {});
+    delete W.weeks[k];
+    W.cur = k; findNote = '';
+    saveWeeks(); saveData();
+  }
+  if (W.seen !== weekKey(Date.now())) { W.seen = weekKey(Date.now()); openWeek(W.seen); saveWeeks(); }
+  function renderWeeks() {
+    const sel = $('wksel');
+    if (!sel) return;
+    const keys = [...new Set([W.cur, weekKey(Date.now()), ...Object.keys(W.weeks)])].sort().reverse();
+    sel.textContent = '';
+    for (const k of keys) {
+      const w = k === W.cur ? D : W.weeks[k], n = w && w.items ? w.items.length : 0;
+      const o = el('option', '', `${weekName(k)}${n ? ` · ${sum(w.items, 'arriving')} units, ${n} SKUs` : ' · empty'}`);
+      o.value = k; o.selected = k === W.cur; sel.append(o);
+    }
+    $('clearbtn').hidden = !D.items.length;
+  }
+  /** Start the week on screen over. Pictures pulled from Rack Room for shoes on no other week go too (they can be fetched again); your own stay. */
+  function clearWeek() {
+    D = BLANK(); findNote = '';
+    const used = {};
+    for (const w of Object.values(W.weeks)) for (const r of (w.items || [])) used[r.sku] = 1;
+    for (const sku of Object.keys(auto)) if (!used[sku]) { delete photos[sku]; delete auto[sku]; }
+    store.set(K.photos, photos); store.set(K.auto, auto);
+    saveData(); render();
+  }
 
   const sum = (list, k) => list.reduce((t, r) => t + (r[k] || 0), 0);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -112,7 +162,8 @@
     $('plan').hidden = !items.length;
     $('totals').hidden = !items.length;
     $('scanbtn').textContent = items.length ? 'Scan a new delivery' : 'Scan a delivery';
-    renderFind();
+    renderFind(); renderWeeks();
+    { const nm = weekName(W.cur).split(' · '); $('emptyt').textContent = !Object.keys(W.weeks).length ? 'No delivery yet' : nm.length > 1 ? `Nothing for ${nm[0].toLowerCase()} yet` : `Nothing for ${nm[0]} yet`; }
     if (!items.length) { $('sub').textContent = 'Scan a delivery to see what needs room.'; return; }
     const arr = sum(items, 'arriving'), have = sum(items, 'onHand');
     $('sub').textContent = `${D.at ? `Scanned ${new Date(D.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. ` : ''}Biggest arrivals first.`;
@@ -339,7 +390,7 @@ Finish with only this, and nothing after it: <result>[{"sku":"114716","pages":["
     })();
   }
   const BATCH = 5;
-  let findCtl = null, findNote = '';
+  let findCtl = null;
   const missing = () => (D.items || []).filter((r) => !photos[r.sku]);
   function renderFind() {
     const box = $('find');
@@ -598,9 +649,15 @@ Finish with only this, and nothing after it: <result>[{"sku":"114716","pages":["
   // A list shared to the app, or a text file opened with it (Android), lands in the paste box to check and load.
   window.receiveDeliveryText = (text) => openPaste(String(text || ''));
   $('wipe').addEventListener('click', () => {
-    if (!window.confirm('Clear the delivery list and the “Room made” ticks? Your shoe photos and key stay.')) return;
-    D = { items: [], at: 0, done: {}, filter: 'All' }; saveData(); render(); settings.close();
+    if (!askClear()) return;
+    clearWeek(); settings.close();
   });
+  const askClear = () => window.confirm(`Clear the list and the “Room made” ticks for ${weekName(W.cur)}? Other weeks and your own shoe photos stay.`);
+  $('clearbtn').addEventListener('click', () => { if (D.items.length && askClear()) { clearWeek(); window.scrollTo(0, 0); } });
+  const goWeek = (k) => { if (findCtl) findCtl.abort(); openWeek(k); render(); };
+  $('wksel').addEventListener('change', (e) => goWeek(e.target.value));
+  $('wkprev').addEventListener('click', () => goWeek(shiftKey(W.cur, -1)));
+  $('wknext').addEventListener('click', () => goWeek(shiftKey(W.cur, 1)));
 
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
