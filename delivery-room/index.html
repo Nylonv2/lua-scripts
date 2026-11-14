@@ -37,6 +37,10 @@ h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height
 .gear svg { width: 22px; height: 22px; }
 .scanbtn { align-self: flex-start; font-weight: 700; font-size: 16px; color: var(--band); background: #fff; border: 0; border-radius: 12px; padding: 12px 18px; }
 .scanbtn:disabled { opacity: .6; }
+.scanbtn.ghost { background: rgba(255, 255, 255, .14); color: #fff; }
+.auto { position: absolute; left: 3px; bottom: 3px; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; background: rgba(10, 12, 24, .72); color: #fff; border-radius: 4px; padding: 1px 4px; }
+.vsrc { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.vsrc a { color: var(--accent); }
 .totals { display: flex; flex-wrap: wrap; gap: 10px 28px; }
 .totals b { display: block; font-family: var(--display); font-weight: 800; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
 .totals span { color: var(--band-muted); font-size: 12.5px; }
@@ -118,7 +122,10 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
     </div>
     <button class="gear" type="button" id="setbtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
-  <button class="scanbtn" type="button" id="scanbtn">Scan a delivery</button>
+  <div class="acts">
+    <button class="scanbtn" type="button" id="scanbtn">Scan a delivery</button>
+    <button class="scanbtn ghost" type="button" id="pastebtn">Paste a list</button>
+  </div>
   <div class="totals" id="totals" hidden></div>
 </div></div>
 
@@ -137,14 +144,23 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   <section class="panel empty" id="empty">
     <b>No delivery yet</b>
     <p class="foot">Take photos of the Delivery Notifications screen, on the SKU Summary tab. Scroll and shoot until every row is covered, then tap “Scan a delivery” and pick them (up to 8). Claude reads the rows and builds your room plan.</p>
+    <p class="foot">Already have the delivery as text? Tap “Paste a list”.</p>
   </section>
   <div id="plan" hidden style="display:contents">
     <div class="note"><strong>How the counts are read.</strong> The two “Q…” columns are taken as units arriving, then units already in the store. Rows marked “Check count” had a number the scan could not read.</div>
+    <section class="panel" id="find" hidden>
+      <h2>Shoe photos</h2>
+      <p id="findm"></p>
+      <div class="acts">
+        <button class="btn pri" type="button" id="findgo">Find shoe photos</button>
+        <button class="btn" type="button" id="findstop" hidden>Stop</button>
+      </div>
+    </section>
     <section class="panel most"><h2>Needs the most room</h2><ol id="top"></ol></section>
     <div class="chips" id="chips"></div>
     <p class="foot err" id="pstat" role="status" hidden></p>
     <div id="depts"></div>
-    <p class="foot">Tap a shoe drawing with a “+” to add your own photo of that shoe. Tap a photo to see it larger, replace it or remove it. “See photos” opens an image search for that shoe. Tick a card once you have made room. “…” marks text that was cut off on the screen. Everything is saved on this phone only.</p>
+    <p class="foot">“Find shoe photos” has Claude search the web for each shoe and saves the product picture it finds; pictures found that way are marked “AI” and can be wrong, so replace or remove any that don't match. Tap a shoe drawing with a “+” to add your own photo of that shoe. Tap a photo to see it larger, replace it or remove it. “See photos” opens an image search for that shoe. Tick a card once you have made room. “…” marks text that was cut off on the screen. Everything is saved on this phone only.</p>
   </div>
 </div></main>
 
@@ -154,15 +170,30 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 <dialog id="view" aria-labelledby="vt">
   <h2 id="vt"></h2>
   <img id="vi" alt="">
+  <p class="vsrc" id="vsrc" hidden></p>
   <div class="acts end"><button class="btn danger" type="button" id="vrm">Remove</button><button class="btn" type="button" id="vrp">Replace</button><button class="btn pri" type="button" id="vcl">Close</button></div>
 </dialog>
+
+<dialog id="pastedlg" aria-labelledby="pt">
+  <h2 id="pt">Paste a delivery list</h2>
+  <label class="f">One shoe per line: Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store
+    <textarea id="paste" spellcheck="false" placeholder="Womens | 114716 | Skechers | Radiance | 100926-BBK | Black | Slip on | 12 | 0"></textarea>
+  </label>
+  <p class="foot err" id="pastemsg" role="status" hidden></p>
+  <div class="acts">
+    <button class="btn" type="button" id="pasteclip">Paste from clipboard</button>
+    <button class="btn" type="button" id="pastefile">Open a text file</button>
+  </div>
+  <div class="acts end"><button class="btn" type="button" id="pastex">Cancel</button><button class="btn pri" type="button" id="pastego">Load this list</button></div>
+</dialog>
+<input type="file" accept="text/plain,.txt" id="textfile" hidden>
 
 <dialog id="settings" aria-labelledby="st">
   <h2 id="st">Settings</h2>
   <label class="f">Claude API key
     <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
   </label>
-  <p class="foot">Photos are read with your own Claude key. Get one at console.anthropic.com → API keys. The key stays on this phone and is sent only to Anthropic. Each scan costs a few cents.</p>
+  <p class="foot">Photos are read with your own Claude key. Get one at console.anthropic.com → API keys. The key stays on this phone and is sent only to Anthropic. Each scan costs a few cents; finding shoe photos uses web search and costs roughly 1–3 cents a shoe.</p>
   <label class="f">Model
     <select id="model">
       <option value="claude-opus-5-5">Claude Opus 5.5 (most accurate)</option>
@@ -171,13 +202,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
     </select>
   </label>
   <div class="acts"><button class="btn" type="button" id="keytest">Test the key</button><span class="foot" id="keymsg" role="status"></span></div>
-  <details>
-    <summary class="foot">Paste a delivery list instead</summary>
-    <label class="f" style="margin-top:8px">One shoe per line: Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store
-      <textarea id="paste" spellcheck="false"></textarea>
-    </label>
-    <div class="acts" style="margin-top:8px"><button class="btn" type="button" id="pastego">Load this list</button><span class="foot" id="pastemsg" role="status"></span></div>
-  </details>
   <div class="acts end"><button class="btn danger" type="button" id="wipe">Clear the delivery</button><button class="btn pri" type="button" id="setsave">Done</button></div>
 </dialog>
 

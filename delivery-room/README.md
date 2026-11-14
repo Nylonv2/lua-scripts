@@ -8,14 +8,20 @@ and it builds a plan of what's arriving and what needs room.
 - **The plan**: units arriving, already in store and total after; the five styles that need the most room;
   department filters; one card per SKU with a *Room made* tick.
 - **Flags**: *New, needs a spot* (none in store now) and *Check count* (a number the scan couldn't read).
-- **Shoe photos**: tap a drawing to add your own photo; *See photos* opens an image search.
-- **Paste a list** (Settings) instead of scanning: `Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store`.
+- **Find shoe photos**: Claude searches the web (the API's web search tool) for each shoe's product page, and the
+  app saves the picture that page names for link previews. Pictures found this way are marked *AI* with a link to
+  the page they came from, since a look-alike is possible; replace or remove any that don't match. In the Android
+  app the phone fetches the product page itself; in a plain browser most sites refuse, so it works best in the app.
+- **Your own photos**: tap a drawing to add a photo; *See photos* opens an image search.
+- **Paste a list** (button on the main screen) instead of scanning: paste text, read the clipboard, or open a
+  text file. One shoe per line: `Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store`.
+  On Android a list can also be shared to the app, or a `.txt` file opened with it.
 
 ## AI
 
 Photos are read with **your own Claude API key** (Settings; get one at console.anthropic.com). The app calls the
 Claude Messages API directly from the phone through the official SDK (`vendor/anthropic-sdk.js`), streamed, with
-adaptive thinking. Default model `claude-opus-5-5`; Sonnet and Haiku can be chosen for cheaper scans. The key, the
+adaptive thinking; photo lookups add the web search tool, five shoes per request. Default model `claude-opus-5-5`; Sonnet and Haiku can be chosen for cheaper scans. The key, the
 list, the ticks and the photos are stored on the phone only; the key is sent only to Anthropic.
 
 ## Install

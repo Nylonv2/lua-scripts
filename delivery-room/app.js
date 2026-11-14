@@ -7,9 +7,10 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
   };
-  const K = { data: 'drp-delivery', photos: 'drp-photos', cfg: 'drp-settings' };
+  const K = { data: 'drp-delivery', photos: 'drp-photos', cfg: 'drp-settings', auto: 'drp-photo-sources' };
   let D = Object.assign({ items: [], at: 0, done: {}, filter: 'All' }, store.get(K.data, {}));
   let photos = store.get(K.photos, {});
+  let auto = store.get(K.auto, {});   // sku → the page an AI-found picture came from
   let cfg = Object.assign({ key: '', model: 'claude-opus-5-5' }, store.get(K.cfg, {}));
   const MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'];
   const saveData = () => store.set(K.data, D);
@@ -39,6 +40,7 @@
   }
   function adopt(rows) {
     D = { items: rows, at: Date.now(), done: {}, filter: 'All' };
+    findNote = '';
     saveData(); render();
   }
   function parseList(text) {
@@ -80,7 +82,7 @@
     const sw = el('button', `sw${photos[r.sku] ? ' has' : ''}`);
     sw.type = 'button'; sw.dataset.photo = r.sku;
     sw.setAttribute('aria-label', `${photos[r.sku] ? 'View photo of' : 'Add a photo of'} ${r.brand} ${r.style}`);
-    if (photos[r.sku]) { const im = el('img'); im.src = photos[r.sku]; im.alt = ''; sw.append(im); }
+    if (photos[r.sku]) { const im = el('img'); im.src = photos[r.sku]; im.alt = ''; sw.append(im); if (auto[r.sku]) sw.append(el('span', 'auto', 'AI')); }
     else sw.innerHTML = `${drawing(r)}<span class="plus" aria-hidden="true">+</span>`;
     const who = el('div', 'who');
     who.append(el('div', 'brand', r.brand), el('div', 'style', r.style), el('div', 'meta', `${r.color} · ${r.cat}`));
@@ -110,6 +112,7 @@
     $('plan').hidden = !items.length;
     $('totals').hidden = !items.length;
     $('scanbtn').textContent = items.length ? 'Scan a new delivery' : 'Scan a delivery';
+    renderFind();
     if (!items.length) { $('sub').textContent = 'Scan a delivery to see what needs room.'; return; }
     const arr = sum(items, 'arriving'), have = sum(items, 'onHand');
     $('sub').textContent = `${D.at ? `Scanned ${new Date(D.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. ` : ''}Biggest arrivals first.`;
@@ -172,6 +175,13 @@
     const r = D.items.find((x) => x.sku === cur);
     $('vt').textContent = r ? `${r.brand} ${r.style} · ${r.color}` : 'Photo';
     $('vi').src = photos[cur];
+    const src = $('vsrc');
+    src.hidden = !auto[cur]; src.textContent = '';
+    if (auto[cur]) {
+      let host = ''; try { host = new URL(auto[cur]).hostname.replace(/^www\./, ''); } catch { host = 'the web'; }
+      const a = el('a', '', host); a.href = auto[cur]; a.target = '_blank'; a.rel = 'noopener';
+      src.append('Found by AI on ', a, '. Check it\'s the right shoe; replace or remove it if not.');
+    }
     view.showModal();
   }
   fileIn.addEventListener('change', async () => {
@@ -180,13 +190,14 @@
     if (!f || !cur) return;
     try {
       photos[cur] = await shrink(f, 480, 0.8);
+      delete auto[cur]; store.set(K.auto, auto);
       say(store.set(K.photos, photos) ? '' : 'Photo added, but this phone has no room left to remember it.');
       render();
     } catch { say('That file could not be read as a picture.'); }
   });
   $('vcl').addEventListener('click', () => view.close());
   $('vrp').addEventListener('click', () => { view.close(); fileIn.click(); });
-  $('vrm').addEventListener('click', () => { delete photos[cur]; store.set(K.photos, photos); view.close(); render(); });
+  $('vrm').addEventListener('click', () => { delete photos[cur]; delete auto[cur]; store.set(K.photos, photos); store.set(K.auto, auto); view.close(); render(); });
 
   // ---------- reading the photos with Claude ----------
   const PROMPT = `These images are photos of a shoe store's "Delivery Notifications" screen, on its "SKU Summary" tab. They may be several photos of the same table scrolled to different places, so some rows appear in more than one photo.
@@ -235,6 +246,131 @@ Reply with only a JSON array, one object per row, in this shape:
     if (!list) throw { message: 'The photos were read but the answer came back garbled. Try again.' };
     return toRows(list);
   }
+
+  // ---------- finding shoe pictures on the web ----------
+  // Claude searches the web for each shoe's product page; the app then takes the picture that page names for
+  // link previews. In the Android app the phone fetches the page itself; in a browser, sites usually refuse.
+  const FIND_PROMPT = (rows) => `Find a product page for each of these shoes, which a US shoe store is receiving on a delivery, so the store team can see what each one looks like.
+
+${rows.map((r) => `- SKU ${r.sku}: brand "${r.brand}", style "${r.style}", color "${r.color}", type "${r.cat}", department "${r.dept}", pattern/vendor number "${r.pattern}"`).join('\n')}
+
+Text ending in "…" was cut off on the store's screen, so the full name is longer; the pattern number is often the manufacturer's style code and is the most reliable thing to search for. Brands such as Lauren Blakwell, Bjorndal, Xappeal, Limelight, Michael by Michael Shannon and Restoration are sold by Rack Room Shoes and Off Broadway Shoes.
+
+For each shoe, search the web and pick up to three pages that each show that exact shoe in that color: prefer rackroomshoes.com, then the brand's own site, then another large retailer. Use a single product's own page, never a search-results or category page. If you can't find a page for the right shoe and color, give an empty list for it rather than a near match.
+
+Finish with only this, and nothing after it: <result>[{"sku":"114716","pages":["https://..."]}]</result> with one entry per SKU listed above.`;
+  const searchTool = () => (model() === 'claude-haiku-5-5'
+    ? { type: 'web_search_20250305', name: 'web_search', max_uses: 12 }
+    : { type: 'web_search_20260209', name: 'web_search', max_uses: 12 });
+  /** rows → { sku: [page urls] }. Throws { message } to show the person. */
+  async function findPages(rows, signal) {
+    const a = api();
+    if (!a) throw { message: 'Add your Claude key in Settings first.', needKey: true };
+    const messages = [{ role: 'user', content: FIND_PROMPT(rows) }];
+    let res;
+    try {
+      // The search runs on Anthropic's side; a long one can pause, and sending the turn back resumes it.
+      for (let i = 0; i < 4; i++) {
+        res = await a.messages.stream({
+          model: model(), max_tokens: 16000, thinking: { type: 'adaptive' }, output_config: { effort: 'low' },
+          tools: [searchTool()], messages,
+        }, { signal, timeout: 180000 }).finalMessage();
+        if (res.stop_reason !== 'pause_turn') break;
+        messages.splice(1, messages.length - 1, { role: 'assistant', content: res.content });
+      }
+    } catch (e) { throw { message: errText(e), needKey: e && e.status === 401, stopped: !errText(e) }; }
+    if (res.stop_reason === 'refusal') throw { message: 'Claude declined to look those up.' };
+    const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const m = text.match(/<result>\s*(\[[\s\S]*?\])\s*<\/result>/);
+    let list = null;
+    try { list = m ? JSON.parse(m[1]) : null; } catch { list = null; }
+    const out = {};
+    if (!Array.isArray(list)) return out;
+    for (const o of list) {
+      if (!o || typeof o !== 'object' || !Array.isArray(o.pages)) continue;
+      const sku = String(o.sku || '').replace(/[^0-9A-Za-z]/g, '');
+      const pages = o.pages.filter((u) => typeof u === 'string' && /^https?:\/\//i.test(u)).slice(0, 3);
+      if (sku && pages.length && rows.some((r) => r.sku === sku)) out[sku] = pages;
+    }
+    return out;
+  }
+  /** Product pages → { data, from } for the first page that yields a picture, or null. */
+  const waiting = {};
+  window.onShoePicture = (id, data, from) => { const done = waiting[id]; delete waiting[id]; if (done) done(data ? { data, from } : null); };
+  async function pictureFromPage(url, signal) {
+    const html = await (await fetch(url, { signal })).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const tag = doc.querySelector('meta[property="og:image:secure_url"], meta[property="og:image"], meta[name="og:image"], meta[name="twitter:image"], meta[property="twitter:image"], link[rel="image_src"]');
+    const src = tag && (tag.getAttribute('content') || tag.getAttribute('href'));
+    if (!src) return null;
+    const blob = await (await fetch(new URL(src, url).href, { signal })).blob();
+    return shrink(blob, 480, 0.8);
+  }
+  function grabPicture(sku, pages, signal) {
+    const N = window.DeliveryNative;
+    if (N && N.fetchPicture) {
+      return new Promise((resolve) => {
+        const id = `${sku}-${Date.now()}`;
+        const t = setTimeout(() => { delete waiting[id]; resolve(null); }, 70000);
+        waiting[id] = (v) => { clearTimeout(t); resolve(v); };
+        N.fetchPicture(id, JSON.stringify(pages));
+      });
+    }
+    return (async () => {
+      for (const from of pages) {
+        try { const data = await pictureFromPage(from, signal); if (data) return { data, from }; } catch { /* blocked or unreadable: try the next page */ }
+      }
+      return null;
+    })();
+  }
+  const BATCH = 5;
+  let findCtl = null, findNote = '';
+  const missing = () => (D.items || []).filter((r) => !photos[r.sku]);
+  function renderFind() {
+    const box = $('find');
+    if (!box) return;
+    const left = missing().length, busy = !!findCtl;
+    box.hidden = !D.items.length || (!left && !findNote && !busy);
+    if (!busy) $('findm').textContent = findNote || `${left} shoe${left === 1 ? ' has' : 's have'} no photo yet. Claude can search the web for each one and save the product picture it finds.`;
+    $('findgo').hidden = busy || !left;
+    $('findgo').textContent = findNote && left ? 'Try the rest again' : 'Find shoe photos';
+    $('findstop').hidden = !busy;
+  }
+  async function findPhotos() {
+    if (findCtl) return;
+    if (!cfg.key.trim()) { findNote = 'Finding photos uses your own Claude key. Add it in Settings (the gear, top right), then try again.'; renderFind(); return; }
+    const todo = missing();
+    if (!todo.length) return;
+    findCtl = new AbortController(); findNote = '';
+    let found = 0, tried = 0, failed = '';
+    renderFind();
+    try {
+      for (let i = 0; i < todo.length && !findCtl.signal.aborted; i += BATCH) {
+        const rows = todo.slice(i, i + BATCH);
+        $('findm').textContent = `Looking up shoes ${i + 1}–${Math.min(i + BATCH, todo.length)} of ${todo.length}… found ${found} so far. This takes a while; you can keep using the list.`;
+        const pages = await findPages(rows, findCtl.signal);
+        const got = await Promise.all(rows.map((r) => (pages[r.sku] ? grabPicture(r.sku, pages[r.sku], findCtl.signal) : null)));
+        rows.forEach((r, k) => {
+          tried++;
+          if (!got[k] || photos[r.sku]) return;   // nothing found, or you added your own meanwhile
+          photos[r.sku] = got[k].data; auto[r.sku] = got[k].from; found++;
+        });
+        if (!store.set(K.photos, photos)) { failed = 'This phone has no room left to keep more photos.'; break; }
+        store.set(K.auto, auto);
+        render();
+      }
+    } catch (e) { failed = e && e.stopped ? '' : (e && e.message) || 'The lookup stopped unexpectedly.'; }
+    const stopped = findCtl.signal.aborted;
+    findCtl = null;
+    const left = missing().length;
+    findNote = `${stopped ? 'Stopped. ' : ''}Found photos for ${found} of ${tried || todo.length} shoe${(tried || todo.length) === 1 ? '' : 's'}.`
+      + (failed ? ` ${failed}` : '')
+      + (left && !failed ? ` ${left} still ${left === 1 ? 'has' : 'have'} no photo: the search found no page for the exact shoe, or the site wouldn't share its picture${window.DeliveryNative ? '' : ' (this works best in the Android app)'}. Add ${left === 1 ? 'that one' : 'those'} yourself with the “+”.` : '')
+      + (found ? ' Photos marked “AI” came from the web, so check they match.' : '');
+    render();
+  }
+  $('findgo').addEventListener('click', findPhotos);
+  $('findstop').addEventListener('click', () => { if (findCtl) findCtl.abort(); });
 
   // ---------- scan flow ----------
   const MAX_PHOTOS = 8;
@@ -317,7 +453,7 @@ Reply with only a JSON array, one object per row, in this shape:
   const settings = $('settings');
   function openSettings() {
     $('key').value = cfg.key; $('model').value = model();
-    $('keymsg').textContent = ''; $('pastemsg').textContent = '';
+    $('keymsg').textContent = '';
     $('wipe').hidden = !D.items.length;
     settings.showModal();
   }
@@ -336,11 +472,35 @@ Reply with only a JSON array, one object per row, in this shape:
       $('keymsg').textContent = 'The key works ✓';
     } catch (e) { $('keymsg').textContent = errText(e) || 'Stopped.'; }
   });
+  // ---------- paste a list ----------
+  const pasteDlg = $('pastedlg'), textFile = $('textfile');
+  const pasteMsg = (m) => { $('pastemsg').textContent = m; $('pastemsg').hidden = !m; };
+  function openPaste(text) {
+    if (typeof text === 'string') $('paste').value = text;
+    pasteMsg('');
+    if (!pasteDlg.open) pasteDlg.showModal();
+  }
+  $('pastebtn').addEventListener('click', () => openPaste());
+  $('pastex').addEventListener('click', () => pasteDlg.close());
+  $('pasteclip').addEventListener('click', async () => {
+    try { const t = await navigator.clipboard.readText(); if (t) { $('paste').value = t; pasteMsg(''); } else pasteMsg('The clipboard is empty.'); }
+    catch { pasteMsg('This phone won\'t let the app read the clipboard. Long-press in the box and choose Paste.'); }
+  });
+  $('pastefile').addEventListener('click', () => textFile.click());
+  textFile.addEventListener('change', async () => {
+    const f = textFile.files && textFile.files[0];
+    textFile.value = '';
+    if (!f) return;
+    try { $('paste').value = await f.text(); pasteMsg(''); } catch { pasteMsg('That file couldn\'t be read.'); }
+  });
   $('pastego').addEventListener('click', () => {
     const rows = parseList($('paste').value);
-    if (!rows.length) { $('pastemsg').textContent = 'No rows found. Each line needs: Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store.'; return; }
-    adopt(rows); $('paste').value = ''; settings.close();
+    if (!rows.length) { pasteMsg('No shoes found in that. Each line needs: Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store.'); return; }
+    if (D.items.length && !window.confirm(`Replace the current list with these ${rows.length} SKUs? This clears the “Room made” ticks; shoe photos stay.`)) return;
+    adopt(rows); $('paste').value = ''; pasteDlg.close(); window.scrollTo(0, 0);
   });
+  // A list shared to the app, or a text file opened with it (Android), lands in the paste box to check and load.
+  window.receiveDeliveryText = (text) => openPaste(String(text || ''));
   $('wipe').addEventListener('click', () => {
     if (!window.confirm('Clear the delivery list and the “Room made” ticks? Your shoe photos and key stay.')) return;
     D = { items: [], at: 0, done: {}, filter: 'All' }; saveData(); render(); settings.close();
@@ -349,4 +509,5 @@ Reply with only a JSON array, one object per row, in this shape:
   render();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   window.DeliveryRoom = { parseList, toRows };
+  renderFind();
 })();
