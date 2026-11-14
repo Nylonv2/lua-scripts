@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16503f">
+<title>Count Prep</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<style>
+:root {
+  --bg: #eef3f1; --surface: #ffffff; --fg: #14211c; --muted: #56675f; --line: #d3dfd9;
+  --band: #16503f; --band-fg: #ffffff; --band-muted: #bfe0d4;
+  --accent: #1d7a5f; --accent-soft: #dcefe8; --flag: #8a5200; --flag-soft: #ffe9bf; --bad: #b3261e;
+  --display: "Archivo", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0d1714; --surface: #16231f; --fg: #e5f0eb; --muted: #9fb5ab; --line: #2a3c35;
+  --band: #0f3a2e; --band-muted: #a9d3c3;
+  --accent: #6fd3ae; --accent-soft: #1d3a31; --flag: #ffc766; --flag-soft: #40300d; --bad: #ff8a80; color-scheme: dark; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.gut { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+.inner { max-width: 760px; margin: 0 auto; }
+.band { background: var(--band); color: var(--band-fg); padding-top: calc(env(safe-area-inset-top) + 22px); padding-bottom: 18px; }
+.band .inner { display: flex; flex-direction: column; gap: 16px; }
+.head { display: flex; align-items: flex-start; gap: 12px; }
+.head > div { flex: 1; min-width: 0; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.1; margin: 0; }
+.band p { margin: 4px 0 0; color: var(--band-muted); }
+.gear { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: #fff; display: grid; place-items: center; }
+.gear svg { width: 22px; height: 22px; }
+.tabs { display: flex; gap: 6px; background: rgba(255, 255, 255, .12); border-radius: 12px; padding: 4px; }
+.tabs button { flex: 1; border: 0; border-radius: 9px; padding: 10px; font-weight: 700; font-size: 15px; background: transparent; color: #fff; }
+.tabs button[aria-selected="true"] { background: #fff; color: var(--band); }
+.totals { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.totals b { display: block; font-family: var(--display); font-weight: 800; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
+.totals span { color: var(--band-muted); font-size: 12.5px; }
+main { padding-top: 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 40px); }
+main .inner, .view { display: flex; flex-direction: column; gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel.live { border: 2px solid var(--accent); }
+.panel p { margin: 0; }
+.note { background: var(--flag-soft); border-radius: 10px; padding: 10px 14px; font-size: 14px; margin: 0; }
+.note strong { color: var(--flag); }
+h2 { font-family: var(--display); font-weight: 700; font-size: 18px; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+h2 small { font-family: var(--body); font-weight: 400; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 10px; border-radius: 99px; background: var(--accent-soft); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .25s; }
+.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tasks li { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding: 6px 0; }
+.tasks li:first-child { border-top: 0; }
+.tasks label { flex: 1; display: flex; align-items: flex-start; gap: 10px; min-height: 36px; padding-top: 7px; cursor: pointer; overflow-wrap: anywhere; }
+.tasks input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+.tasks li.done label span { color: var(--muted); text-decoration: line-through; }
+.x { flex: none; width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; }
+.add { display: flex; gap: 8px; }
+.add input { flex: 1; min-width: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; font-size: 15px; }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.acts.end { justify-content: flex-end; }
+.btn { font-size: 14px; font-weight: 600; border-radius: 9px; padding: 9px 14px; border: 1px solid var(--line); background: var(--surface); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.danger { color: var(--bad); }
+.btn:disabled { opacity: .55; }
+.foot { color: var(--muted); font-size: 13px; margin: 0; }
+.err { color: var(--bad); }
+.sec-h { display: flex; align-items: flex-start; gap: 10px; }
+.sec-h h2 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.big { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.sec.counted { border-color: var(--accent); background: linear-gradient(var(--accent-soft), var(--accent-soft)) top / 100% 4px no-repeat, var(--surface); }
+.donebox { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.donebox input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.items li { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding: 6px 0; }
+.items .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.unsure { display: inline-block; background: var(--flag-soft); color: var(--flag); font-weight: 600; font-size: 11.5px; border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+.step { display: flex; align-items: center; gap: 4px; flex: none; }
+.step button { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 22px; font-weight: 600; line-height: 1; }
+.step button.up { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.step input { width: 56px; height: 44px; text-align: center; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { position: relative; width: 64px; height: 64px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.thumb span { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(10, 12, 24, .75); color: #fff; font-size: 13px; line-height: 18px; text-align: center; }
+.found { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.found li { display: flex; gap: 8px; align-items: center; }
+.found input[type="text"] { flex: 1; min-width: 0; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; }
+.found input[type="number"] { width: 64px; text-align: center; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 4px; font-weight: 700; }
+.found li.unsure-row input[type="text"] { border-color: var(--flag); }
+details.all summary { cursor: pointer; font-weight: 600; }
+.alllist { list-style: none; margin: 8px 0 0; padding: 0; columns: 2 220px; column-gap: 20px; font-size: 14px; }
+.alllist li { display: flex; justify-content: space-between; gap: 10px; break-inside: avoid; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.alllist b { font-variant-numeric: tabular-nums; }
+.diff { font-weight: 600; }
+.diff.short { color: var(--bad); }
+.diff.over { color: var(--flag); }
+.diff.even { color: var(--accent); }
+dialog { border: 0; border-radius: 14px; padding: 16px; width: min(94vw, 520px); max-height: 92vh; background: var(--surface); color: var(--fg); }
+dialog::backdrop { background: rgba(10, 12, 24, .7); }
+dialog[open] { display: flex; flex-direction: column; gap: 12px; }
+dialog h2 { font-size: 20px; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+label.f input, label.f select, label.f textarea { color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; font-size: 15px; width: 100%; }
+label.f textarea { min-height: 220px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="band gut"><div class="inner">
+  <div class="head">
+    <div>
+      <h1>Count Prep</h1>
+      <p id="sub">Get the store ready, then count the Jibbitz.</p>
+    </div>
+    <button class="gear" type="button" id="setbtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab-prep" aria-selected="true">Prep</button>
+    <button type="button" role="tab" id="tab-jib" aria-selected="false">Jibbitz</button>
+  </div>
+  <div class="totals" id="totals"></div>
+</div></div>
+
+<main class="gut"><div class="inner">
+  <!-- ---------- prep ---------- -->
+  <section class="view" id="v-prep">
+    <div class="panel">
+      <h2>Prep checklist <small id="prepn"></small></h2>
+      <div class="bar"><i id="prepbar"></i></div>
+      <p class="foot">A starter list. Tick things off as you go, add your store's own jobs to any area, and remove what doesn't apply. It stays on this phone.</p>
+    </div>
+    <div id="areas" class="view"></div>
+    <div class="panel">
+      <h2>Add an area</h2>
+      <div class="add"><input id="newarea" placeholder="e.g. Clearance wall, Kids room" enterkeyhint="done"><button class="btn" type="button" id="addarea">Add</button></div>
+    </div>
+    <div class="acts">
+      <button class="btn" type="button" id="untick">Untick everything</button>
+      <button class="btn" type="button" id="restore">Restore the starter list</button>
+    </div>
+  </section>
+
+  <!-- ---------- jibbitz ---------- -->
+  <section class="view" id="v-jib" hidden>
+    <section class="panel live" id="pc" hidden>
+      <h2 id="pct">Count with photos</h2>
+      <p class="note" id="pctip"><strong>For an exact count:</strong> take the packs off one peg, spread them flat on the counter face up, not overlapping, and photograph them. Packs hanging on a peg hide the ones behind, so a photo of a full peg will come up short.</p>
+      <p id="pcm"></p>
+      <div class="thumbs" id="pcthumbs" hidden></div>
+      <div class="acts" id="pcpick">
+        <button class="btn pri" type="button" id="pccam">Take a photo</button>
+        <button class="btn" type="button" id="pcfiles">Choose photos</button>
+      </div>
+      <ul class="found" id="pcfound" hidden></ul>
+      <datalist id="names"></datalist>
+      <div class="acts">
+        <button class="btn pri" type="button" id="pcgo" hidden>Count them</button>
+        <button class="btn pri" type="button" id="pcadd" hidden>Add to section</button>
+        <button class="btn" type="button" id="pcstop" hidden>Stop</button>
+        <button class="btn" type="button" id="pcagain" hidden>Count again</button>
+        <button class="btn" type="button" id="pckey" hidden>Add my Claude key</button>
+        <button class="btn" type="button" id="pcx">Close</button>
+      </div>
+    </section>
+
+    <div class="panel">
+      <h2>System count <small>optional</small></h2>
+      <div class="add"><input id="expect" type="number" inputmode="numeric" min="0" placeholder="What the store's report says it should be"></div>
+      <p class="foot" id="diff">Enter the on-hand number from the store's report to see how far off the count is.</p>
+    </div>
+
+    <p class="panel foot" id="jibempty">Add a section for each place Jibbitz are kept: each spinner, the wall pegs, the backstock bin. Count one section at a time, by tapping + or from photos, and tick it off when it's done.</p>
+    <div id="secs" class="view"></div>
+
+    <div class="panel">
+      <h2>Add a section</h2>
+      <div class="add"><input id="newsec" placeholder="e.g. Spinner 1, Wall pegs, Backstock" enterkeyhint="done"><button class="btn pri" type="button" id="addsec">Add</button></div>
+    </div>
+
+    <details class="panel all" id="all" hidden>
+      <summary id="allt">All designs</summary>
+      <ul class="alllist" id="alllist"></ul>
+    </details>
+
+    <div class="acts">
+      <button class="btn" type="button" id="share">Share the count</button>
+      <button class="btn danger" type="button" id="clearjib">Clear the count</button>
+    </div>
+  </section>
+</div></main>
+
+<input type="file" accept="image/*" capture="environment" id="camin" hidden>
+<input type="file" accept="image/*" multiple id="filein" hidden>
+
+<dialog id="sharedlg" aria-labelledby="sht">
+  <h2 id="sht">The count</h2>
+  <label class="f">Copy this into a text, an email or a note
+    <textarea id="sharetext" readonly></textarea>
+  </label>
+  <p class="foot" id="sharemsg" role="status"></p>
+  <div class="acts end"><button class="btn" type="button" id="sharecopy">Copy</button><button class="btn pri" type="button" id="sharex">Done</button></div>
+</dialog>
+
+<dialog id="settings" aria-labelledby="st">
+  <h2 id="st">Settings</h2>
+  <label class="f">Claude API key
+    <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+  </label>
+  <p class="foot">Only counting from photos uses Claude; the checklist and tapping + work without a key. Get a key at console.anthropic.com → API keys. It stays on this phone and is sent only to Anthropic. Each photo count costs a few cents.</p>
+  <label class="f">Model
+    <select id="model">
+      <option value="claude-opus-5-5">Claude Opus 5.5 (most accurate)</option>
+      <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (faster, cheaper)</option>
+      <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option>
+    </select>
+  </label>
+  <div class="acts"><button class="btn" type="button" id="keytest">Test the key</button><span class="foot" id="keymsg" role="status"></span></div>
+  <div class="acts end"><button class="btn pri" type="button" id="setsave">Done</button></div>
+</dialog>
+
+<script src="vendor/anthropic-sdk.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
