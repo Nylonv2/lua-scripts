@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#26307a">
+<title>Delivery Room Plan</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<style>
+:root {
+  --bg: #eef0f6; --surface: #ffffff; --fg: #161a2b; --muted: #5a6078; --line: #d6d9e6;
+  --band: #26307a; --band-fg: #ffffff; --band-muted: #c3c8ef;
+  --accent: #3a47c4; --accent-soft: #e3e6fb; --flag: #8a5200; --flag-soft: #ffe9bf; --bad: #b3261e;
+  --display: "Archivo", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0f1120; --surface: #191c30; --fg: #e9ebf7; --muted: #a0a6c2; --line: #2d3150;
+  --band: #1c2262; --band-muted: #b3b9ea;
+  --accent: #9aa5ff; --accent-soft: #262c5c; --flag: #ffc766; --flag-soft: #40300d; --bad: #ff8a80; color-scheme: dark; } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--body); -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.gut { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+.inner { max-width: 960px; margin: 0 auto; }
+.band { background: var(--band); color: var(--band-fg); padding-top: calc(env(safe-area-inset-top) + 22px); padding-bottom: 20px; }
+.band .inner { display: flex; flex-direction: column; gap: 16px; }
+.head { display: flex; align-items: flex-start; gap: 12px; }
+.head > div { flex: 1; min-width: 0; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.1; margin: 0; }
+.band p { margin: 4px 0 0; color: var(--band-muted); }
+.gear { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: #fff; display: grid; place-items: center; }
+.gear svg { width: 22px; height: 22px; }
+.scanbtn { align-self: flex-start; font-weight: 700; font-size: 16px; color: var(--band); background: #fff; border: 0; border-radius: 12px; padding: 12px 18px; }
+.scanbtn:disabled { opacity: .6; }
+.totals { display: flex; flex-wrap: wrap; gap: 10px 28px; }
+.totals b { display: block; font-family: var(--display); font-weight: 800; font-size: 32px; line-height: 1; font-variant-numeric: tabular-nums; }
+.totals span { color: var(--band-muted); font-size: 12.5px; }
+main { padding-top: 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 40px); }
+main .inner { display: flex; flex-direction: column; gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.panel.scan { border: 2px solid var(--accent); }
+.panel p { margin: 0; }
+.note { background: var(--flag-soft); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+.note strong { color: var(--flag); }
+h2 { font-family: var(--display); font-weight: 700; font-size: 18px; margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+h2 small { font-family: var(--body); font-weight: 400; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.most ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.go { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.go > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.go > b { flex: none; min-width: 44px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; background: var(--accent); color: var(--surface); border-radius: 8px; padding: 2px 6px; }
+.go small { color: var(--muted); font-size: 12.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 13.5px; font-weight: 500; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; }
+.chip b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip[aria-pressed="true"] b { color: var(--surface); }
+#depts { display: flex; flex-direction: column; gap: 22px; }
+.dept { display: flex; flex-direction: column; gap: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card.done { opacity: .6; }
+.card.done .style { text-decoration: line-through; }
+.card.hit { outline: 3px solid var(--accent); outline-offset: 2px; }
+.top { display: flex; gap: 10px; align-items: flex-start; }
+.sw { flex: none; width: 60px; height: 60px; border-radius: 10px; background: var(--bg); padding: 4px; border: 0; position: relative; overflow: hidden; }
+.sw.has { width: 84px; height: 84px; padding: 0; }
+.sw img, .sw svg { display: block; width: 100%; height: 100%; }
+.sw img { object-fit: cover; }
+.sw .up { stroke: var(--muted); stroke-width: 1.2; stroke-linejoin: round; }
+.sw .sole { fill: var(--muted); }
+.sw .hole { fill: var(--bg); }
+.plus { position: absolute; right: 3px; bottom: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); color: var(--surface); font-size: 14px; font-weight: 600; line-height: 18px; text-align: center; }
+.who { flex: 1; min-width: 0; }
+.brand { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.style { font-family: var(--display); font-weight: 700; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.badge { flex: none; text-align: center; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 4px 10px; min-width: 52px; }
+.badge b { display: block; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.badge span { font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; }
+.badge.big { background: var(--accent); color: var(--surface); }
+.counts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.new { background: var(--flag-soft); color: var(--flag); font-weight: 600; font-size: 12px; border-radius: 4px; padding: 0 6px; }
+.bot { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.bot label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.bot input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.photo { color: var(--accent); font-weight: 600; font-size: 13.5px; text-decoration: none; white-space: nowrap; }
+.foot { color: var(--muted); font-size: 13px; margin: 0; }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.acts.end { justify-content: flex-end; }
+.btn { font-size: 14px; font-weight: 600; border-radius: 9px; padding: 9px 14px; border: 1px solid var(--line); background: var(--surface); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.danger { color: var(--bad); }
+.err { color: var(--bad); }
+dialog { border: 0; border-radius: 14px; padding: 16px; width: min(94vw, 520px); max-height: 92vh; background: var(--surface); color: var(--fg); }
+dialog::backdrop { background: rgba(10, 12, 24, .7); }
+dialog[open] { display: flex; flex-direction: column; gap: 12px; }
+dialog h2 { font-size: 20px; }
+dialog img { display: block; width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; background: var(--bg); }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+label.f input, label.f select, label.f textarea { color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; font-size: 15px; width: 100%; }
+label.f textarea { min-height: 110px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+.empty { text-align: center; padding: 26px 16px; }
+.empty b { font-family: var(--display); font-size: 19px; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="band gut"><div class="inner">
+  <div class="head">
+    <div>
+      <h1>Delivery Room Plan</h1>
+      <p id="sub">Scan a delivery to see what needs room.</p>
+    </div>
+    <button class="gear" type="button" id="setbtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+  <button class="scanbtn" type="button" id="scanbtn">Scan a delivery</button>
+  <div class="totals" id="totals" hidden></div>
+</div></div>
+
+<main class="gut"><div class="inner">
+  <section class="panel scan" id="scan" role="status" hidden>
+    <h2>Scan a delivery</h2>
+    <p id="scanm"></p>
+    <div class="acts">
+      <button class="btn pri" type="button" id="scanuse" hidden>Use this delivery</button>
+      <button class="btn" type="button" id="scanagain" hidden>Pick photos again</button>
+      <button class="btn" type="button" id="scankey" hidden>Add my Claude key</button>
+      <button class="btn" type="button" id="scanstop" hidden>Stop</button>
+      <button class="btn" type="button" id="scanx">Close</button>
+    </div>
+  </section>
+  <section class="panel empty" id="empty">
+    <b>No delivery yet</b>
+    <p class="foot">Take photos of the Delivery Notifications screen, on the SKU Summary tab. Scroll and shoot until every row is covered, then tap “Scan a delivery” and pick them (up to 8). Claude reads the rows and builds your room plan.</p>
+  </section>
+  <div id="plan" hidden style="display:contents">
+    <div class="note"><strong>How the counts are read.</strong> The two “Q…” columns are taken as units arriving, then units already in the store. Rows marked “Check count” had a number the scan could not read.</div>
+    <section class="panel most"><h2>Needs the most room</h2><ol id="top"></ol></section>
+    <div class="chips" id="chips"></div>
+    <p class="foot err" id="pstat" role="status" hidden></p>
+    <div id="depts"></div>
+    <p class="foot">Tap a shoe drawing with a “+” to add your own photo of that shoe. Tap a photo to see it larger, replace it or remove it. “See photos” opens an image search for that shoe. Tick a card once you have made room. “…” marks text that was cut off on the screen. Everything is saved on this phone only.</p>
+  </div>
+</div></main>
+
+<input type="file" accept="image/*" id="file" hidden>
+<input type="file" accept="image/*" id="scanfile" multiple hidden>
+
+<dialog id="view" aria-labelledby="vt">
+  <h2 id="vt"></h2>
+  <img id="vi" alt="">
+  <div class="acts end"><button class="btn danger" type="button" id="vrm">Remove</button><button class="btn" type="button" id="vrp">Replace</button><button class="btn pri" type="button" id="vcl">Close</button></div>
+</dialog>
+
+<dialog id="settings" aria-labelledby="st">
+  <h2 id="st">Settings</h2>
+  <label class="f">Claude API key
+    <input id="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+  </label>
+  <p class="foot">Photos are read with your own Claude key. Get one at console.anthropic.com → API keys. The key stays on this phone and is sent only to Anthropic. Each scan costs a few cents.</p>
+  <label class="f">Model
+    <select id="model">
+      <option value="claude-opus-5-5">Claude Opus 5.5 (most accurate)</option>
+      <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (faster, cheaper)</option>
+      <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option>
+    </select>
+  </label>
+  <div class="acts"><button class="btn" type="button" id="keytest">Test the key</button><span class="foot" id="keymsg" role="status"></span></div>
+  <details>
+    <summary class="foot">Paste a delivery list instead</summary>
+    <label class="f" style="margin-top:8px">One shoe per line: Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store
+      <textarea id="paste" spellcheck="false"></textarea>
+    </label>
+    <div class="acts" style="margin-top:8px"><button class="btn" type="button" id="pastego">Load this list</button><span class="foot" id="pastemsg" role="status"></span></div>
+  </details>
+  <div class="acts end"><button class="btn danger" type="button" id="wipe">Clear the delivery</button><button class="btn pri" type="button" id="setsave">Done</button></div>
+</dialog>
+
+<script src="vendor/anthropic-sdk.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
