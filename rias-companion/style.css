@@ -1816,3 +1816,48 @@ dialog.sheet .sheet-actions { bottom: calc(-1 * (env(safe-area-inset-bottom) + 1
 /* Advances note: a quiet callout instead of a block of orange text */
 .flow-borrowed { text-align: left; font-size: .8rem; line-height: 1.4; color: var(--muted); padding: 10px 12px; border-radius: 10px; background: rgba(255, 149, 0, .12); border-left: 3px solid #ff9500; }
 .flow-pay { font-size: .8rem; line-height: 1.4; }
+/* ---------- Delivery room plan ---------- */
+#view-delivery #delivery-scan { width: 100%; margin: 6px 0 10px; }
+.dl-empty { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.dl-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; padding: 16px; margin-bottom: 6px; }
+.dl-totals b { display: block; font-size: 1.7rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.dl-totals span { font-size: .78rem; color: var(--muted); }
+.dl-go { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+.dl-n { flex: none; min-width: 42px; text-align: center; font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; background: var(--ios-tint, var(--crimson)); border-radius: 9px; padding: 3px 6px; }
+.dl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; }
+.dl-chip { font: inherit; font-size: .85rem; font-weight: 500; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+.dl-chip b { color: var(--ios-tint, var(--gold)); font-variant-numeric: tabular-nums; }
+.dl-chip.active { background: var(--ios-tint, var(--crimson)); border-color: transparent; color: #fff; }
+.dl-chip.active b { color: #fff; }
+.dl-gmeta { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.dl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.dl-card { padding: 12px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.dl-card.done { opacity: .55; }
+.dl-card.done .dl-style { text-decoration: line-through; }
+.dl-card.hit { outline: 3px solid var(--ios-tint, var(--gold)); outline-offset: 2px; }
+.dl-top { display: flex; gap: 10px; align-items: flex-start; }
+.dl-sw { flex: none; width: 60px; height: 60px; border-radius: 10px; background: rgba(127, 127, 127, .14); padding: 4px; border: 0; position: relative; overflow: hidden; }
+.dl-sw.has { width: 84px; height: 84px; padding: 0; }
+.dl-sw img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.dl-sw svg { display: block; width: 100%; height: 100%; }
+.dl-up { stroke: var(--muted); stroke-width: 1.2; stroke-linejoin: round; }
+.dl-sole { fill: var(--muted); }
+.dl-hole { fill: var(--panel); }
+.dl-plus { position: absolute; right: 3px; bottom: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--ios-tint, var(--crimson)); color: #fff; font-size: 14px; font-weight: 600; line-height: 18px; text-align: center; }
+.dl-who { flex: 1; min-width: 0; }
+.dl-brand { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dl-style { font-weight: 650; font-size: 1.05rem; line-height: 1.2; overflow-wrap: anywhere; }
+.dl-meta { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
+.dl-badge { flex: none; text-align: center; border-radius: 10px; padding: 4px 10px; min-width: 52px; background: rgba(127, 127, 127, .14); }
+.dl-badge b { display: block; font-size: 1.45rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.dl-badge span { font-size: .62rem; letter-spacing: .05em; text-transform: uppercase; }
+.dl-badge.big { background: var(--ios-tint, var(--crimson)); color: #fff; }
+.dl-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.dl-flag { background: rgba(255, 149, 0, .18); color: #c77700; font-weight: 600; font-size: .74rem; border-radius: 4px; padding: 0 6px; }
+.dl-bot { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.dl-bot label { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: .88rem; }
+.dl-bot input { width: 20px; height: 20px; margin: 0; }
+.dl-view { width: min(92vw, 520px); padding: 12px; }
+.dl-view[open] { display: flex; flex-direction: column; gap: 10px; }
+.dl-view img { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 8px; }
+.dl-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }

@@ -193,6 +193,7 @@
       && !(sh.skip || []).includes(k) && !oneOffs.some((o) => job(o) === job(sh))));
   }
   const overnight = (sh) => toMin(sh.end) <= toMin(sh.start);
+  let Delivery = null; // delivery.js: the shoe-delivery room plan (created further down)
   let Bills = null; // bills.js: pay-by and cancel-before-it-renews tasks (created further down)
   let Planner = null; // planner.js: planned to-dos and goal sessions are items too (created further down)
   function virtualItems(d) {
@@ -1585,10 +1586,11 @@
     if (next && next.hidden) { next.classList.remove('view-enter'); void next.offsetWidth; next.classList.add('view-enter'); }
     for (const v of document.querySelectorAll('.view')) v.hidden = v.id !== `view-${view}`;
     if (view === 'food' || view === 'work') trackPane = view;
-    const tab = { work: 'food', biz: 'more', settings: 'more', bills: 'more' }[view] || view; // the tab each screen lives under
+    const tab = { work: 'food', biz: 'more', settings: 'more', bills: 'more', delivery: 'more' }[view] || view; // the tab each screen lives under
     for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === tab);
     if (view === 'today') renderToday();
     if (view === 'bills' && Bills) Bills.render();
+    if (view === 'delivery' && Delivery) Delivery.render();
     if (view === 'settings') fillSettings();
     if (view === 'food') Food.render();
     if (view === 'home') renderHome();
@@ -1616,6 +1618,7 @@
     const m = b.dataset.more;
     if (m === 'clients') { show('biz'); setBizPane('clients'); }
     else if (m === 'bills') { show('bills'); }
+    else if (m === 'delivery') { show('delivery'); }
     else if (m === 'translate') { show('biz'); setBizPane('tr'); }
     else { show('settings'); openSetCat(m === 'settings' ? null : m); }
   });
@@ -1639,6 +1642,11 @@
         cmd.forEach((line, i) => setTimeout(() => addMessage('rias', line), HEADLESS ? 30 : 350 + i * 700));
         return;
       }
+    }
+    if (!photo && Delivery && Delivery.looksLikeList(text)) {
+      const line = Delivery.importText(text);
+      setTimeout(() => addMessage('rias', say(line)), HEADLESS ? 30 : 400);
+      return;
     }
     // A pasted money list loads straight into Money.
     if (!photo && Bills && Bills.looksLikeList(text)) {
@@ -1932,6 +1940,7 @@
       `Work shifts, next 7 days: ${Work.summary()}.`,
       Planner ? Planner.summary() : '',
       Bills ? Bills.summary() : '',
+      Delivery ? Delivery.summary() : '',
       `Food diary today: ${Food.summary()}`,
       Biz && Biz.summary() ? Biz.summary() : '',
       likes.length ? `Things the user has said they like: ${likes.join(', ')}.` : '',
@@ -2271,6 +2280,11 @@
     sendEmail: (opts) => Assistant.email(opts),
   });
   const Translator = HEADLESS ? null : window.createTranslator({ ...modCtx, ai: AI });
+  Delivery = HEADLESS ? null : window.createDelivery({
+    state, save, $, ask: (t) => ask(t), aiOn: () => AI.enabled(), readDelivery: (images) => AI.readDelivery(images),
+    shrink: (file, max) => shrinkPhoto(file, max).then((p) => p.full),
+    openUrl: (url) => { const N = window.RiasNative; if (N && N.openUrl) N.openUrl(url); else window.open(url, '_blank', 'noopener'); },
+  });
   // Assistant tab: the Clients / Translate switch at the top.
   let bizPane = 'clients';
   function setBizPane(p) {
@@ -2536,9 +2550,17 @@
     showToast({ text: 'Your week is planned. Tap a day to see it.' });
   }
   $('#bills-back').addEventListener('click', () => show('more'));
+  $('#delivery-back').addEventListener('click', () => show('more'));
   // Pasting a money list into the chat box (a one-line box would squash it): load it right away.
   $('#say').addEventListener('paste', (e) => {
     const t = (e.clipboardData || window.clipboardData || { getData: () => '' }).getData('text');
+    if (Delivery && Delivery.looksLikeList(t)) {
+      e.preventDefault();
+      addMessage('me', '(pasted a delivery list)');
+      const line = Delivery.importText(t);
+      setTimeout(() => addMessage('rias', say(line)), 400);
+      return;
+    }
     if (!Bills || !Bills.looksLikeList(t)) return;
     e.preventDefault();
     addMessage('me', `(pasted a money list, ${t.split(/\n+/).filter((l) => l.includes('|')).length} lines)`);
@@ -2601,6 +2623,13 @@
     }
     const text = String(item.text || '').trim();
     if (!text) return;
+    // A delivery list ("DELIVERY" then one shoe per line) loads into the delivery room plan.
+    if (Delivery && Delivery.looksLikeList(text)) {
+      const line = Delivery.importText(text);
+      show('delivery');
+      addMessage('rias', line); showToast({ text: line });
+      return;
+    }
     // A money list (bills | amounts | dates…), e.g. the one Claude made from your email: load it all at once.
     if (Bills && Bills.looksLikeList(text)) {
       const line = Bills.importShared(text);

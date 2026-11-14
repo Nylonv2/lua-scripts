@@ -495,12 +495,34 @@
         </div>
       </section>
       <!-- More: the tools and settings that aren't needed every day -->
+      <section class="view pad" id="view-delivery" hidden>
+        <button type="button" class="day-back" id="delivery-back">‹ More</button>
+        <h1 class="page-title">Delivery room plan</h1>
+        <p class="muted small" id="delivery-sub"></p>
+        <button type="button" class="btn-primary" id="delivery-scan">Scan a delivery</button>
+        <p class="muted small" id="delivery-status" role="status" hidden></p>
+        <div class="card dl-empty" id="delivery-empty">
+          <b>No delivery yet</b>
+          <p class="muted small">Take photos of the Delivery Notifications screen (SKU Summary tab). Scroll and shoot until every row is covered, up to 6 photos. She reads them and builds the list: what's arriving, what you already have, and what needs the most room.</p>
+        </div>
+        <div id="delivery-main" hidden>
+          <div class="card dl-totals" id="delivery-totals"></div>
+          <div class="group-title"><span>Needs the most room</span></div>
+          <div class="list-card" id="delivery-top"></div>
+          <div class="dl-chips" id="delivery-chips"></div>
+          <div id="delivery-body"></div>
+          <p class="muted small">The two “Q…” columns on the delivery screen are read as units arriving, then units already in the store. “Check count” means a number couldn't be read. Tap a shoe drawing to add your own photo; tick a card once you've made room. “…” marks text that was cut off on the screen.</p>
+        </div>
+        <input type="file" accept="image/*" id="delivery-file" multiple hidden>
+        <input type="file" accept="image/*" id="delivery-photo-file" hidden>
+      </section>
       <section class="view pad" id="view-more" hidden>
         <h1 class="page-title more-title">More</h1>
         <p class="more-label">Tools</p>
         <div class="list-card more-list">
           <button type="button" class="more-row" data-more="clients"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-biz"/></svg></span><span class="more-txt"><b>Find clients</b><small>Search for clients and write cold emails</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="bills"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span><span class="more-txt"><b>Money</b><small>In vs. out each month, spending, loans, bills and subscriptions</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
+          <button type="button" class="more-row" data-more="delivery"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-work"/></svg></span><span class="more-txt"><b>Delivery room plan</b><small>Scan a delivery, see what needs the most room</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
           <button type="button" class="more-row" data-more="translate"><span class="more-ic"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="more-txt"><b>Live translator</b><small>Talk face to face in two languages</small></span><span class="ri-chev"><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></span></button>
         </div>
         <p class="more-label">App</p>
@@ -1558,6 +1580,11 @@
   </div>
 </dialog>
 
+  <dialog id="delivery-view" class="dl-view">
+    <b id="delivery-view-title"></b>
+    <img id="delivery-view-img" alt="">
+    <div class="dl-acts"><button type="button" id="delivery-view-remove">Remove</button><button type="button" id="delivery-view-replace">Replace</button><button type="button" class="btn-primary sm" id="delivery-view-close">Close</button></div>
+  </dialog>
   <script src="perf.js"></script>
   <script src="dialogue.js"></script>
   <script src="talk.js"></script>
@@ -1566,6 +1593,7 @@
   <script src="work.js"></script>
   <script src="planner.js"></script>
   <script src="bills.js"></script>
+  <script src="delivery.js"></script>
   <script src="vendor/anthropic-sdk.js"></script>
   <script src="ai.js"></script>
   <script src="rias-avatar.js"></script>

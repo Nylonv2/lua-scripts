@@ -103,6 +103,15 @@ put it on today*.
 what's due in the next 7 days, ahead-or-behind by month, notification watching), **Spending** (by category, plus all
 activity) and **Bills** (bills & loans, subscriptions, cancelled). **Loading a list takes one step:** share it to Rias
 from any app, or paste it into the chat box, and everything loads (bills, pay, purchases), with duplicates skipped.
+**Delivery room plan (11.0).** More → Tools → *Delivery room plan*, for a shoe-store delivery. Tap *Scan a
+delivery* and pick up to 6 photos of the Delivery Notifications screen (SKU Summary tab); her AI (your own Claude
+or Gemini key) reads every row and builds the list: units arriving, already in store and total after, the five
+styles that need the most room, department filters, and a card per SKU with a *Room made* tick. Rows whose count
+couldn't be read are marked *Check count*; styles with none in store are flagged *New, needs a spot*. Tap a shoe
+drawing to add your own photo (kept on the phone), or *See photos* for an image search. A list can also be shared
+or pasted in: a first line `DELIVERY`, then `Dept | SKU | Brand | Style | Pattern | Color | Type | arriving | in store`
+per line. Rias knows the delivery too, so "what's coming on the truck?" works in chat.
+
 **Faster and tidier (10.9).** Measured on a slowed-down phone with six months of data: ticking a task went from
 about 117 ms to 28 ms, opening Chat from 83 to 48, opening Money from 62 to 36. What changed: date, time and money
 formatting reuse one formatter instead of building a new one per call (`perf.js`); Chat builds only the latest 50

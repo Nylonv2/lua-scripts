@@ -1021,5 +1021,48 @@ ${text}`;
     }
   }
 
-  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, translate, planDay };
+  const DELIVERY_PROMPT = `These images are photos of a shoe store's "Delivery Notifications" screen, on its "SKU Summary" tab. They may be several photos of the same table scrolled to different places, so some rows appear in more than one photo.
+The table columns, left to right, are: Department, SKU, Brand, Style, Pattern, Color, Cat., P..., a first Q... column (units arriving), a second Q... column (units already in the store), for Deliv., In Trans., Billed, Label.
+Read every row of the table in every photo. A row with the same SKU in more than one photo is one row: include it once. Copy the text exactly as shown. Where text is cut off with "...", keep the visible part and end it with "…". Do not guess or complete cut-off text.
+Reply with only a JSON array, one object per row, in this shape:
+[{"dept":"WOMENS BOOTS","sku":"304691","brand":"BJORNDAL","style":"EMMETT","pattern":"JYW24-R58…","color":"BROWN","cat":"TALL","arriving":2,"onHand":19}]
+"arriving" is the first Q column and "onHand" is the second, as whole numbers. If a number cannot be read, use null. If the images do not show this screen, reply with [].`;
+  /** images: base64 JPEGs of the delivery screen → { rows: [...] } or { error }. */
+  async function readDelivery(images) {
+    if (!enabled()) return { error: 'Reading photos needs her AI turned on (Settings → Rias\'s mind).' };
+    try {
+      let out = '';
+      if (provider() === 'gemini') {
+        const model = await geminiModel();
+        const data = await gemini(`models/${model}:generateContent`, {
+          contents: [{ role: 'user', parts: [...images.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } })), { text: DELIVERY_PROMPT }] }],
+          generationConfig: { maxOutputTokens: 16384 },
+        });
+        out = ((((data.candidates || [])[0] || {}).content || {}).parts || []).filter((p) => p.text && !p.thought).map((p) => p.text).join('');
+      } else {
+        const api = getClient();
+        if (!api) return { error: 'Add your Claude key first (Settings → Rias\'s mind).' };
+        const model = ctx.state.ai.model in MODELS ? ctx.state.ai.model : 'claude-opus-5-5';
+        // Streamed: a long table can take a while, and streaming keeps the connection from timing out.
+        const res = await api.messages.stream({
+          model, max_tokens: 16000, thinking: { type: 'adaptive' }, output_config: { effort: 'medium' },
+          messages: [{ role: 'user', content: [...images.map((d) => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } })), { type: 'text', text: DELIVERY_PROMPT }] }],
+        }, { timeout: 180000 }).finalMessage();
+        if (ctx.onUsage) ctx.onUsage(res.model || model, res.usage);
+        if (res.stop_reason === 'refusal') return { error: 'The AI declined to read those photos. Try clearer photos of the delivery screen.' };
+        if (res.stop_reason === 'max_tokens') return { error: 'That delivery was too long to read in one go. Scan it in two halves.' };
+        out = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+      }
+      const m = out.match(/\[[\s\S]*\]/);
+      if (!m) return { error: 'The photos were read but the answer came back garbled. Try again.' };
+      let rows;
+      try { rows = JSON.parse(m[0]); } catch { return { error: 'The photos were read but the answer came back garbled. Try again.' }; }
+      return { rows };
+    } catch (e) {
+      const s = e && e.status;
+      return { error: s === 429 ? 'The AI is busy or you\'ve hit a usage limit. Wait a bit, then try again.' : s === 401 ? 'Your AI key was rejected. Check it in Settings → Rias\'s mind.' : s === 413 ? 'Those photos are too large together. Try fewer photos.' : 'The photos couldn\'t be read just now. Check your internet and try again.' };
+    }
+  }
+
+  return { enabled, reply, test, provider, estimate, findClients, writeOutreach, translate, planDay, readDelivery };
 };

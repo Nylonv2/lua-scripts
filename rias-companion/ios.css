@@ -367,3 +367,5 @@ html:not([data-scene]) .set-tile[data-cat="mind"] .set-ic { background: #5856d6;
 html:not([data-scene]) .set-tile[data-cat="assist"] .set-ic { background: var(--ios-green); }
 html:not([data-scene]) .set-tile[data-cat="data"] .set-ic { background: #8e8e93; }
 html:not([data-scene]) .fab.extended.compact { padding: 0; width: 50px; min-width: 50px; }
+html:not([data-scene]) .more-list .more-row[data-more="delivery"] .more-ic { background: var(--ios-orange); }
+html:not([data-scene]) .more-list .more-row[data-more="translate"] .more-ic { background: var(--ios-tint); }
